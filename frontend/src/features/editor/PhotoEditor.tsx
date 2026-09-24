@@ -6,6 +6,8 @@ import { DropZone } from "@/features/image-processing/DropZone";
 import { baseName } from "@/features/image-processing/format";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { cn } from "@/lib/utils/cn";
+import { formatDimensions } from "@/features/image-processing/format";
+import { StatusRail } from "@/features/image-processing/StatusRail";
 import { useImageStore } from "@/store/useImageStore";
 import { AdjustPanel } from "./AdjustPanel";
 import { CropControls } from "./CropControls";
@@ -167,6 +169,14 @@ export function PhotoEditor({ mode }: PhotoEditorProps) {
                     )}
                 </div>
             </div>
+
+            {/* Nothing here is uploaded, so the rail says so explicitly rather than reusing the server wording. */}
+            <StatusRail
+                tone={!original || decodeError ? (decodeError ? "error" : "idle") : edited ? "active" : "done"}
+                label={!original ? t.workspace.state.idle : decodeError ? t.workspace.state.error : edited ? t.editor.edited : t.workspace.state.selected}
+                specs={original && <span>{formatDimensions(original.dimensions)}</span>}
+                privacy={t.workspace.privacyLocal}
+            />
 
             {!original || decodeError ? (
                 <div className="studio-stage flex h-[min(64svh,720px)] min-h-[24rem] flex-col items-center justify-center p-4 sm:p-8">

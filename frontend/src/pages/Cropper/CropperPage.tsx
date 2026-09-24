@@ -8,10 +8,11 @@ export function CropperPage() {
         <ToolPage
             name={t.pages.crop.name}
             badge={t.toolPage.browserTool}
+            hue="crop"
             guide={t.guides.crop}
             title={
                 <>
-                    {t.pages.crop.title} <span className="text-[var(--indigo)]">{t.pages.crop.accent}</span>
+                    {t.pages.crop.title} <span className="text-[var(--tool)]">{t.pages.crop.accent}</span>
                 </>
             }
             description={t.pages.crop.description}

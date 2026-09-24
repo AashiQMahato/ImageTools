@@ -122,7 +122,7 @@ export function ShowcaseSection() {
                                 <p className="text-md font-semibold text-primary">{copy.title}</p>
                                 <Link
                                     to={slide.href}
-                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--indigo-line)] bg-[var(--indigo-soft)] px-3 py-1 text-sm font-medium text-[var(--indigo)] transition-colors hover:bg-[var(--indigo-line)] outline-focus-ring focus-visible:outline-2"
+                                    className="inline-flex items-center gap-1 rounded-full border border-[var(--brand-line)] bg-[var(--brand-soft)] px-3 py-1 text-sm font-medium text-[var(--brand)] transition-colors hover:bg-[var(--brand-line)] outline-focus-ring focus-visible:outline-2"
                                 >
                                     {toolLabel} <ArrowRight className="size-3.5" aria-hidden />
                                 </Link>
@@ -142,7 +142,7 @@ export function ShowcaseSection() {
                                             onClick={() => go(i)}
                                             className={cn(
                                                 "h-2 cursor-pointer rounded-full transition-[width,background-color] duration-500 ease-[var(--ease-spring)] outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2",
-                                                i === index ? "w-6 bg-[var(--indigo)]" : "w-2 bg-[var(--indigo-line)] hover:bg-[var(--indigo)]/50",
+                                                i === index ? "w-6 bg-[var(--brand)]" : "w-2 bg-[var(--brand-line)] hover:bg-[var(--brand)]/50",
                                             )}
                                         />
                                     ))}

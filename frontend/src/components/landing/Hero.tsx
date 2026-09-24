@@ -54,7 +54,7 @@ export function Hero() {
                     <ul className="animate-enter mt-8 flex flex-wrap gap-x-6 gap-y-2 [--i:6]">
                         {t.hero.points.map((point) => (
                             <li key={point} className="flex items-center gap-2 text-sm font-medium text-secondary">
-                                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--indigo-soft)] text-[var(--indigo)]">
+                                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
                                     <Check className="size-3" strokeWidth={3} aria-hidden />
                                 </span>
                                 {point}

@@ -23,7 +23,7 @@ export function WhySection() {
                         const Icon = ICONS[index] ?? Timer;
                         return (
                         <div key={title} className="reveal card p-8" style={{ "--i": index + 3 } as CSSProperties}>
-                            <span className="flex size-12 items-center justify-center rounded-xl bg-[var(--indigo)] text-white shadow-[0_8px_20px_-8px_rgb(90_103_216/0.7)]">
+                            <span className="flex size-12 items-center justify-center rounded-xl bg-[var(--brand)] text-white shadow-[0_8px_20px_-8px_rgb(3_105_161/0.7)]">
                                 <Icon className="size-5.5" aria-hidden />
                             </span>
                             <h3 className="mt-6 text-xl font-semibold text-primary">{title}</h3>

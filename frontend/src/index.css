@@ -34,22 +34,22 @@
     --color-border-primary: #cbd5e0;
     --color-border-secondary: #e6e8f2;
 
-    --indigo: #5a67d8;
-    --indigo-strong: #4c51bf;
-    --indigo-soft: #eef0fd;
-    --indigo-line: rgb(90 103 216 / 0.22);
+    --brand: #0369a1;
+    --brand-strong: #075985;
+    --brand-soft: #e4f2fa;
+    --brand-line: rgb(3 105 161 / 0.22);
 
-    --color-bg-brand-solid: var(--indigo);
-    --color-bg-brand-solid_hover: var(--indigo-strong);
+    --color-bg-brand-solid: var(--brand);
+    --color-bg-brand-solid_hover: var(--brand-strong);
     --color-text-primary_on-brand: #ffffff;
 
-    --accent: var(--indigo);
-    --color-focus-ring: var(--indigo);
+    --accent: var(--brand);
+    --color-focus-ring: var(--brand);
 
     /* Cards: white, faint lavender hairline, soft indigo-tinted depth. */
     --card-bg: #ffffff;
-    --card-line: rgb(90 103 216 / 0.12);
-    --card-shadow: 0 1px 2px rgb(26 32 44 / 0.03), 0 24px 60px -28px rgb(90 103 216 / 0.28);
+    --card-line: rgb(3 105 161 / 0.13);
+    --card-shadow: 0 1px 2px rgb(26 32 44 / 0.03), 0 24px 60px -28px rgb(3 105 161 / 0.26);
 
     --checker-a: #ffffff;
     --checker-b: #eceef4;
@@ -77,17 +77,17 @@
     --color-border-primary: #343a4d;
     --color-border-secondary: #232736;
 
-    --indigo: #7f8cf5;
-    --indigo-strong: #6b78eb;
-    --indigo-soft: rgb(127 140 245 / 0.12);
-    --indigo-line: rgb(127 140 245 / 0.3);
+    --brand: #7dd3fc;
+    --brand-strong: #a5e4fd;
+    --brand-soft: rgb(125 211 252 / 0.13);
+    --brand-line: rgb(125 211 252 / 0.3);
 
-    --color-bg-brand-solid: #6573e6;
+    --color-bg-brand-solid: #0b74b0;
     --color-bg-brand-solid_hover: #7482f0;
     --color-text-primary_on-brand: #ffffff;
 
-    --accent: var(--indigo);
-    --color-focus-ring: var(--indigo);
+    --accent: var(--brand);
+    --color-focus-ring: var(--brand);
 
     --card-bg: #12141d;
     --card-line: rgb(255 255 255 / 0.07);
@@ -355,7 +355,7 @@
 :root {
     --studio-chrome: #ffffff;
     --studio-stage: #f6f7fb;
-    --studio-line: rgb(90 103 216 / 0.1);
+    --studio-line: rgb(3 105 161 / 0.11);
     --studio-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 30px 80px -40px rgb(0 0 0 / 0.28);
     --seg-track: rgb(118 118 128 / 0.12);
     --seg-thumb: #ffffff;
@@ -417,38 +417,46 @@
     display: inline-flex;
     align-items: center;
     border-radius: 9999px;
-    border: 1px solid var(--indigo-line);
-    background-color: var(--indigo-soft);
+    border: 1px solid var(--hue-line, var(--tool-line));
+    background-color: var(--hue-soft, var(--tool-soft));
     padding: 0.3rem 0.9rem;
     font-size: 0.8125rem;
     line-height: 1.25rem;
     font-weight: 500;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: var(--indigo);
+    color: var(--hue, var(--tool));
 }
 
 /* Primary call to action: indigo, with a soft light-catching gradient and glow. */
 @utility btn-primary {
-    background-image: linear-gradient(100deg, #5a67d8 0%, #6f7de6 55%, #93a6f6 100%);
+    background-image: linear-gradient(
+        100deg,
+        color-mix(in srgb, var(--tool-solid) 78%, black) 0%,
+        var(--tool-solid) 62%,
+        color-mix(in srgb, var(--tool-solid) 88%, white) 100%
+    );
     color: #ffffff;
-    box-shadow: 0 10px 30px -10px rgb(90 103 216 / 0.6);
+    box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--tool-solid) 60%, transparent);
     transition: box-shadow 250ms var(--ease-out), filter 250ms var(--ease-out), scale 150ms var(--ease-out);
 
     &:hover {
         filter: brightness(1.05);
-        box-shadow: 0 14px 34px -10px rgb(90 103 216 / 0.7);
+        box-shadow: 0 14px 34px -10px color-mix(in srgb, var(--tool-solid) 70%, transparent);
     }
 }
 
 /* Faint lavender glow behind the hero. */
 @utility hero-glow {
-    background-image: radial-gradient(60% 55% at 30% 0%, rgb(90 103 216 / 0.09), transparent 70%),
-        radial-gradient(40% 45% at 90% 10%, rgb(163 181 251 / 0.12), transparent 70%);
+    background-image:
+        radial-gradient(58% 52% at 22% -4%, color-mix(in srgb, var(--tool-solid) 16%, transparent), transparent 70%),
+        radial-gradient(44% 46% at 88% 6%, color-mix(in srgb, var(--a-teal-solid) 12%, transparent), transparent 70%),
+        radial-gradient(50% 40% at 55% 0%, color-mix(in srgb, var(--tool-solid) 7%, transparent), transparent 72%);
 
     :where(.dark-mode) & {
-        background-image: radial-gradient(60% 55% at 30% 0%, rgb(127 140 245 / 0.12), transparent 70%),
-            radial-gradient(40% 45% at 90% 10%, rgb(163 181 251 / 0.08), transparent 70%);
+        background-image:
+            radial-gradient(58% 52% at 22% -4%, color-mix(in srgb, var(--tool) 18%, transparent), transparent 70%),
+            radial-gradient(44% 46% at 88% 6%, color-mix(in srgb, var(--a-teal) 12%, transparent), transparent 70%);
     }
 }
 
@@ -466,4 +474,315 @@
 :lang(ne) .section-badge {
     letter-spacing: 0;
     text-transform: none;
+}
+
+/* ------------------------------------------------------------------ INSPECTOR (tool configuration)
+ * A quiet column of settings beside the stage. Every control here is backed by something the API
+ * actually accepts — no decorative switches. Feedback lives on the press, not on release.
+ */
+
+/* Thin instrument rail above the stage: what's happening on the left, the privacy promise on the right. */
+@utility status-rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 1rem;
+    border-bottom: 1px solid var(--studio-line);
+    background-color: color-mix(in srgb, var(--studio-stage) 55%, transparent);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+
+    @media (width >= 40rem) {
+        padding-inline: 1rem;
+    }
+}
+
+/* Live state dot. Inherits `color`, and only pulses while work is genuinely in flight. */
+@utility status-dot {
+    display: inline-block;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    background-color: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+@keyframes pulse-dot {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+@utility status-dot-live {
+    animation: pulse-dot 1.6s var(--ease-in-out) infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+/* A selectable setting. The whole tile is the target, so it clears 44×44 on touch. */
+@utility option-card {
+    position: relative;
+    display: flex;
+    width: 100%;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.875rem;
+    border: 1px solid var(--card-line);
+    background-color: var(--color-bg-primary);
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    transition:
+        border-color 200ms var(--ease-out),
+        background-color 200ms var(--ease-out),
+        box-shadow 200ms var(--ease-out),
+        scale 150ms var(--ease-out);
+
+    &:hover:not(:disabled) {
+        border-color: var(--tool-line);
+    }
+
+    /* Pressed state, not released state — the tile answers the finger immediately. */
+    &:active:not(:disabled) {
+        scale: 0.985;
+    }
+
+    &[aria-checked="true"] {
+        border-color: var(--tool);
+        background-color: var(--tool-soft);
+        box-shadow: 0 8px 20px -14px color-mix(in srgb, var(--tool-solid) 55%, transparent);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+    }
+}
+
+/* Label / value row for facts the server reports (input size, target size, engine, format). */
+@utility spec-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.4375rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+/* Numbered/iconed chip at the top of a guide card. */
+@utility guide-chip {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px solid var(--hue-line, var(--tool-line));
+    background-color: var(--hue-soft, var(--tool-soft));
+    color: var(--hue, var(--tool));
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ ACCENTS
+ * The brand stays indigo; around it sits a small categorical set. Colour is used to tell things
+ * apart — which tool you are in, which kind of guidance a card holds — never on its own: every
+ * coloured element also carries a label or an icon, so the meaning survives without the hue.
+ *
+ * Each hue is a triple: `base` (text and icons, ≥4.5:1 on both white and its own soft tint),
+ * `soft` (fill), `line` (hairline). `solid` is the one that takes white text as a button.
+ */
+:root {
+    --a-blue: #0369a1;
+    --a-blue-soft: #e4f2fa;
+    --a-blue-line: rgb(3 105 161 / 0.22);
+    --a-blue-solid: #0369a1;
+
+    --a-teal: #0f766e;
+    --a-teal-soft: #e4f5f3;
+    --a-teal-line: rgb(15 118 110 / 0.22);
+    --a-teal-solid: #0f766e;
+
+    --a-amber: #b45309;
+    --a-amber-soft: #fdf1e1;
+    --a-amber-line: rgb(180 83 9 / 0.22);
+    --a-amber-solid: #b45309;
+
+    --a-rose: #d1215a;
+    --a-rose-soft: #fdebf0;
+    --a-rose-line: rgb(209 33 90 / 0.2);
+    --a-rose-solid: #d1215a;
+
+    /* The current tool's identity. Pages set it through `data-tool`; this is the neutral default. */
+    --tool: var(--a-blue);
+    --tool-soft: var(--a-blue-soft);
+    --tool-line: var(--a-blue-line);
+    --tool-solid: var(--a-blue-solid);
+}
+
+.dark-mode {
+    --a-blue: #7dd3fc;
+    --a-blue-soft: rgb(125 211 252 / 0.13);
+    --a-blue-line: rgb(125 211 252 / 0.3);
+    --a-blue-solid: #0b74b0;
+
+    --a-teal: #5eead4;
+    --a-teal-soft: rgb(94 234 212 / 0.13);
+    --a-teal-line: rgb(94 234 212 / 0.28);
+    --a-teal-solid: #0d9488;
+
+    --a-amber: #fcd34d;
+    --a-amber-soft: rgb(252 211 77 / 0.13);
+    --a-amber-line: rgb(252 211 77 / 0.28);
+    --a-amber-solid: #b45309;
+
+    --a-rose: #fda4af;
+    --a-rose-soft: rgb(253 164 175 / 0.13);
+    --a-rose-line: rgb(253 164 175 / 0.28);
+    --a-rose-solid: #be185d;
+
+}
+
+/* Tool identity. Set on the page shell, inherited by everything inside it. */
+[data-tool="upscale"] {
+    --tool: var(--a-blue);
+    --tool-soft: var(--a-blue-soft);
+    --tool-line: var(--a-blue-line);
+    --tool-solid: var(--a-blue-solid);
+}
+
+[data-tool="remove-background"] {
+    --tool: var(--a-teal);
+    --tool-soft: var(--a-teal-soft);
+    --tool-line: var(--a-teal-line);
+    --tool-solid: var(--a-teal-solid);
+}
+
+[data-tool="crop"] {
+    --tool: var(--a-amber);
+    --tool-soft: var(--a-amber-soft);
+    --tool-line: var(--a-amber-line);
+    --tool-solid: var(--a-amber-solid);
+}
+
+[data-tool="editor"] {
+    --tool: var(--a-rose);
+    --tool-soft: var(--a-rose-soft);
+    --tool-line: var(--a-rose-line);
+    --tool-solid: var(--a-rose-solid);
+}
+
+/* Primary buttons and focus rings follow the tool, so the page reads as one colour story. */
+[data-tool] {
+    --color-bg-brand-solid: var(--tool-solid);
+    --color-bg-brand-solid_hover: color-mix(in srgb, var(--tool-solid) 86%, black);
+    --color-focus-ring: var(--tool-solid);
+    --accent: var(--tool);
+}
+
+/* A categorical hue for one element, independent of the page's tool. */
+@utility hue-blue {
+    --hue: var(--a-blue);
+    --hue-soft: var(--a-blue-soft);
+    --hue-line: var(--a-blue-line);
+}
+@utility hue-teal {
+    --hue: var(--a-teal);
+    --hue-soft: var(--a-teal-soft);
+    --hue-line: var(--a-teal-line);
+}
+@utility hue-amber {
+    --hue: var(--a-amber);
+    --hue-soft: var(--a-amber-soft);
+    --hue-line: var(--a-amber-line);
+}
+
+/* ------------------------------------------------------------------ UPLOAD
+ * The empty state has three jobs: offer a big target, state exactly what is accepted, and hand
+ * you a real image to try when you don't have one to hand.
+ */
+
+/* A small fact, not a control: "⌘V to paste", "never stored". Coloured, but always labelled. */
+@utility fact-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    border: 1px solid var(--hue-line, var(--card-line));
+    background-color: var(--hue-soft, var(--color-bg-secondary));
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    font-weight: 500;
+    color: var(--hue, var(--color-text-tertiary));
+}
+
+/* A bundled sample loaded with one tap. Each carries its own hue so the row reads as a set. */
+@utility preset-card {
+    display: flex;
+    width: 100%;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--card-line);
+    background-color: var(--card-bg);
+    padding: 0.4375rem 0.5rem;
+    text-align: left;
+    transition:
+        border-color 200ms var(--ease-out),
+        background-color 200ms var(--ease-out),
+        box-shadow 200ms var(--ease-out),
+        scale 150ms var(--ease-out);
+
+    &:hover:not(:disabled) {
+        border-color: var(--hue-line);
+        background-color: var(--hue-soft);
+    }
+
+    &:active:not(:disabled) {
+        scale: 0.97;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        cursor: progress;
+        opacity: 0.55;
+    }
+}
+
+/* The dashed target itself — dashes pick up the tool's hue so the page stays one colour story. */
+@utility dropzone {
+    border: 2px dashed color-mix(in srgb, var(--tool-solid) 34%, transparent);
+    border-radius: 1.25rem;
+    background-image: radial-gradient(70% 60% at 50% 0%, var(--tool-soft), transparent 75%);
+    transition:
+        border-color 250ms var(--ease-out),
+        background-color 250ms var(--ease-out);
+
+    &:hover {
+        border-color: var(--tool-solid);
+        background-color: color-mix(in srgb, var(--tool-solid) 4%, transparent);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-focus-ring);
+        outline-offset: 4px;
+    }
 }
