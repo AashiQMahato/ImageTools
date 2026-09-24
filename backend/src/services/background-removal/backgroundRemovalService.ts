@@ -1,22 +1,15 @@
-import type { BackgroundRemovalProvider, ImageInput, ImageOutput } from "../../types/image.js";
-import { NotImplementedError } from "../../utils/AppError.js";
+import { env } from "../../config/env.js";
+import type { BackgroundRemovalProvider, ImageInput, ImageOutput, ProcessingContext } from "../../types/image.js";
+import { ConcurrencyLimiter } from "../../utils/concurrency.js";
+import { rembgProvider } from "./rembgProvider.js";
 
-/**
- * Placeholder until a real provider is integrated.
- * To add one, implement BackgroundRemovalProvider in this folder (reading its API key from config/env)
- * and return it from getProvider(). Controllers never talk to providers directly.
- */
-const notImplementedProvider: BackgroundRemovalProvider = {
-    name: "not-implemented",
-    async removeBackground() {
-        throw new NotImplementedError("Background removal");
-    },
+/** Swap providers here; controllers only ever call this service. */
+const provider: BackgroundRemovalProvider = rembgProvider;
+const limiter = new ConcurrencyLimiter(env.rembg.concurrency, env.maxQueuedJobs);
+
+export const backgroundRemoval = {
+    isAvailable: () => provider.isAvailable(),
+    stats: () => limiter.stats,
+    remove: (input: ImageInput, context: ProcessingContext): Promise<ImageOutput> =>
+        limiter.run(() => provider.removeBackground(input, context), context.signal),
 };
-
-function getProvider(): BackgroundRemovalProvider {
-    return notImplementedProvider;
-}
-
-export function removeBackground(input: ImageInput): Promise<ImageOutput> {
-    return getProvider().removeBackground(input);
-}

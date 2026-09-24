@@ -1,4 +1,4 @@
-export type ProcessingStatus = "idle" | "uploading" | "processing" | "success" | "error";
+export type ProcessingStatus = "idle" | "selected" | "uploading" | "processing" | "success" | "error" | "unsupported";
 
 export interface ImageDimensions {
     width: number;
@@ -13,7 +13,16 @@ export interface ImageFile {
     mimeType: string;
     /** Object URL for previewing the image in the browser. */
     previewUrl: string;
-    dimensions?: ImageDimensions;
+    dimensions: ImageDimensions;
+}
+
+/** A processed image held in the browser only (never stored on the server). */
+export interface ProcessedImage {
+    blob: Blob;
+    /** Object URL; revoked when the result is discarded. */
+    url: string;
+    fileName: string;
+    dimensions: ImageDimensions;
 }
 
 export interface CropSettings {
@@ -31,15 +40,4 @@ export type UpscaleFactor = 2 | 4;
 
 export interface UpscaleSettings {
     scale: UpscaleFactor;
-}
-
-export interface BackgroundRemovalResult {
-    /** URL of the processed image (transparent PNG). */
-    imageUrl: string;
-    dimensions?: ImageDimensions;
-}
-
-export interface UpscaleResult {
-    imageUrl: string;
-    dimensions?: ImageDimensions;
 }

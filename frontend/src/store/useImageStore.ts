@@ -1,44 +1,28 @@
 import { create } from "zustand";
-import type { ImageFile, ProcessingStatus } from "@/types/image";
+import type { ImageFile, UpscaleFactor } from "@/types/image";
 
 /**
- * Shared state for the image currently being worked on.
- * Tool-specific settings (crop, upscale, ...) will be added as slices when those features are built.
+ * State shared across pages: the image the user is working on (it follows them from the landing page
+ * into any tool) and their preferred upscale factor. Per-run processing state stays local to each tool.
  */
 interface ImageState {
     original: ImageFile | null;
-    /** Object URL of the latest processed result. */
-    resultUrl: string | null;
-    status: ProcessingStatus;
-    error: string | null;
+    selectedScale: UpscaleFactor;
 
     setOriginal: (image: ImageFile | null) => void;
-    setResult: (url: string | null) => void;
-    setStatus: (status: ProcessingStatus, error?: string | null) => void;
-    reset: () => void;
+    setSelectedScale: (scale: UpscaleFactor) => void;
+    clear: () => void;
 }
 
-const initialState = {
-    original: null,
-    resultUrl: null,
-    status: "idle",
-    error: null,
-} satisfies Pick<ImageState, "original" | "resultUrl" | "status" | "error">;
-
 export const useImageStore = create<ImageState>()((set, get) => ({
-    ...initialState,
+    original: null,
+    selectedScale: 2,
 
     setOriginal: (image) => {
         const previous = get().original;
         if (previous && previous.previewUrl !== image?.previewUrl) URL.revokeObjectURL(previous.previewUrl);
-        set({ original: image, resultUrl: null, status: "idle", error: null });
+        set({ original: image });
     },
-    setResult: (url) => set({ resultUrl: url }),
-    setStatus: (status, error = null) => set({ status, error }),
-    reset: () => {
-        const { original, resultUrl } = get();
-        if (original) URL.revokeObjectURL(original.previewUrl);
-        if (resultUrl?.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
-        set(initialState);
-    },
+    setSelectedScale: (selectedScale) => set({ selectedScale }),
+    clear: () => get().setOriginal(null),
 }));

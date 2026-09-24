@@ -19,6 +19,8 @@ export function createApp() {
         cors({
             origin: env.frontendOrigins,
             methods: ["GET", "POST"],
+            // Let a cross-origin frontend read result metadata and the suggested file name.
+            exposedHeaders: ["Content-Disposition", "X-Image-Width", "X-Image-Height", "X-Original-Width", "X-Original-Height"],
         }),
     );
     app.use(morgan(isProduction ? "combined" : "dev"));

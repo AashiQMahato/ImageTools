@@ -1,8 +1,8 @@
-import type { BackgroundRemovalResult } from "@/types/image";
-import { apiClient } from "./apiClient";
+import { type BinaryResult, postFormForBlob, type UploadOptions } from "./apiClient";
 
-export function removeBackground(image: File, signal?: AbortSignal): Promise<BackgroundRemovalResult> {
-    const formData = new FormData();
-    formData.append("image", image);
-    return apiClient.post<BackgroundRemovalResult>("/remove-background", formData, { signal });
+/** Sends the image to our API and resolves with the transparent PNG. */
+export function removeBackground(image: File, options?: UploadOptions): Promise<BinaryResult> {
+    const form = new FormData();
+    form.append("file", image);
+    return postFormForBlob("/remove-background", form, options);
 }

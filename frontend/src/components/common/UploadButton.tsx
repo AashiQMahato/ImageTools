@@ -2,6 +2,7 @@ import { Upload } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/base/buttons/button";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import type { AppRoute } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
 
 interface UploadButtonProps {
@@ -11,13 +12,15 @@ interface UploadButtonProps {
     buttonClassName?: string;
     label?: string;
     showIcon?: boolean;
+    /** Where to go after picking an image. Defaults to the background remover; `null` stays put. */
+    navigateTo?: AppRoute | null;
     /** Show validation errors yourself (e.g. in place of a hint) instead of the built-in note. */
     onErrorChange?: (error: string | null) => void;
 }
 
 /** Primary "Upload image" action. Validation errors appear in a small note beneath the button. */
-export function UploadButton({ size = "xl", className, buttonClassName, label = "Upload image", showIcon = true, onErrorChange }: UploadButtonProps) {
-    const { openPicker, inputProps, error, clearError } = useImageUpload();
+export function UploadButton({ size = "xl", className, buttonClassName, label = "Upload image", showIcon = true, onErrorChange, navigateTo }: UploadButtonProps) {
+    const { openPicker, inputProps, error, clearError } = useImageUpload({ navigateTo });
 
     useEffect(() => {
         onErrorChange?.(error);

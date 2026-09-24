@@ -17,6 +17,10 @@ interface CompareSliderProps {
     onChange: (value: number) => void;
     className?: string;
     style?: CSSProperties;
+    /** Magnify both layers identically. `origin` is in % of the frame. */
+    zoom?: { scale: number; origin: { x: number; y: number } };
+    /** Extra content above the layers (e.g. a status overlay). */
+    children?: ReactNode;
 }
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
@@ -27,7 +31,7 @@ const transitions: Record<Motion, string> = {
     snap: "clip-path 500ms var(--ease-spring), left 500ms var(--ease-spring)",
 };
 
-export function CompareSlider({ before, after, beforeLabel, afterLabel, value: position, onChange, className, style }: CompareSliderProps) {
+export function CompareSlider({ before, after, beforeLabel, afterLabel, value: position, onChange, className, style, zoom, children }: CompareSliderProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const gesture = useRef<{ id: number; startX: number; startY: number; dragging: boolean } | null>(null);
     const [motion, setMotion] = useState<Motion>("none");
@@ -88,6 +92,13 @@ export function CompareSlider({ before, after, beforeLabel, afterLabel, value: p
     };
 
     const transition = transitions[motion];
+    const zoomStyle: CSSProperties | undefined = zoom
+        ? {
+              transform: `scale(${zoom.scale})`,
+              transformOrigin: `${zoom.origin.x}% ${zoom.origin.y}%`,
+              transition: "transform 600ms var(--ease-spring), transform-origin 200ms var(--ease-out)",
+          }
+        : undefined;
 
     return (
         <div
@@ -100,10 +111,17 @@ export function CompareSlider({ before, after, beforeLabel, afterLabel, value: p
             onPointerCancel={endDrag}
             onTransitionEnd={() => motion === "snap" && setMotion("none")}
         >
-            <div className="absolute inset-0">{after}</div>
-            <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - position}% 0 0)`, transition }}>
-                {before}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0" style={zoomStyle}>
+                    {after}
+                </div>
             </div>
+            <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - position}% 0 0)`, transition }}>
+                <div className="absolute inset-0" style={zoomStyle}>
+                    {before}
+                </div>
+            </div>
+            {children}
 
             <Label side="left" hidden={position < 22}>
                 {beforeLabel}

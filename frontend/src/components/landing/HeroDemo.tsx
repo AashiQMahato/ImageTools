@@ -4,6 +4,7 @@ import { images, KINGFISHER_CUTOUT_PNG } from "@/assets/images/landing";
 import { Button } from "@/components/ui/base/buttons/button";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils/cn";
+import { downloadFile } from "@/lib/utils/download";
 
 type Phase = "idle" | "processing" | "done";
 type Motion = "none" | "follow" | "settle" | "process" | "compare";
@@ -204,8 +205,7 @@ function Toolbar({ phase, onRun, onReset, onCompare }: ToolbarProps) {
                         size="lg"
                         color="primary"
                         iconLeading={Download}
-                        href={KINGFISHER_CUTOUT_PNG}
-                        download="kingfisher-cutout.png"
+                        onPress={() => downloadFile(KINGFISHER_CUTOUT_PNG, "kingfisher-cutout.png")}
                         className={pill}
                     >
                         Download
