@@ -13,7 +13,8 @@ interface PagePlaceholderProps {
 /** Temporary page body for tools that are not implemented yet. */
 export function PagePlaceholder({ title, description, icon: Icon }: PagePlaceholderProps) {
     return (
-        <section className="mx-auto flex max-w-xl flex-col items-center py-16 text-center">
+        <section className="page-container py-24 md:py-32">
+            <div className="mx-auto flex max-w-xl flex-col items-center text-center">
             <span className="flex size-12 items-center justify-center rounded-xl border border-secondary bg-primary text-fg-secondary shadow-xs">
                 <Icon className="size-6" aria-hidden />
             </span>
@@ -25,6 +26,7 @@ export function PagePlaceholder({ title, description, icon: Icon }: PagePlacehol
             <Button className="mt-8" color="secondary" size="md" href={ROUTES.home} iconLeading={ArrowLeft}>
                 All tools
             </Button>
+            </div>
         </section>
     );
 }

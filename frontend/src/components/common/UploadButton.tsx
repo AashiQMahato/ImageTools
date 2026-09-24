@@ -1,0 +1,57 @@
+import { Upload } from "lucide-react";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/base/buttons/button";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { cn } from "@/lib/utils/cn";
+
+interface UploadButtonProps {
+    size?: "sm" | "md" | "lg" | "xl";
+    className?: string;
+    /** Classes for the button itself (e.g. shape), as opposed to its wrapper. */
+    buttonClassName?: string;
+    label?: string;
+    showIcon?: boolean;
+    /** Show validation errors yourself (e.g. in place of a hint) instead of the built-in note. */
+    onErrorChange?: (error: string | null) => void;
+}
+
+/** Primary "Upload image" action. Validation errors appear in a small note beneath the button. */
+export function UploadButton({ size = "xl", className, buttonClassName, label = "Upload image", showIcon = true, onErrorChange }: UploadButtonProps) {
+    const { openPicker, inputProps, error, clearError } = useImageUpload();
+
+    useEffect(() => {
+        onErrorChange?.(error);
+    }, [error, onErrorChange]);
+
+    useEffect(() => {
+        if (!error) return;
+        const timeout = window.setTimeout(clearError, 5000);
+        return () => window.clearTimeout(timeout);
+    }, [error, clearError]);
+
+    return (
+        <span className={cn("relative inline-flex", className)}>
+            <Button
+                size={size}
+                color="primary"
+                iconLeading={showIcon ? Upload : undefined}
+                onPress={openPicker}
+                className={cn("press-scale w-full", buttonClassName)}
+            >
+                {label}
+            </Button>
+            <input {...inputProps} aria-hidden />
+            {!onErrorChange && (
+            <span
+                role="alert"
+                className={cn(
+                    "pointer-events-none absolute top-full left-1/2 mt-2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-error-primary transition-opacity duration-200",
+                    error ? "opacity-100" : "opacity-0",
+                )}
+            >
+                {error}
+            </span>
+            )}
+        </span>
+    );
+}

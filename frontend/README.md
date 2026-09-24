@@ -11,6 +11,9 @@ npm run preview   # serve the production build
 
 - Routes: `/`, `/remove-background`, `/upscale`, `/crop`, `/editor` (`src/routes/AppRoutes.tsx`)
 - Untitled UI components: `src/components/ui/` — add more with `npx untitledui@latest add <name> -p components/ui`, then change `@/utils/cx` imports to `@/lib/utils/cx`
+- Landing page: `src/pages/Home/HomePage.tsx` composes the sections in `src/components/landing/`. Its demos (background removal, before/after, upscale loupe, crop editor) run entirely in the browser on sample photos; nothing is sent to the API.
+- Landing photography lives in `src/assets/images/landing/` (CC0, credits in `CREDITS.md`). The cut-outs are real output from a segmentation model (BiRefNet-lite via `rembg`), not hand-made masks.
+- "Upload image" validates type and size (mirroring the backend), keeps the file in the Zustand store and opens `/editor`.
 - API calls go through `src/lib/api/apiClient.ts` to our backend only. Set `VITE_API_BASE_URL` when the API is hosted on another origin.
 
 See the [root README](../README.md) for the full overview.

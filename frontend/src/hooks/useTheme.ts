@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 export type Theme = "light" | "dark";
 
@@ -21,7 +22,17 @@ export function useTheme() {
         }
     }, [theme]);
 
-    const toggleTheme = useCallback(() => setTheme((current) => (current === "dark" ? "light" : "dark")), []);
+    const toggleTheme = useCallback(() => {
+        const next = () => setTheme((current) => (current === "dark" ? "light" : "dark"));
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // Cross-fade the whole page instead of snapping between light and dark.
+        if (!document.startViewTransition || reduceMotion) {
+            next();
+            return;
+        }
+        document.startViewTransition(() => flushSync(next));
+    }, []);
 
     return { theme, toggleTheme };
 }
