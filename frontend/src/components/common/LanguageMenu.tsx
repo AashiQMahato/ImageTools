@@ -94,7 +94,7 @@ export function LanguageMenu({ className }: { className?: string }) {
                                 {dictionary.meta.name}
                                 <span className="ml-2 text-xs font-medium text-quaternary">{code.toUpperCase()}</span>
                             </span>
-                            {checked && <Check className="size-4 text-[var(--indigo)]" aria-hidden />}
+                            {checked && <Check className="size-4 text-[var(--brand)]" aria-hidden />}
                         </button>
                     );
                 })}

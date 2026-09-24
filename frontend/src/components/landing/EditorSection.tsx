@@ -26,7 +26,7 @@ export function EditorSection() {
                         <ul className="card mt-7 grid gap-3 p-5 shadow-none sm:grid-cols-2">
                             {t.editorSection.features.map((feature) => (
                                 <li key={feature} className="flex items-start gap-2.5 text-[0.9375rem] text-secondary">
-                                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--indigo-soft)] text-[var(--indigo)]">
+                                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
                                         <Check className="size-3" strokeWidth={3} aria-hidden />
                                     </span>
                                     {feature}

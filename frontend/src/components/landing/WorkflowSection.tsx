@@ -29,7 +29,7 @@ export function WorkflowSection() {
                                 {step.visual}
                             </div>
                             <div className="p-6">
-                                <span className="flex size-11 items-center justify-center rounded-full bg-[var(--indigo)] text-lg font-semibold text-white">{index + 1}</span>
+                                <span className="flex size-11 items-center justify-center rounded-full bg-[var(--brand)] text-lg font-semibold text-white">{index + 1}</span>
                                 <h3 className="mt-5 text-2xl font-semibold tracking-[-0.01em] text-primary">{step.title}</h3>
                                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-tertiary">{step.description}</p>
                             </div>
@@ -44,8 +44,8 @@ export function WorkflowSection() {
 function UploadVisual() {
     const t = useT();
     return (
-        <div className="flex h-32 w-4/5 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--indigo-line)] bg-[var(--card-bg)]">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--indigo-soft)] text-[var(--indigo)]">
+        <div className="flex h-32 w-4/5 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-line)] bg-[var(--card-bg)]">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
                 <ImagePlus className="size-5" />
             </span>
             <span className="mt-3 text-sm font-semibold text-primary">{t.workflow.dropHere}</span>
@@ -61,7 +61,7 @@ function TransformVisual() {
             <div className="absolute inset-0 bg-checkerboard [background-size:14px_14px]" />
             <img src={images.heronCutout.src} alt="" loading="lazy" className="absolute inset-0 size-full object-cover object-[65%_45%]" />
             <span className="material absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-primary">
-                <Eraser className="size-3.5 text-[var(--indigo)]" /> {t.workflow.backgroundRemoved}
+                <Eraser className="size-3.5 text-[var(--brand)]" /> {t.workflow.backgroundRemoved}
             </span>
         </>
     );
@@ -77,7 +77,7 @@ function DownloadVisual() {
                 <p className="truncate text-sm font-semibold text-primary">kingfisher.png</p>
                 <p className="text-xs text-quaternary">PNG · 1600 × 1000</p>
             </div>
-            <span className="flex size-9 items-center justify-center rounded-full bg-[var(--indigo)] text-white">
+            <span className="flex size-9 items-center justify-center rounded-full bg-[var(--brand)] text-white">
                 <Download className="size-4" />
             </span>
         </div>

@@ -8,10 +8,11 @@ export function EditorPage() {
         <ToolPage
             name={t.pages.editor.name}
             badge={t.toolPage.browserTool}
+            hue="editor"
             guide={t.guides.editor}
             title={
                 <>
-                    {t.pages.editor.title} <span className="text-[var(--indigo)]">{t.pages.editor.accent}</span>
+                    {t.pages.editor.title} <span className="text-[var(--tool)]">{t.pages.editor.accent}</span>
                 </>
             }
             description={t.pages.editor.description}

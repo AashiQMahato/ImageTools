@@ -8,8 +8,9 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import { cn } from "@/lib/utils/cn";
 import { useImageStore } from "@/store/useImageStore";
 import { downloadFile } from "@/lib/utils/download";
-import type { ImageFile } from "@/types/image";
+import type { ImageFile, ProcessedImage } from "@/types/image";
 import { DropZone } from "./DropZone";
+import { type RailTone, StatusRail } from "./StatusRail";
 import { formatBytes, formatDimensions } from "./format";
 import type { useProcessingJob } from "./useProcessingJob";
 import { type AppErrorInfo, errorMessage, useT } from "@/i18n";
@@ -20,15 +21,43 @@ type Status = Job["status"];
 const pill = "press-scale rounded-full before:rounded-full";
 const ZOOM_LEVELS = [1, 2, 4] as const;
 
+const RAIL_TONES: Record<Status, RailTone> = {
+    idle: "idle",
+    selected: "active",
+    uploading: "busy",
+    processing: "busy",
+    success: "done",
+    error: "error",
+    unsupported: "warning",
+};
+
 interface ImageWorkspaceProps {
     original: ImageFile | null;
     job: Job;
     action: { label: string; icon: FC<{ className?: string }>; onRun: () => void };
     /** Settings shown beside the primary action before processing (e.g. scale). */
     controls?: ReactNode;
-    compare: { beforeLabel: string; afterLabel: string };
+    /**
+     * A column of settings beside the stage. When given, the workspace becomes two-column on wide
+     * screens and the primary action moves to the foot of that column, next to what it acts on.
+     */
+    configPanel?: ReactNode;
+    /** Tool-specific facts for the status rail (e.g. input and target size). */
+    railSpecs?: ReactNode;
+    /** Before/after labels. Omit to show the result on its own, with no divider. */
+    compare?: { beforeLabel: string; afterLabel: string };
     /** Show the transparency grid behind the result (background removal). */
     transparentResult?: boolean;
+    /**
+     * Replaces the job's own result for display and download — used when a tool post-processes it
+     * on this device (e.g. compositing the cut-out onto a new background).
+     */
+    displayResult?: ProcessedImage | null;
+    /**
+     * Replaces the result view with the tool's own stage — used when the result becomes editable
+     * (e.g. brushing away what background removal missed). Receives the fitted size.
+     */
+    stageOverride?: ((size: { width: number; height: number }) => ReactNode) | null;
     /** Offer zoom levels on the result (upscaling). */
     zoomable?: boolean;
     /** Shown instead of the workspace when the server can't run this tool. */
@@ -36,12 +65,13 @@ interface ImageWorkspaceProps {
 }
 
 /** The AI tools' studio: file bar on top, the photo on a quiet stage, actions along the bottom. */
-export function ImageWorkspace({ original, job, action, controls, compare, transparentResult, zoomable, unsupportedMessage }: ImageWorkspaceProps) {
+export function ImageWorkspace({ original, job, action, controls, configPanel, railSpecs, compare, transparentResult, displayResult, stageOverride, zoomable, unsupportedMessage }: ImageWorkspaceProps) {
     const t = useT();
     const upload = useImageUpload({ navigateTo: null });
     const clearImage = useImageStore((state) => state.clear);
     const areaRef = useRef<HTMLDivElement>(null);
     const status: Status = unsupportedMessage && job.status !== "success" ? "unsupported" : job.status;
+    const shown = displayResult ?? job.result;
     const dimensions = job.result?.dimensions ?? original?.dimensions ?? null;
     const size = useFitSize(areaRef, dimensions ? dimensions.width / dimensions.height : null);
     const busy = status === "uploading" || status === "processing";
@@ -54,7 +84,7 @@ export function ImageWorkspace({ original, job, action, controls, compare, trans
             <div className="studio-line flex min-h-14 items-center gap-3 border-b px-3 py-2 sm:px-4">
                 <FileInfo original={original} />
                 <div className="ml-auto flex shrink-0 items-center gap-2">
-                    <StatusBadge status={status} job={job} />
+                    <StatusBadge status={status} result={shown} />
                     {original && status !== "uploading" && status !== "processing" && (
                         <Button size="sm" color="tertiary" iconLeading={ImagePlus} onPress={upload.openPicker} className={pill} aria-label={t.common.chooseAnother}>
                             <span className="hidden sm:inline">{t.common.replace}</span>
@@ -66,9 +96,12 @@ export function ImageWorkspace({ original, job, action, controls, compare, trans
                 </div>
             </div>
 
-            {/* Stage */}
-            <div className="studio-stage relative flex h-[min(56svh,520px)] min-h-[20rem] p-4 sm:h-[min(64svh,720px)] sm:min-h-[24rem] sm:p-8">
-                <div ref={areaRef} className="relative flex flex-1 items-center justify-center">
+            <StatusRail tone={RAIL_TONES[status]} label={t.workspace.state[status]} specs={railSpecs} privacy={t.workspace.privacy} />
+
+            <div className={cn("flex flex-col", configPanel && "lg:flex-row lg:items-stretch")}>
+                {/* Stage */}
+                <div className="studio-stage relative flex h-[min(56svh,520px)] min-h-[20rem] flex-1 p-4 sm:h-[min(64svh,720px)] sm:min-h-[24rem] sm:p-8">
+                    <div ref={areaRef} className="relative flex flex-1 items-center justify-center">
                     {status === "idle" && <DropZone onChoose={upload.openPicker} />}
 
                     {status === "unsupported" && <Unsupported message={errorMessage(t, unsupportedMessage ?? job.error)} />}
@@ -83,16 +116,34 @@ export function ImageWorkspace({ original, job, action, controls, compare, trans
                         </figure>
                     )}
 
-                    {status === "success" && job.result && original && size && (
-                        <ResultView original={original} job={job} size={size} compare={compare} transparentResult={transparentResult} zoomable={zoomable} />
+                    {status === "success" && shown && original && size && (
+                        stageOverride ? (
+                            stageOverride(size)
+                        ) : (
+                            <ResultView original={original} result={shown} size={size} compare={compare} transparentResult={transparentResult} zoomable={zoomable} />
+                        )
                     )}
+                    </div>
                 </div>
+
+                {/* Inspector — the settings, then the one thing to do next, beside what they act on. */}
+                {configPanel && (
+                    <aside
+                        aria-label={t.workspace.settings}
+                        className="studio-line flex shrink-0 flex-col border-t p-4 sm:p-5 lg:w-[21.5rem] lg:border-t-0 lg:border-l"
+                    >
+                        <div className="animate-enter [--i:6]">{configPanel}</div>
+                        <div className="mt-6 lg:mt-auto lg:pt-6">
+                            <Actions status={status} job={job} result={shown} action={action} controls={controls} onChoose={upload.openPicker} stacked />
+                        </div>
+                    </aside>
+                )}
             </div>
 
-            {/* Bottom bar — the one thing to do next. */}
-            <div className="studio-line flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t px-3 py-3 sm:px-4">
+            {/* Bottom bar — what just happened, and (without an inspector) what to do next. */}
+            <div className="studio-line flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t px-3 py-3 sm:px-4">
                 <Hint status={status} job={job} uploadError={upload.error} compare={compare} />
-                <Actions status={status} job={job} action={action} controls={controls} onChoose={upload.openPicker} />
+                {!configPanel && <Actions status={status} job={job} result={shown} action={action} controls={controls} onChoose={upload.openPicker} />}
             </div>
         </div>
     );
@@ -116,19 +167,19 @@ function FileInfo({ original }: { original: ImageFile | null }) {
     );
 }
 
-function StatusBadge({ status, job }: { status: Status; job: Job }) {
-    if (status === "success" && job.result) {
+function StatusBadge({ status, result }: { status: Status; result: ProcessedImage | null }) {
+    if (status === "success" && result) {
         return (
             <span className="hidden items-center gap-1.5 rounded-full bg-[var(--seg-track)] px-3 py-1 text-xs font-medium text-secondary tabular-nums sm:flex">
                 <Check className="size-3.5 text-success-primary" aria-hidden />
-                {formatDimensions(job.result.dimensions)} · {formatBytes(job.result.blob.size)}
+                {formatDimensions(result.dimensions)} · {formatBytes(result.blob.size)}
             </span>
         );
     }
     return null;
 }
 
-function Hint({ status, job, uploadError, compare }: { status: Status; job: Job; uploadError: string | null; compare: ImageWorkspaceProps["compare"] }) {
+function Hint({ status, job, uploadError, compare }: { status: Status; job: Job; uploadError: string | null; compare?: ImageWorkspaceProps["compare"] }) {
     const t = useT();
     let text: ReactNode = null;
     let tone = "text-tertiary";
@@ -139,7 +190,7 @@ function Hint({ status, job, uploadError, compare }: { status: Status; job: Job;
         text = errorMessage(t, job.error);
         tone = "text-error-primary";
     } else if (status === "success") {
-        text = t.workspace.hintSuccess(compare.beforeLabel, compare.afterLabel);
+        text = compare ? t.workspace.hintSuccess(compare.beforeLabel, compare.afterLabel) : t.workspace.hintReady;
     } else if (status === "processing") {
         text = t.workspace.hintProcessing;
     } else if (status === "selected") {
@@ -153,20 +204,31 @@ function Hint({ status, job, uploadError, compare }: { status: Status; job: Job;
 function Actions({
     status,
     job,
+    result,
     action,
     controls,
     onChoose,
+    stacked,
 }: {
     status: Status;
     job: Job;
+    result: ProcessedImage | null;
     action: ImageWorkspaceProps["action"];
     controls?: ReactNode;
     onChoose: () => void;
+    /** Full-width buttons in a column, for the inspector. */
+    stacked?: boolean;
 }) {
     const t = useT();
     const Icon = action.icon;
     return (
-        <div key={status} className="animate-enter ml-auto flex flex-wrap items-center justify-end gap-2 [--i:-1]">
+        <div
+            key={status}
+            className={cn(
+                "animate-enter [--i:-1]",
+                stacked ? "flex flex-col-reverse gap-2 *:w-full" : "ml-auto flex flex-wrap items-center justify-end gap-2",
+            )}
+        >
             {status === "idle" && (
                 <Button size="md" color="primary" iconLeading={ImagePlus} onPress={onChoose} className={pill}>
                     {t.common.chooseImage}
@@ -195,12 +257,12 @@ function Actions({
                     {t.common.chooseAnother}
                 </Button>
             )}
-            {status === "success" && job.result && (
+            {status === "success" && result && (
                 <>
                     <Button size="md" color="secondary" iconLeading={RotateCcw} onPress={job.reset} className={pill}>
                         {t.common.startOver}
                     </Button>
-                    <Button size="md" color="primary" iconLeading={Download} onPress={() => downloadFile(job.result!.url, job.result!.fileName)} className={pill}>
+                    <Button size="md" color="primary" iconLeading={Download} onPress={() => downloadFile(result.url, result.fileName)} className={pill}>
                         {t.common.download}
                     </Button>
                 </>
@@ -256,19 +318,17 @@ function BusyOverlay({ job }: { job: Job }) {
 
 interface ResultViewProps {
     original: ImageFile;
-    job: Job;
+    result: ProcessedImage;
     size: { width: number; height: number };
-    compare: { beforeLabel: string; afterLabel: string };
+    compare?: { beforeLabel: string; afterLabel: string };
     transparentResult?: boolean;
     zoomable?: boolean;
 }
 
-function ResultView({ original, job, size, compare, transparentResult, zoomable }: ResultViewProps) {
-    const t = useT();
+function ResultView({ original, result, size, compare, transparentResult, zoomable }: ResultViewProps) {
     const [position, setPosition] = useState(50);
     const [zoom, setZoom] = useState<(typeof ZOOM_LEVELS)[number]>(1);
     const [origin, setOrigin] = useState({ x: 50, y: 50 });
-    const result = job.result!;
 
     // Zoomed in, the view follows the pointer so any area can be inspected.
     const follow = (event: PointerEvent<HTMLDivElement>) => {
@@ -281,6 +341,24 @@ function ResultView({ original, job, size, compare, transparentResult, zoomable 
     };
 
     const imageClass = "absolute inset-0 size-full object-contain";
+
+    if (!compare) {
+        return (
+            <div className="animate-enter relative [--i:-1]" style={size} onPointerMove={follow} onPointerDown={follow}>
+                <div className={cn("relative size-full overflow-hidden rounded-xl shadow-canvas", transparentResult && "bg-checkerboard")}>
+                    <img
+                        src={result.url}
+                        alt={result.fileName}
+                        className={imageClass}
+                        style={zoomable && zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: `${origin.x}% ${origin.y}%` } : undefined}
+                        draggable={false}
+                    />
+                </div>
+                {zoomable && <ZoomControl zoom={zoom} onChange={setZoom} />}
+            </div>
+        );
+    }
+
     return (
         <div className="animate-enter relative [--i:-1]" style={size} onPointerMove={follow} onPointerDown={follow}>
             <CompareSlider
@@ -304,17 +382,22 @@ function ResultView({ original, job, size, compare, transparentResult, zoomable 
                     </>
                 }
             />
-            {zoomable && (
-                <div className="material absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full p-0.5 md:bottom-5">
-                    <Segmented
-                        size="sm"
-                        label={t.workspace.zoom}
-                        value={zoom}
-                        onChange={setZoom}
-                        options={ZOOM_LEVELS.map((level) => ({ value: level, label: level === 1 ? t.workspace.fit : `${level}×`, ariaLabel: level === 1 ? t.workspace.fitAria : t.workspace.zoomAria(level) }))}
-                    />
-                </div>
-            )}
+            {zoomable && <ZoomControl zoom={zoom} onChange={setZoom} />}
+        </div>
+    );
+}
+
+function ZoomControl({ zoom, onChange }: { zoom: (typeof ZOOM_LEVELS)[number]; onChange: (level: (typeof ZOOM_LEVELS)[number]) => void }) {
+    const t = useT();
+    return (
+        <div className="material absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full p-0.5 md:bottom-5">
+            <Segmented
+                size="sm"
+                label={t.workspace.zoom}
+                value={zoom}
+                onChange={onChange}
+                options={ZOOM_LEVELS.map((level) => ({ value: level, label: level === 1 ? t.workspace.fit : `${level}×`, ariaLabel: level === 1 ? t.workspace.fitAria : t.workspace.zoomAria(level) }))}
+            />
         </div>
     );
 }

@@ -9,7 +9,7 @@ const COMPANY = ["about", "privacy", "terms"] as const;
 
 const linkClass =
     "group inline-flex items-center gap-2.5 rounded text-[0.9375rem] text-tertiary transition-colors duration-150 hover:text-primary outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2";
-const dot = <span aria-hidden className="size-1 rounded-full bg-fg-quaternary transition-colors group-hover:bg-[var(--indigo)]" />;
+const dot = <span aria-hidden className="size-1 rounded-full bg-fg-quaternary transition-colors group-hover:bg-[var(--brand)]" />;
 
 /** A deep navy footer in both themes. */
 export function Footer() {

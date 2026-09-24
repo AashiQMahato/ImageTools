@@ -1,3 +1,4 @@
+import { Lightbulb, Sparkles, Target } from "lucide-react";
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FaqItem } from "@/components/landing/FaqSection";
@@ -22,6 +23,14 @@ interface ToolPageProps {
     title: ReactNode;
     description: string;
     guide: ToolGuide;
+    /** Live chip shown opposite the breadcrumb (e.g. whether this server can run the tool). */
+    status?: ReactNode;
+    /**
+     * The tool's identity colour. Sets `--tool` for everything inside, so the hero glow, badge,
+     * title accent, primary button and focus ring all move together — one hue per tool, which
+     * doubles as wayfinding when the image carries over between tools.
+     */
+    hue: "upscale" | "remove-background" | "crop" | "editor";
     children: ReactNode;
 }
 
@@ -29,30 +38,19 @@ interface ToolPageProps {
  * Shared frame for every tool: breadcrumb, a centred header on a soft glow, the tool switcher,
  * the workspace, then a short guide (how to use, best for, tips) and questions — plus page-wide drop / paste.
  */
-export function ToolPage({ name, badge, title, description, guide, children }: ToolPageProps) {
+export function ToolPage({ name, badge, title, description, guide, status, hue, children }: ToolPageProps) {
     const t = useT();
     return (
-        <>
+        <div data-tool={hue}>
             <section className="hero-glow -mt-16 pt-16">
-                <div className="page-container pt-8 pb-10 md:pt-12 md:pb-12">
-                    <nav aria-label={t.toolPage.breadcrumb} className="animate-enter [--i:0]">
-                        <ol className="flex items-center gap-2 text-[0.8125rem] text-tertiary">
-                            <li>
-                                <Link to={ROUTES.home} className="rounded transition-colors hover:text-primary outline-focus-ring focus-visible:outline-2">
-                                    {t.toolPage.home}
-                                </Link>
-                            </li>
-                            <li aria-hidden className="text-quaternary">
-                                /
-                            </li>
-                            <li aria-current="page" className="font-medium text-primary">
-                                {name}
-                            </li>
-                        </ol>
-                    </nav>
+                <div className="page-container pt-2 pb-9 md:pt-4 md:pb-11">
+                    {status && <div className="animate-enter flex justify-end [--i:0]">{status}</div>}
 
-                    <header className="mt-8 flex flex-col items-center text-center">
-                        <p className="animate-enter section-badge [--i:1]">{badge}</p>
+                    <header className="flex flex-col items-center text-center">
+                        <p className="animate-enter section-badge gap-1.5 [--i:1]">
+                            <Sparkles className="size-3.5" aria-hidden />
+                            {badge}
+                        </p>
                         <h1 className="animate-enter mt-5 text-chapter text-balance text-primary [--i:2]">{title}</h1>
                         <p className="animate-enter mt-4 max-w-2xl text-lead text-pretty text-tertiary [--i:3]">{description}</p>
                         <div className="animate-enter mt-7 max-w-full [--i:4]">
@@ -68,7 +66,7 @@ export function ToolPage({ name, badge, title, description, guide, children }: T
 
             <ToolGuideSection guide={guide} />
             <PageDropTarget />
-        </>
+        </div>
     );
 }
 
@@ -76,7 +74,7 @@ function ToolGuideSection({ guide }: { guide: ToolGuide }) {
     const t = useT();
     const [ref, inView] = useInView<HTMLElement>();
     const [open, setOpen] = useState<number | null>(null);
-    const bullet = <span aria-hidden className="mt-[0.55rem] size-1.5 shrink-0 rounded-full bg-[var(--indigo)]" />;
+    const bullet = <span aria-hidden className="mt-[0.55rem] size-1.5 shrink-0 rounded-full bg-[var(--tool)]" />;
 
     return (
         <section ref={ref} data-inview={inView} aria-labelledby="guide-title" className="page-container py-20 md:py-24">
@@ -88,17 +86,17 @@ function ToolGuideSection({ guide }: { guide: ToolGuide }) {
             </div>
 
             <div className="mt-10 grid gap-5 md:mt-12 lg:grid-cols-3 lg:gap-6">
-                <GuideCard title={t.toolPage.howTo} index={2}>
+                <GuideCard title={t.toolPage.howTo} chip="01" hue="hue-blue" index={2}>
                     <ol className="flex flex-col gap-3">
                         {guide.howTo.map((step, i) => (
                             <li key={step} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
-                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--indigo-soft)] text-xs font-semibold text-[var(--indigo)]">{i + 1}</span>
+                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--tool-soft)] text-xs font-semibold text-[var(--tool)]">{i + 1}</span>
                                 {step}
                             </li>
                         ))}
                     </ol>
                 </GuideCard>
-                <GuideCard title={t.toolPage.bestFor} index={3}>
+                <GuideCard title={t.toolPage.bestFor} chip={<Target className="size-4" aria-hidden />} hue="hue-teal" index={3}>
                     <ul className="flex flex-col gap-3">
                         {guide.bestFor.map((item) => (
                             <li key={item} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
@@ -108,7 +106,7 @@ function ToolGuideSection({ guide }: { guide: ToolGuide }) {
                         ))}
                     </ul>
                 </GuideCard>
-                <GuideCard title={t.toolPage.tips} index={4}>
+                <GuideCard title={t.toolPage.tips} chip={<Lightbulb className="size-4" aria-hidden />} hue="hue-amber" index={4}>
                     <ul className="flex flex-col gap-3">
                         {guide.tips.map((tip) => (
                             <li key={tip} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
@@ -142,10 +140,13 @@ function ToolGuideSection({ guide }: { guide: ToolGuide }) {
     );
 }
 
-function GuideCard({ title, index, children }: { title: string; index: number; children: ReactNode }) {
+function GuideCard({ title, chip, hue, index, children }: { title: string; chip: ReactNode; hue: string; index: number; children: ReactNode }) {
     return (
-        <div className="reveal card p-6 sm:p-7" style={{ "--i": index } as CSSProperties}>
-            <h3 className="text-lg font-semibold text-primary">{title}</h3>
+        <div className="reveal card flex flex-col p-6 sm:p-7" style={{ "--i": index } as CSSProperties}>
+            <span className={cn("guide-chip", hue)} aria-hidden>
+                {chip}
+            </span>
+            <h3 className="mt-5 text-lg font-semibold text-primary">{title}</h3>
             <div className="mt-4">{children}</div>
         </div>
     );

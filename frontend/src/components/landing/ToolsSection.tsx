@@ -51,12 +51,12 @@ export function ToolsSection() {
                             className="reveal card group flex flex-col p-6 transition-[translate,box-shadow] duration-300 ease-[var(--ease-out)] hover:-translate-y-1 outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-4"
                             style={{ "--i": index + 3 } as CSSProperties}
                         >
-                            <span className="flex size-12 items-center justify-center rounded-full bg-[var(--indigo)] text-white shadow-[0_8px_20px_-8px_rgb(90_103_216/0.7)]">
+                            <span className="flex size-12 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-[0_8px_20px_-8px_rgb(3_105_161/0.7)]">
                                 <Icon className="size-5" aria-hidden />
                             </span>
                             <h3 className="mt-6 text-xl font-semibold text-primary">{title}</h3>
                             <p className="mt-2 flex-1 text-[0.9375rem] leading-relaxed text-tertiary">{description}</p>
-                            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--indigo)]">
+                            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--brand)]">
                                 {t.common.openTool}
                                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
                             </span>
