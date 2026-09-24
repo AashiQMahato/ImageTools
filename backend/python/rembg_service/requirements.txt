@@ -1,0 +1,7 @@
+# Direct dependencies of the internal background-removal service (Python >=3.11,<3.14).
+# rembg is pinned at or above 2.0.85, which postdates every published rembg security advisory
+# (incl. the /api/remove SSRF fix in 2.0.77). This service never uses rembg's URL endpoint or SAM extras.
+rembg[cpu]==2.0.85
+fastapi==0.141.1
+uvicorn==0.53.0
+python-multipart==0.0.32

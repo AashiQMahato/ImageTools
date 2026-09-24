@@ -8,3 +8,10 @@ build
 .env
 .env.*
 !.env.example
+
+# Local image-processing runtimes (installed by scripts/setup-ml.sh)
+vendor/
+python/.venv/
+python/.models/
+__pycache__/
+*.pyc

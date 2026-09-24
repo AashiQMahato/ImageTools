@@ -3,7 +3,7 @@ import { images } from "@/assets/images/landing";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { pinnedProgress, useScrollProgress } from "@/hooks/useScrollProgress";
 import { cn } from "@/lib/utils/cn";
-import { CompareSlider } from "./CompareSlider";
+import { CompareSlider } from "@/components/common/CompareSlider";
 
 const BACKGROUNDS = [
     { id: "transparent", label: "Transparent", color: null },

@@ -1,22 +1,24 @@
-import type { ImageInput, ImageOutput, UpscaleOptions, UpscaleProvider } from "../../types/image.js";
-import { NotImplementedError } from "../../utils/AppError.js";
+import { env } from "../../config/env.js";
+import type { ImageInput, ImageOutput, ProcessingContext, UpscaleOptions } from "../../types/image.js";
+import { AppError } from "../../utils/AppError.js";
+import { ConcurrencyLimiter } from "../../utils/concurrency.js";
+import { upscaylProvider } from "./upscaylProvider.js";
 
 /**
- * Placeholder until a real provider is integrated.
- * To add one, implement UpscaleProvider in this folder (reading its API key from config/env)
- * and return it from getProvider(). Controllers never talk to providers directly.
+ * Local Upscayl (upscayl-ncnn) is the only provider. A hosted fallback can be slotted in here when
+ * UPSCAYL_API_KEY is configured; the key stays server-side.
  */
-const notImplementedProvider: UpscaleProvider = {
-    name: "not-implemented",
-    async upscale() {
-        throw new NotImplementedError("Image upscaling");
+const provider = upscaylProvider;
+// GPU-heavy: default to one job at a time.
+const limiter = new ConcurrencyLimiter(env.upscayl.concurrency, env.maxQueuedJobs);
+
+export const upscaling = {
+    isAvailable: () => provider.isAvailable(),
+    stats: () => limiter.stats,
+    upscale(input: ImageInput, options: UpscaleOptions, context: ProcessingContext): Promise<ImageOutput> {
+        if (!provider.isAvailable()) {
+            return Promise.reject(new AppError(provider.unavailableMessage, 503, "UPSCALING_UNAVAILABLE"));
+        }
+        return limiter.run(() => provider.upscale(input, options, context), context.signal);
     },
 };
-
-function getProvider(): UpscaleProvider {
-    return notImplementedProvider;
-}
-
-export function upscaleImage(input: ImageInput, options: UpscaleOptions): Promise<ImageOutput> {
-    return getProvider().upscale(input, options);
-}

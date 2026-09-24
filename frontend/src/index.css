@@ -310,3 +310,19 @@
     letter-spacing: -0.03em;
     font-weight: 700;
 }
+
+/* Processing indicator: a soft line sweeping across the image being worked on. */
+@keyframes scan {
+    from {
+        left: 0%;
+        opacity: 0;
+    }
+    15%,
+    85% {
+        opacity: 1;
+    }
+    to {
+        left: 100%;
+        opacity: 0;
+    }
+}

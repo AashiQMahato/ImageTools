@@ -15,3 +15,11 @@ build
 # Logs & OS files
 *.log
 .DS_Store
+
+# Local image-processing runtimes and model weights (installed by scripts/setup-ml.sh)
+backend/vendor/
+backend/python/.venv/
+backend/python/.models/
+__pycache__/
+*.pyc
+*.onnx

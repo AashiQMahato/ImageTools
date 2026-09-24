@@ -4,7 +4,8 @@ import { images, KINGFISHER_CUTOUT_PNG } from "@/assets/images/landing";
 import { Button } from "@/components/ui/base/buttons/button";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils/cn";
-import { CompareSlider } from "./CompareSlider";
+import { downloadFile } from "@/lib/utils/download";
+import { CompareSlider } from "@/components/common/CompareSlider";
 import { SectionHeading } from "./SectionHeading";
 
 export function EssentialsBento() {
@@ -197,8 +198,7 @@ function DownloadVisual() {
                 color="primary"
                 iconLeading={Download}
                 aria-label="Download sample PNG"
-                href={KINGFISHER_CUTOUT_PNG}
-                download="kingfisher-cutout.png"
+                onPress={() => downloadFile(KINGFISHER_CUTOUT_PNG, "kingfisher-cutout.png")}
                 className="press-scale rounded-full before:rounded-full"
             />
         </div>

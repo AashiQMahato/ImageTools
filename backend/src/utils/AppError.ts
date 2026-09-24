@@ -1,18 +1,29 @@
+export type ErrorCode =
+    | "INTERNAL_ERROR"
+    | "NOT_FOUND"
+    | "RATE_LIMITED"
+    | "FILE_REQUIRED"
+    | "FILE_TOO_LARGE"
+    | "UNSUPPORTED_MEDIA_TYPE"
+    | "INVALID_IMAGE"
+    | "IMAGE_TOO_LARGE"
+    | "INVALID_SCALE"
+    | "SERVER_BUSY"
+    | "PROCESSING_TIMEOUT"
+    | "PROCESSING_FAILED"
+    | "REQUEST_CANCELLED"
+    | "BACKGROUND_REMOVAL_UNAVAILABLE"
+    | "UPSCALING_UNAVAILABLE";
+
+/** An error whose message is safe to show to users. Internal details belong in logs, never here. */
 export class AppError extends Error {
     readonly statusCode: number;
-    readonly code: string;
+    readonly code: ErrorCode;
 
-    constructor(message: string, statusCode = 500, code = "INTERNAL_ERROR") {
+    constructor(message: string, statusCode = 500, code: ErrorCode = "INTERNAL_ERROR") {
         super(message);
         this.name = "AppError";
         this.statusCode = statusCode;
         this.code = code;
-    }
-}
-
-export class NotImplementedError extends AppError {
-    constructor(feature: string) {
-        super(`${feature} is not implemented yet.`, 501, "NOT_IMPLEMENTED");
-        this.name = "NotImplementedError";
     }
 }
