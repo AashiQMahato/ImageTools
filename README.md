@@ -2,7 +2,7 @@
 
 An AI-powered image utility platform: background removal, upscaling, cropping, resizing, rotation/flip, before/after comparison, preview and download.
 
-> **Status:** landing page plus working **background removal** (rembg) and **AI upscaling** (Upscayl), both running locally on the server. Crop and editor tools are next.
+> **Status:** landing page plus working **background removal** (rembg) and **AI upscaling** (Upscayl), both running locally on the server, plus in-browser **crop** (straighten, aspect ratios, rotate/flip) and an **editor** (light and colour adjustments, filters, resize, export as JPG/PNG/WebP).
 
 ## Architecture
 
@@ -39,7 +39,7 @@ Node.js · Express 5 · TypeScript (strict) · Helmet · CORS · express-rate-li
 frontend/src/
 ├── assets/          images/, icons/
 ├── components/      ui/ (Untitled UI), layout/ (Navbar, Footer), common/ (Logo, UploadButton…), landing/ (home page sections)
-├── features/        image-processing/ (shared tool workspace), upscaler/, cropper/, image-editor/
+├── features/        image-processing/ (AI tool workspace), editor/ (crop + editor engine), upscaler/, background-removal/
 ├── pages/           Home/, RemoveBackground/, Upscaler/, Cropper/, Editor/
 ├── hooks/           useTheme, useInView, useImageUpload, useScrolled, usePrefersReducedMotion
 ├── lib/             api/ (typed client), utils/ (cx, cn), constants/ (routes, navigation, upload)

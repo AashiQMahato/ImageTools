@@ -1,14 +1,19 @@
+import type { Dictionary } from "@/i18n";
 import { type AppRoute, ROUTES } from "./routes";
 
+type NavKey = keyof Dictionary["nav"];
+
 export interface NavItem {
-    label: string;
-    fullLabel: string;
+    /** Short label (navbar). */
+    label: NavKey;
+    /** Full label (footer, menus). */
+    fullLabel: NavKey;
     href: AppRoute;
 }
 
 export const PRIMARY_NAV: readonly NavItem[] = [
-    { label: "Remove BG", fullLabel: "Remove Background", href: ROUTES.removeBackground },
-    { label: "Upscale", fullLabel: "Upscaler", href: ROUTES.upscale },
-    { label: "Crop", fullLabel: "Crop", href: ROUTES.crop },
-    { label: "Editor", fullLabel: "Editor", href: ROUTES.editor },
+    { label: "removeBgShort", fullLabel: "removeBg", href: ROUTES.removeBackground },
+    { label: "upscale", fullLabel: "upscaler", href: ROUTES.upscale },
+    { label: "crop", fullLabel: "crop", href: ROUTES.crop },
+    { label: "editor", fullLabel: "editor", href: ROUTES.editor },
 ];

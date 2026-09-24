@@ -2,25 +2,27 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface SectionHeadingProps {
-    eyebrow: string;
+    badge: string;
     title: ReactNode;
     description?: ReactNode;
-    align?: "center" | "start";
-    /** "chapter" is a step smaller, for headings inside tiles. */
-    size?: "section" | "chapter";
-    className?: string;
-    /** id for the heading, so the section can be labelled by it. */
+    /** Optional action aligned to the right on wide screens (e.g. an outline button). */
+    action?: ReactNode;
     id?: string;
+    className?: string;
 }
 
-export function SectionHeading({ eyebrow, title, description, align = "start", size = "section", className, id }: SectionHeadingProps) {
+/** Badge, title and description on the left; an optional action on the right, aligned to the description. */
+export function SectionHeading({ badge, title, description, action, id, className }: SectionHeadingProps) {
     return (
-        <div className={cn("flex flex-col", align === "center" && "items-center text-center", className)}>
-            <p className="reveal text-eyebrow text-tertiary">{eyebrow}</p>
-            <h2 id={id} className={cn("reveal mt-3 text-balance text-primary [--i:1]", size === "chapter" ? "text-chapter" : "text-section")}>
-                {title}
-            </h2>
-            {description && <p className="reveal mt-6 max-w-[38rem] text-lead text-pretty text-tertiary [--i:2]">{description}</p>}
+        <div className={cn("flex flex-col gap-6 md:flex-row md:items-end md:justify-between", className)}>
+            <div className="max-w-3xl">
+                <p className="reveal section-badge">{badge}</p>
+                <h2 id={id} className="reveal mt-4 text-section text-balance text-primary [--i:1]">
+                    {title}
+                </h2>
+                {description && <p className="reveal mt-4 text-lead text-pretty text-tertiary [--i:2]">{description}</p>}
+            </div>
+            {action && <div className="reveal shrink-0 [--i:3]">{action}</div>}
         </div>
     );
 }

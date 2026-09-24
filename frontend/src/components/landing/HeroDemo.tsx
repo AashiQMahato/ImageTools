@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/base/buttons/button";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils/cn";
 import { downloadFile } from "@/lib/utils/download";
+import { useT } from "@/i18n";
 
 type Phase = "idle" | "processing" | "done";
 type Motion = "none" | "follow" | "settle" | "process" | "compare";
@@ -30,6 +31,7 @@ const imageClass = "absolute inset-0 size-full object-cover object-[30%_50%] sm:
  * `split` is how much of the frame (from the left, in %) shows the result.
  */
 export function HeroDemo({ ref }: { ref?: Ref<HeroDemoHandle> }) {
+    const t = useT();
     const reduceMotion = usePrefersReducedMotion();
     const [phase, setPhase] = useState<Phase>("idle");
     const [split, setSplit] = useState(0);
@@ -100,7 +102,7 @@ export function HeroDemo({ ref }: { ref?: Ref<HeroDemoHandle> }) {
     return (
         <figure className="relative">
             <div
-                className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-canvas shadow-canvas sm:aspect-[16/10]"
+                className="relative aspect-[4/5] overflow-hidden rounded-[1.25rem] bg-canvas sm:aspect-[4/3]"
                 onPointerEnter={onPointerEnter}
                 onPointerMove={onPointerMove}
                 onPointerLeave={onPointerLeave}
@@ -117,7 +119,7 @@ export function HeroDemo({ ref }: { ref?: Ref<HeroDemoHandle> }) {
                 <img
                     {...images.kingfisher}
                     sizes="(min-width: 1200px) 1136px, 100vw"
-                    alt="A common kingfisher perched on a mossy branch against a soft, blurred background"
+                    alt={t.heroDemo.alt}
                     fetchPriority="high"
                     draggable={false}
                     className={imageClass}
@@ -140,8 +142,8 @@ export function HeroDemo({ ref }: { ref?: Ref<HeroDemoHandle> }) {
                     <Toolbar phase={phase} onRun={run} onReset={reset} onCompare={compare} />
                 </div>
             </div>
-            <figcaption className="mt-5 text-center text-sm text-quaternary">
-                <span className="hidden [@media(hover:hover)]:inline">Hover to preview. </span>A live demo on a sample photo.
+            <figcaption className="mt-3 mb-1 text-center text-[0.8125rem] text-quaternary">
+                <span className="hidden [@media(hover:hover)]:inline">{t.heroDemo.hoverHint} </span>{t.heroDemo.caption}
             </figcaption>
         </figure>
     );
@@ -165,20 +167,21 @@ interface ToolbarProps {
 const pill = "press-scale rounded-full before:rounded-full";
 
 function Toolbar({ phase, onRun, onReset, onCompare }: ToolbarProps) {
+    const t = useT();
     return (
         <div
             className="material flex items-center gap-1 rounded-full p-1.5"
         >
             {phase === "idle" && (
                 <Button key="run" size="lg" color="primary" iconLeading={Eraser} onPress={onRun} className={cn(pill, "animate-enter [--i:-1]")}>
-                    Remove background
+                    {t.heroDemo.removeBackground}
                 </Button>
             )}
 
             {phase === "processing" && (
                 <p key="processing" role="status" className="animate-enter flex h-11 items-center gap-2.5 px-5 text-md font-medium text-secondary [--i:-1]">
                     <span className="size-1.5 animate-pulse rounded-full bg-fg-primary" aria-hidden />
-                    Removing background…
+                    {t.heroDemo.removing}
                 </p>
             )}
 
@@ -191,13 +194,13 @@ function Toolbar({ phase, onRun, onReset, onCompare }: ToolbarProps) {
                         onPressEnd={() => onCompare(false)}
                         className={pill}
                     >
-                        Hold to compare
+                        {t.heroDemo.holdToCompare}
                     </Button>
                     <Button
                         size="lg"
                         color="tertiary"
                         iconLeading={RotateCcw}
-                        aria-label="Start over"
+                        aria-label={t.common.startOver}
                         onPress={onReset}
                         className={pill}
                     />
@@ -208,13 +211,13 @@ function Toolbar({ phase, onRun, onReset, onCompare }: ToolbarProps) {
                         onPress={() => downloadFile(KINGFISHER_CUTOUT_PNG, "kingfisher-cutout.png")}
                         className={pill}
                     >
-                        Download
+                        {t.common.download}
                     </Button>
                 </div>
             )}
 
             <span className="sr-only" role="status">
-                {phase === "done" ? "Background removed. The result is ready to download." : ""}
+                {phase === "done" ? t.heroDemo.done : ""}
             </span>
         </div>
     );

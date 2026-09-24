@@ -1,18 +1,22 @@
-import { BackgroundRemovalSection } from "@/components/landing/BackgroundRemovalSection";
 import { EditorSection } from "@/components/landing/EditorSection";
-import { EssentialsBento } from "@/components/landing/EssentialsBento";
+import { FaqSection } from "@/components/landing/FaqSection";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Hero } from "@/components/landing/Hero";
-import { UpscalerSection } from "@/components/landing/UpscalerSection";
+import { ShowcaseSection } from "@/components/landing/ShowcaseSection";
+import { ToolsSection } from "@/components/landing/ToolsSection";
+import { WhySection } from "@/components/landing/WhySection";
+import { WorkflowSection } from "@/components/landing/WorkflowSection";
 
 export function HomePage() {
     return (
         <>
             <Hero />
-            <BackgroundRemovalSection />
-            <UpscalerSection />
+            <ShowcaseSection />
+            <ToolsSection />
+            <WorkflowSection />
             <EditorSection />
-            <EssentialsBento />
+            <WhySection />
+            <FaqSection />
             <FinalCTA />
         </>
     );

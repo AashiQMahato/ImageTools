@@ -1,17 +1,21 @@
-import { AlertCircle, Download, ImagePlus, LoaderCircle, RotateCcw, X } from "lucide-react";
+import { AlertCircle, Check, Download, ImagePlus, LoaderCircle, RotateCcw, X } from "lucide-react";
 import { type FC, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CompareSlider } from "@/components/common/CompareSlider";
+import { Segmented } from "@/components/common/Segmented";
 import { Button } from "@/components/ui/base/buttons/button";
 import { useFitSize } from "@/hooks/useFitSize";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import { UPLOAD_HINT } from "@/lib/constants/upload";
 import { cn } from "@/lib/utils/cn";
+import { useImageStore } from "@/store/useImageStore";
 import { downloadFile } from "@/lib/utils/download";
 import type { ImageFile } from "@/types/image";
+import { DropZone } from "./DropZone";
 import { formatBytes, formatDimensions } from "./format";
 import type { useProcessingJob } from "./useProcessingJob";
+import { type AppErrorInfo, errorMessage, useT } from "@/i18n";
 
 type Job = ReturnType<typeof useProcessingJob>;
+type Status = Job["status"];
 
 const pill = "press-scale rounded-full before:rounded-full";
 const ZOOM_LEVELS = [1, 2, 4] as const;
@@ -20,7 +24,7 @@ interface ImageWorkspaceProps {
     original: ImageFile | null;
     job: Job;
     action: { label: string; icon: FC<{ className?: string }>; onRun: () => void };
-    /** Extra controls shown next to the primary action before processing (e.g. scale). */
+    /** Settings shown beside the primary action before processing (e.g. scale). */
     controls?: ReactNode;
     compare: { beforeLabel: string; afterLabel: string };
     /** Show the transparency grid behind the result (background removal). */
@@ -28,34 +32,53 @@ interface ImageWorkspaceProps {
     /** Offer zoom levels on the result (upscaling). */
     zoomable?: boolean;
     /** Shown instead of the workspace when the server can't run this tool. */
-    unsupportedMessage?: string | null;
+    unsupportedMessage?: AppErrorInfo | null;
 }
 
+/** The AI tools' studio: file bar on top, the photo on a quiet stage, actions along the bottom. */
 export function ImageWorkspace({ original, job, action, controls, compare, transparentResult, zoomable, unsupportedMessage }: ImageWorkspaceProps) {
+    const t = useT();
     const upload = useImageUpload({ navigateTo: null });
+    const clearImage = useImageStore((state) => state.clear);
     const areaRef = useRef<HTMLDivElement>(null);
-    const status = unsupportedMessage && job.status !== "success" ? "unsupported" : job.status;
+    const status: Status = unsupportedMessage && job.status !== "success" ? "unsupported" : job.status;
     const dimensions = job.result?.dimensions ?? original?.dimensions ?? null;
     const size = useFitSize(areaRef, dimensions ? dimensions.width / dimensions.height : null);
     const busy = status === "uploading" || status === "processing";
 
     return (
-        <div>
-            <div className="tile relative flex h-[min(72svh,780px)] min-h-[26rem] flex-col overflow-hidden">
-                <div ref={areaRef} className="relative mx-4 mt-4 mb-24 flex flex-1 items-center justify-center md:mx-8 md:mt-8 md:mb-28">
+        <div className="studio flex flex-col">
+            <input {...upload.inputProps} aria-hidden />
+
+            {/* Top bar — what you're working on. */}
+            <div className="studio-line flex min-h-14 items-center gap-3 border-b px-3 py-2 sm:px-4">
+                <FileInfo original={original} />
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                    <StatusBadge status={status} job={job} />
+                    {original && status !== "uploading" && status !== "processing" && (
+                        <Button size="sm" color="tertiary" iconLeading={ImagePlus} onPress={upload.openPicker} className={pill} aria-label={t.common.chooseAnother}>
+                            <span className="hidden sm:inline">{t.common.replace}</span>
+                        </Button>
+                    )}
+                    {original && status !== "uploading" && status !== "processing" && (
+                        <Button size="sm" color="tertiary" iconLeading={X} onPress={clearImage} className={pill} aria-label={t.common.closeImage} />
+                    )}
+                </div>
+            </div>
+
+            {/* Stage */}
+            <div className="studio-stage relative flex h-[min(56svh,520px)] min-h-[20rem] p-4 sm:h-[min(64svh,720px)] sm:min-h-[24rem] sm:p-8">
+                <div ref={areaRef} className="relative flex flex-1 items-center justify-center">
                     {status === "idle" && <DropZone onChoose={upload.openPicker} />}
 
-                    {status === "unsupported" && <Unsupported message={unsupportedMessage ?? job.error ?? ""} />}
+                    {status === "unsupported" && <Unsupported message={errorMessage(t, unsupportedMessage ?? job.error)} />}
 
                     {original && status !== "idle" && status !== "success" && status !== "unsupported" && size && (
                         <figure
-                            className={cn(
-                                "animate-enter relative overflow-hidden rounded-2xl shadow-canvas [--i:-1]",
-                                original.mimeType !== "image/jpeg" && "bg-checkerboard",
-                            )}
+                            className={cn("animate-enter relative overflow-hidden rounded-xl shadow-canvas [--i:-1]", original.mimeType !== "image/jpeg" && "bg-checkerboard")}
                             style={size}
                         >
-                            <img src={original.previewUrl} alt={`Selected image: ${original.name}`} className="size-full object-contain" draggable={false} />
+                            <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
                             {busy && <BusyOverlay job={job} />}
                         </figure>
                     )}
@@ -64,51 +87,136 @@ export function ImageWorkspace({ original, job, action, controls, compare, trans
                         <ResultView original={original} job={job} size={size} compare={compare} transparentResult={transparentResult} zoomable={zoomable} />
                     )}
                 </div>
-
-                <div className="absolute inset-x-0 bottom-4 flex justify-center px-4 md:bottom-6">
-                    <Toolbar status={status} job={job} action={action} controls={controls} onReplace={upload.openPicker} hasImage={Boolean(original)} />
-                </div>
-                <input {...upload.inputProps} aria-hidden />
             </div>
 
-            <MetaRow original={original} job={job} status={status} uploadError={upload.error} />
+            {/* Bottom bar — the one thing to do next. */}
+            <div className="studio-line flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t px-3 py-3 sm:px-4">
+                <Hint status={status} job={job} uploadError={upload.error} compare={compare} />
+                <Actions status={status} job={job} action={action} controls={controls} onChoose={upload.openPicker} />
+            </div>
         </div>
     );
 }
 
-function DropZone({ onChoose }: { onChoose: () => void }) {
+function FileInfo({ original }: { original: ImageFile | null }) {
+    const t = useT();
+    if (!original) {
+        return <p className="text-sm font-medium text-tertiary">{t.workspace.noImage}</p>;
+    }
     return (
-        <button
-            type="button"
-            onClick={onChoose}
-            className={cn(
-                "group flex size-full cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-primary/70 px-6 text-center",
-                "transition-[border-color,background-color] duration-300 hover:border-[var(--color-focus-ring)] hover:bg-primary/40",
-                "outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-4",
+        <div className="flex min-w-0 items-center gap-3">
+            <img src={original.previewUrl} alt="" className="size-8 shrink-0 rounded-md object-cover shadow-xs ring-1 ring-black/5 dark:ring-white/10" />
+            <div className="min-w-0 leading-tight">
+                <p className="truncate text-sm font-semibold text-primary">{original.name}</p>
+                <p className="truncate text-xs text-tertiary tabular-nums">
+                    {formatDimensions(original.dimensions)} · {formatBytes(original.size)}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function StatusBadge({ status, job }: { status: Status; job: Job }) {
+    if (status === "success" && job.result) {
+        return (
+            <span className="hidden items-center gap-1.5 rounded-full bg-[var(--seg-track)] px-3 py-1 text-xs font-medium text-secondary tabular-nums sm:flex">
+                <Check className="size-3.5 text-success-primary" aria-hidden />
+                {formatDimensions(job.result.dimensions)} · {formatBytes(job.result.blob.size)}
+            </span>
+        );
+    }
+    return null;
+}
+
+function Hint({ status, job, uploadError, compare }: { status: Status; job: Job; uploadError: string | null; compare: ImageWorkspaceProps["compare"] }) {
+    const t = useT();
+    let text: ReactNode = null;
+    let tone = "text-tertiary";
+    if (uploadError) {
+        text = uploadError;
+        tone = "text-error-primary";
+    } else if (status === "error") {
+        text = errorMessage(t, job.error);
+        tone = "text-error-primary";
+    } else if (status === "success") {
+        text = t.workspace.hintSuccess(compare.beforeLabel, compare.afterLabel);
+    } else if (status === "processing") {
+        text = t.workspace.hintProcessing;
+    } else if (status === "selected") {
+        text = t.workspace.hintSelected;
+    } else if (status === "idle") {
+        text = t.workspace.hintIdle;
+    }
+    return <p className={cn("w-full min-w-0 text-sm sm:w-auto sm:flex-1", tone)}>{text}</p>;
+}
+
+function Actions({
+    status,
+    job,
+    action,
+    controls,
+    onChoose,
+}: {
+    status: Status;
+    job: Job;
+    action: ImageWorkspaceProps["action"];
+    controls?: ReactNode;
+    onChoose: () => void;
+}) {
+    const t = useT();
+    const Icon = action.icon;
+    return (
+        <div key={status} className="animate-enter ml-auto flex flex-wrap items-center justify-end gap-2 [--i:-1]">
+            {status === "idle" && (
+                <Button size="md" color="primary" iconLeading={ImagePlus} onPress={onChoose} className={pill}>
+                    {t.common.chooseImage}
+                </Button>
             )}
-        >
-            <span className="flex size-16 items-center justify-center rounded-2xl bg-primary text-fg-primary shadow-md transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-translate-y-1">
-                <ImagePlus className="size-7" aria-hidden />
-            </span>
-            {/* Touch devices can't drag files in, so they get "choose" wording instead of "drop". */}
-            <span className="mt-6 text-tile text-primary [@media(hover:none)]:hidden">Drop an image here</span>
-            <span className="mt-6 hidden text-tile text-primary [@media(hover:none)]:inline">Choose an image</span>
-            <span className="mt-2 text-md text-tertiary [@media(hover:none)]:hidden">
-                or <span className="font-medium text-[var(--accent)]">choose a file</span> · you can also paste
-            </span>
-            <span className="mt-2 hidden text-md text-tertiary [@media(hover:none)]:inline">from your photos or files</span>
-            <span className="mt-6 text-sm text-quaternary">{UPLOAD_HINT}</span>
-        </button>
+            {status === "selected" && (
+                <>
+                    {controls}
+                    <Button size="md" color="primary" iconLeading={Icon} onPress={action.onRun} className={pill}>
+                        {action.label}
+                    </Button>
+                </>
+            )}
+            {(status === "uploading" || status === "processing") && (
+                <Button size="md" color="secondary" iconLeading={X} onPress={job.cancel} className={pill}>
+                    {t.common.cancel}
+                </Button>
+            )}
+            {status === "error" && (
+                <Button size="md" color="primary" iconLeading={RotateCcw} onPress={action.onRun} className={pill}>
+                    {t.common.tryAgain}
+                </Button>
+            )}
+            {status === "unsupported" && (
+                <Button size="md" color="secondary" iconLeading={ImagePlus} onPress={onChoose} className={pill}>
+                    {t.common.chooseAnother}
+                </Button>
+            )}
+            {status === "success" && job.result && (
+                <>
+                    <Button size="md" color="secondary" iconLeading={RotateCcw} onPress={job.reset} className={pill}>
+                        {t.common.startOver}
+                    </Button>
+                    <Button size="md" color="primary" iconLeading={Download} onPress={() => downloadFile(job.result!.url, job.result!.fileName)} className={pill}>
+                        {t.common.download}
+                    </Button>
+                </>
+            )}
+        </div>
     );
 }
 
 function Unsupported({ message }: { message: string }) {
+    const t = useT();
     return (
         <div className="flex max-w-md flex-col items-center text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-fg-quaternary shadow-sm">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-[var(--studio-chrome)] text-fg-quaternary shadow-sm">
                 <AlertCircle className="size-6" aria-hidden />
             </span>
-            <p className="mt-6 text-tile text-primary">Not available right now</p>
+            <p className="mt-6 text-tile text-primary">{t.workspace.unavailableTitle}</p>
             <p className="mt-2 text-md text-tertiary">{message}</p>
         </div>
     );
@@ -116,6 +224,7 @@ function Unsupported({ message }: { message: string }) {
 
 /** Honest progress: a real percentage while uploading, then an indeterminate state while the model works. */
 function BusyOverlay({ job }: { job: Job }) {
+    const t = useT();
     const [elapsed, setElapsed] = useState(0);
     useEffect(() => {
         if (!job.startedAt) return;
@@ -128,16 +237,16 @@ function BusyOverlay({ job }: { job: Job }) {
     const uploading = job.status === "uploading";
     return (
         <div className="absolute inset-0 flex items-center justify-center">
-            <div className="absolute inset-0 bg-neutral-950/30 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-neutral-950/25" />
             {/* A soft scan line: the image is being worked on. Stops under reduced motion. */}
             <span aria-hidden className="absolute inset-y-0 w-px animate-[scan_2.4s_var(--ease-in-out)_infinite] bg-white/80 shadow-[0_0_24px_4px_rgb(255_255_255/0.35)] motion-reduce:hidden" />
             <div role="status" className="material relative flex items-center gap-3 rounded-full px-5 py-3 text-sm font-medium text-primary">
                 <LoaderCircle className="size-4 animate-spin text-fg-quaternary motion-reduce:animate-none" aria-hidden />
                 {uploading ? (
-                    <span className="tabular-nums">Uploading… {Math.round(job.uploadProgress * 100)}%</span>
+                    <span className="tabular-nums">{t.workspace.uploading(Math.round(job.uploadProgress * 100))}</span>
                 ) : (
                     <span>
-                        Processing your image…{elapsed >= 3 && <span className="ml-1.5 text-quaternary tabular-nums">{elapsed}s</span>}
+                        {t.workspace.processing}{elapsed >= 3 && <span className="ml-1.5 text-quaternary tabular-nums">{elapsed}s</span>}
                     </span>
                 )}
             </div>
@@ -155,6 +264,7 @@ interface ResultViewProps {
 }
 
 function ResultView({ original, job, size, compare, transparentResult, zoomable }: ResultViewProps) {
+    const t = useT();
     const [position, setPosition] = useState(50);
     const [zoom, setZoom] = useState<(typeof ZOOM_LEVELS)[number]>(1);
     const [origin, setOrigin] = useState({ x: 50, y: 50 });
@@ -178,7 +288,7 @@ function ResultView({ original, job, size, compare, transparentResult, zoomable 
                 onChange={setPosition}
                 beforeLabel={compare.beforeLabel}
                 afterLabel={compare.afterLabel}
-                className="rounded-2xl shadow-canvas"
+                className="rounded-xl shadow-canvas"
                 style={size}
                 zoom={zoomable && zoom > 1 ? { scale: zoom, origin } : undefined}
                 before={
@@ -195,111 +305,15 @@ function ResultView({ original, job, size, compare, transparentResult, zoomable 
                 }
             />
             {zoomable && (
-                <div role="radiogroup" aria-label="Zoom" className="material absolute top-3 left-1/2 flex -translate-x-1/2 rounded-full p-1 md:top-5">
-                    {ZOOM_LEVELS.map((level) => (
-                        <button
-                            key={level}
-                            type="button"
-                            role="radio"
-                            aria-checked={zoom === level}
-                            onClick={() => setZoom(level)}
-                            className={cn(
-                                "min-h-9 min-w-11 cursor-pointer rounded-full px-3 text-sm font-medium tabular-nums transition-colors duration-200",
-                                "outline-focus-ring focus-visible:outline-2",
-                                zoom === level ? "bg-brand-solid text-primary_on-brand" : "text-secondary hover:text-primary",
-                            )}
-                        >
-                            {level === 1 ? "Fit" : `${level}×`}
-                        </button>
-                    ))}
+                <div className="material absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full p-0.5 md:bottom-5">
+                    <Segmented
+                        size="sm"
+                        label={t.workspace.zoom}
+                        value={zoom}
+                        onChange={setZoom}
+                        options={ZOOM_LEVELS.map((level) => ({ value: level, label: level === 1 ? t.workspace.fit : `${level}×`, ariaLabel: level === 1 ? t.workspace.fitAria : t.workspace.zoomAria(level) }))}
+                    />
                 </div>
-            )}
-        </div>
-    );
-}
-
-interface ToolbarProps {
-    status: string;
-    job: Job;
-    action: ImageWorkspaceProps["action"];
-    controls?: ReactNode;
-    onReplace: () => void;
-    hasImage: boolean;
-}
-
-function Toolbar({ status, job, action, controls, onReplace, hasImage }: ToolbarProps) {
-    if (status === "idle") return null;
-    const Icon = action.icon;
-    const replace = (
-        <Button size="lg" color="tertiary" iconLeading={ImagePlus} onPress={onReplace} className={pill} aria-label="Choose another image">
-            <span className="hidden sm:inline">{hasImage ? "Replace" : "Choose image"}</span>
-        </Button>
-    );
-
-    return (
-        <div key={status} className="material animate-enter flex max-w-full items-center gap-1 rounded-full p-1.5 [--i:-1]">
-            {status === "selected" && (
-                <>
-                    {replace}
-                    {controls}
-                    <Button size="lg" color="primary" iconLeading={Icon} onPress={action.onRun} className={pill}>
-                        {action.label}
-                    </Button>
-                </>
-            )}
-
-            {(status === "uploading" || status === "processing") && (
-                <Button size="lg" color="tertiary" iconLeading={X} onPress={job.cancel} className={pill}>
-                    Cancel
-                </Button>
-            )}
-
-            {status === "error" && (
-                <>
-                    {replace}
-                    <Button size="lg" color="primary" iconLeading={RotateCcw} onPress={action.onRun} className={pill}>
-                        Try again
-                    </Button>
-                </>
-            )}
-
-            {status === "unsupported" && replace}
-
-            {status === "success" && job.result && (
-                <>
-                    {replace}
-                    <Button size="lg" color="primary" iconLeading={Download} onPress={() => downloadFile(job.result!.url, job.result!.fileName)} className={pill}>
-                        Download
-                    </Button>
-                </>
-            )}
-        </div>
-    );
-}
-
-function MetaRow({ original, job, status, uploadError }: { original: ImageFile | null; job: Job; status: string; uploadError: string | null }) {
-    return (
-        <div className="mt-4 flex min-h-6 flex-wrap items-center justify-between gap-x-6 gap-y-2 px-1 text-sm">
-            {original ? (
-                <p className="min-w-0 truncate text-tertiary">
-                    <span className="font-medium text-secondary">{original.name}</span>
-                    <span className="mx-2 text-quaternary">·</span>
-                    <span className="tabular-nums">{formatDimensions(original.dimensions)}</span>
-                    <span className="mx-2 text-quaternary">·</span>
-                    <span className="tabular-nums">{formatBytes(original.size)}</span>
-                </p>
-            ) : (
-                <span />
-            )}
-
-            {uploadError && <p className="text-error-primary">{uploadError}</p>}
-            {!uploadError && status === "error" && job.error && <p className="text-error-primary">{job.error}</p>}
-            {!uploadError && status === "success" && job.result && (
-                <p className="text-tertiary tabular-nums">
-                    Result <span className="font-medium text-secondary">{formatDimensions(job.result.dimensions)}</span>
-                    <span className="mx-2 text-quaternary">·</span>
-                    {formatBytes(job.result.blob.size)}
-                </p>
             )}
         </div>
     );

@@ -2,16 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="AI-powered image tools: background removal, upscaling, cropping and editing." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Noto+Sans+Devanagari:wght@400..700&display=swap" rel="stylesheet" />
     <title>Image Tools</title>
     <script>
-      // Apply the saved theme before first paint to avoid a light/dark flash.
+      // Apply the saved theme and language before first paint to avoid a flash.
       try {
+        const locale = localStorage.getItem("locale") || (navigator.language.toLowerCase().startsWith("ne") ? "ne" : "en");
+        document.documentElement.lang = locale === "ne" ? "ne" : "en";
         const theme = localStorage.getItem("theme");
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         if (theme === "dark" || (!theme && prefersDark)) document.documentElement.classList.add("dark-mode");

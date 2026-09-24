@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, type BinaryResult, type UploadOptions } from "@/lib/api/apiClient";
 import type { ImageFile, ProcessedImage, ProcessingStatus } from "@/types/image";
+import type { AppErrorInfo } from "@/i18n";
 
 export type Runner = (file: File, options: UploadOptions) => Promise<BinaryResult>;
 
@@ -8,7 +9,7 @@ interface JobState {
     status: Exclude<ProcessingStatus, "idle" | "selected"> | "ready";
     uploadProgress: number;
     result: ProcessedImage | null;
-    error: string | null;
+    error: AppErrorInfo | null;
     startedAt: number | null;
 }
 
@@ -68,7 +69,7 @@ export function useProcessingJob(original: ImageFile | null, fallbackName: (imag
                 setJob({
                     ...initial,
                     status: unsupported ? "unsupported" : "error",
-                    error: error instanceof ApiError ? error.message : "Something went wrong. Please try again.",
+                    error: error instanceof ApiError ? { code: error.code ?? (error.status === 0 ? "NETWORK" : undefined), message: error.message } : { code: "GENERIC" },
                 });
             } finally {
                 if (controller.current === abort) controller.current = null;

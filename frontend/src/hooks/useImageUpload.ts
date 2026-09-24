@@ -4,12 +4,13 @@ import { type AppRoute, ROUTES } from "@/lib/constants/routes";
 import { ACCEPTED_IMAGE_TYPES, MAX_UPLOAD_BYTES } from "@/lib/constants/upload";
 import { useImageStore } from "@/store/useImageStore";
 import type { ImageDimensions } from "@/types/image";
+import { type Dictionary, useT } from "@/i18n";
 
 const acceptedTypes: readonly string[] = ACCEPTED_IMAGE_TYPES;
 
-function validate(file: File): string | null {
-    if (!acceptedTypes.includes(file.type)) return "Please choose a JPG, PNG or WebP image.";
-    if (file.size > MAX_UPLOAD_BYTES) return "That image is larger than 10 MB. Please choose a smaller one.";
+function validate(file: File, t: Dictionary): string | null {
+    if (!acceptedTypes.includes(file.type)) return t.upload.wrongType;
+    if (file.size > MAX_UPLOAD_BYTES) return t.upload.tooLarge;
     return null;
 }
 
@@ -35,6 +36,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
     const [error, setError] = useState<string | null>(null);
     const setOriginal = useImageStore((state) => state.setOriginal);
     const navigate = useNavigate();
+    const t = useT();
 
     const openPicker = useCallback(() => {
         setError(null);
@@ -43,7 +45,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
 
     const acceptFile = useCallback(
         async (file: File) => {
-            const problem = validate(file);
+            const problem = validate(file, t);
             if (problem) {
                 setError(problem);
                 return false;
@@ -52,7 +54,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
             try {
                 dimensions = await readDimensions(file);
             } catch {
-                setError("This file couldn't be read as an image. It may be damaged.");
+                setError(t.upload.unreadable);
                 return false;
             }
 
@@ -69,7 +71,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
             if (navigateTo) navigate(navigateTo);
             return true;
         },
-        [navigate, navigateTo, setOriginal],
+        [navigate, navigateTo, setOriginal, t],
     );
 
     const onChange = useCallback(

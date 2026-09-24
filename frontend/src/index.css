@@ -15,34 +15,46 @@
  * `.dark-mode` (not just `html.dark-mode`) so a single section can opt into the dark palette.
  */
 :root {
-    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter, "Inter"), "Segoe UI", Roboto, Arial, sans-serif;
-    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter, "Inter"), "Segoe UI", Roboto, Arial, sans-serif;
+    /* SF Pro on Apple devices (system font — it cannot be served as a web font), Inter elsewhere, Noto for Devanagari. */
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Noto Sans Devanagari", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Noto Sans Devanagari", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+    /* Slate neutrals with an indigo accent. */
     --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f5f5f7;
-    --color-bg-tertiary: #ebebef;
-    --color-bg-primary_hover: #f5f5f7;
-    --color-bg-active: #ebebef;
-    --color-text-primary: #1d1d1f;
-    --color-text-secondary: #333336;
-    --color-text-tertiary: #6e6e73;
-    --color-text-quaternary: #86868b;
-    --color-fg-primary: #1d1d1f;
-    --color-fg-quaternary: #a1a1a6;
-    --color-border-primary: #d2d2d7;
-    --color-border-secondary: #e8e8ed;
+    --color-bg-secondary: #f6f7fb;
+    --color-bg-tertiary: #eceef6;
+    --color-bg-primary_hover: #f6f7fb;
+    --color-bg-active: #eceef6;
+    --color-text-primary: #1a202c;
+    --color-text-secondary: #2d3748;
+    --color-text-tertiary: #4a5568;
+    --color-text-quaternary: #718096;
+    --color-fg-primary: #1a202c;
+    --color-fg-quaternary: #a0aec0;
+    --color-border-primary: #cbd5e0;
+    --color-border-secondary: #e6e8f2;
 
-    --color-bg-brand-solid: #1d1d1f;
-    --color-bg-brand-solid_hover: #3a3a3c;
+    --indigo: #5a67d8;
+    --indigo-strong: #4c51bf;
+    --indigo-soft: #eef0fd;
+    --indigo-line: rgb(90 103 216 / 0.22);
+
+    --color-bg-brand-solid: var(--indigo);
+    --color-bg-brand-solid_hover: var(--indigo-strong);
     --color-text-primary_on-brand: #ffffff;
 
-    --accent: #0066cc;
-    --color-focus-ring: #0071e3;
+    --accent: var(--indigo);
+    --color-focus-ring: var(--indigo);
+
+    /* Cards: white, faint lavender hairline, soft indigo-tinted depth. */
+    --card-bg: #ffffff;
+    --card-line: rgb(90 103 216 / 0.12);
+    --card-shadow: 0 1px 2px rgb(26 32 44 / 0.03), 0 24px 60px -28px rgb(90 103 216 / 0.28);
 
     --checker-a: #ffffff;
-    --checker-b: #ececf0;
-    --canvas: #f5f5f7;
-    --tile: #f5f5f7;
+    --checker-b: #eceef4;
+    --canvas: #f6f7fb;
+    --tile: #f6f7fb;
 
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -51,31 +63,40 @@
 }
 
 .dark-mode {
-    --color-bg-primary: #0b0b0c;
-    --color-bg-secondary: #161617;
-    --color-bg-tertiary: #232325;
-    --color-bg-primary_hover: #1c1c1e;
-    --color-bg-active: #232325;
-    --color-text-primary: #f5f5f7;
-    --color-text-secondary: #d2d2d7;
-    --color-text-tertiary: #a1a1a6;
-    --color-text-quaternary: #86868b;
-    --color-fg-primary: #f5f5f7;
-    --color-fg-quaternary: #6e6e73;
-    --color-border-primary: #424245;
-    --color-border-secondary: #2c2c2e;
+    --color-bg-primary: #0b0d14;
+    --color-bg-secondary: #12141d;
+    --color-bg-tertiary: #1c1f2b;
+    --color-bg-primary_hover: #161925;
+    --color-bg-active: #1c1f2b;
+    --color-text-primary: #f1f3f9;
+    --color-text-secondary: #d5d9e5;
+    --color-text-tertiary: #a3aabd;
+    --color-text-quaternary: #7c849a;
+    --color-fg-primary: #f1f3f9;
+    --color-fg-quaternary: #5e667c;
+    --color-border-primary: #343a4d;
+    --color-border-secondary: #232736;
 
-    --color-bg-brand-solid: #f5f5f7;
-    --color-bg-brand-solid_hover: #d2d2d7;
-    --color-text-primary_on-brand: #1d1d1f;
+    --indigo: #7f8cf5;
+    --indigo-strong: #6b78eb;
+    --indigo-soft: rgb(127 140 245 / 0.12);
+    --indigo-line: rgb(127 140 245 / 0.3);
 
-    --accent: #2997ff;
-    --color-focus-ring: #2997ff;
+    --color-bg-brand-solid: #6573e6;
+    --color-bg-brand-solid_hover: #7482f0;
+    --color-text-primary_on-brand: #ffffff;
 
-    --checker-a: #232325;
-    --checker-b: #1c1c1e;
-    --canvas: #1c1c1e;
-    --tile: #161617;
+    --accent: var(--indigo);
+    --color-focus-ring: var(--indigo);
+
+    --card-bg: #12141d;
+    --card-line: rgb(255 255 255 / 0.07);
+    --card-shadow: 0 30px 70px -35px rgb(0 0 0 / 0.8);
+
+    --checker-a: #1c1f2b;
+    --checker-b: #161925;
+    --canvas: #161925;
+    --tile: #12141d;
 
     color-scheme: dark;
 }
@@ -94,8 +115,8 @@
 
     body {
         @apply min-h-dvh bg-primary text-primary;
-        font-size: 1.0625rem;
-        letter-spacing: -0.011em;
+        font-size: 1rem;
+        letter-spacing: 0;
     }
 
     ::selection {
@@ -126,26 +147,26 @@
 
 @utility text-hero {
     font-family: var(--font-display);
-    font-size: clamp(2.75rem, 1.6rem + 5.2vw, 6rem);
-    line-height: 1.02;
-    letter-spacing: -0.035em;
-    font-weight: 700;
+    font-size: clamp(2.5rem, 1.6rem + 3vw, 3.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 600;
 }
 
 @utility text-section {
     font-family: var(--font-display);
-    font-size: clamp(2.125rem, 1.4rem + 2.9vw, 4rem);
-    line-height: 1.04;
-    letter-spacing: -0.03em;
-    font-weight: 700;
+    font-size: clamp(2rem, 1.45rem + 1.9vw, 2.75rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    font-weight: 600;
 }
 
 @utility text-tile {
     font-family: var(--font-display);
-    font-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);
-    line-height: 1.12;
-    letter-spacing: -0.022em;
-    font-weight: 700;
+    font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    font-weight: 600;
 }
 
 @utility text-statement {
@@ -157,10 +178,10 @@
 }
 
 @utility text-lead {
-    font-size: clamp(1.1875rem, 1.05rem + 0.45vw, 1.5rem);
-    line-height: 1.42;
-    letter-spacing: -0.016em;
-    font-weight: 500;
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    line-height: 1.6;
+    letter-spacing: 0;
+    font-weight: 400;
 }
 
 @utility text-eyebrow {
@@ -305,10 +326,10 @@
 /* Chapter headline inside a pinned, full-viewport stage (smaller than text-section so the image fits). */
 @utility text-chapter {
     font-family: var(--font-display);
-    font-size: clamp(1.875rem, 1.3rem + 2vw, 3rem);
-    line-height: 1.06;
-    letter-spacing: -0.03em;
-    font-weight: 700;
+    font-size: clamp(1.875rem, 1.4rem + 1.6vw, 2.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    font-weight: 600;
 }
 
 /* Processing indicator: a soft line sweeping across the image being worked on. */
@@ -325,4 +346,124 @@
         left: 100%;
         opacity: 0;
     }
+}
+
+/* ------------------------------------------------------------------ STUDIO (tool workspaces)
+ * One surface language for every tool, following the theme. Light: white chrome around a soft grey
+ * stage. Dark: graphite chrome around a near-black stage. Segmented controls use Apple's system values.
+ */
+:root {
+    --studio-chrome: #ffffff;
+    --studio-stage: #f6f7fb;
+    --studio-line: rgb(90 103 216 / 0.1);
+    --studio-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 30px 80px -40px rgb(0 0 0 / 0.28);
+    --seg-track: rgb(118 118 128 / 0.12);
+    --seg-thumb: #ffffff;
+    --seg-thumb-shadow: 0 3px 8px rgb(0 0 0 / 0.12), 0 3px 1px rgb(0 0 0 / 0.04), 0 0 0 0.5px rgb(0 0 0 / 0.04);
+    /* Crop: what lies outside the frame, and the frame itself. */
+    --crop-scrim: rgb(242 242 245 / 0.8);
+    --crop-scrim-active: rgb(242 242 245 / 0.55);
+}
+
+.dark-mode {
+    --studio-chrome: #12141d;
+    --studio-stage: #0a0b11;
+    --studio-line: rgb(255 255 255 / 0.08);
+    --studio-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 40px 90px -40px rgb(0 0 0 / 0.9);
+    --seg-track: rgb(118 118 128 / 0.24);
+    --seg-thumb: #3a3f55;
+    --seg-thumb-shadow: 0 3px 8px rgb(0 0 0 / 0.12);
+    --crop-scrim: rgb(12 12 13 / 0.66);
+    --crop-scrim-active: rgb(12 12 13 / 0.45);
+}
+
+@utility studio {
+    background-color: var(--studio-chrome);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--card-line);
+    box-shadow: var(--card-shadow);
+}
+
+@utility studio-stage {
+    background-color: var(--studio-stage);
+}
+
+@utility studio-line {
+    border-color: var(--studio-line);
+}
+
+/* A small uppercase label for inspector sections. */
+@utility text-label {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+
+/* ------------------------------------------------------------------ LANDING (card-based marketing surfaces) */
+
+@utility card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-line);
+    border-radius: 1.5rem;
+    box-shadow: var(--card-shadow);
+}
+
+/* Uppercase pill label above section titles. */
+@utility section-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    border: 1px solid var(--indigo-line);
+    background-color: var(--indigo-soft);
+    padding: 0.3rem 0.9rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--indigo);
+}
+
+/* Primary call to action: indigo, with a soft light-catching gradient and glow. */
+@utility btn-primary {
+    background-image: linear-gradient(100deg, #5a67d8 0%, #6f7de6 55%, #93a6f6 100%);
+    color: #ffffff;
+    box-shadow: 0 10px 30px -10px rgb(90 103 216 / 0.6);
+    transition: box-shadow 250ms var(--ease-out), filter 250ms var(--ease-out), scale 150ms var(--ease-out);
+
+    &:hover {
+        filter: brightness(1.05);
+        box-shadow: 0 14px 34px -10px rgb(90 103 216 / 0.7);
+    }
+}
+
+/* Faint lavender glow behind the hero. */
+@utility hero-glow {
+    background-image: radial-gradient(60% 55% at 30% 0%, rgb(90 103 216 / 0.09), transparent 70%),
+        radial-gradient(40% 45% at 90% 10%, rgb(163 181 251 / 0.12), transparent 70%);
+
+    :where(.dark-mode) & {
+        background-image: radial-gradient(60% 55% at 30% 0%, rgb(127 140 245 / 0.12), transparent 70%),
+            radial-gradient(40% 45% at 90% 10%, rgb(163 181 251 / 0.08), transparent 70%);
+    }
+}
+
+
+/* Devanagari: vowel marks sit above and below the letters, so give lines more room and drop Latin tracking. */
+:lang(ne) :is(.text-hero, .text-section, .text-chapter, .text-statement, .text-tile) {
+    line-height: 1.4;
+    letter-spacing: 0;
+}
+
+:lang(ne) :is(.text-lead, p, li) {
+    line-height: 1.75;
+}
+
+:lang(ne) .section-badge {
+    letter-spacing: 0;
+    text-transform: none;
 }
