@@ -3,6 +3,7 @@ import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } fr
 import { images } from "@/assets/images/landing";
 import { Button } from "@/components/ui/base/buttons/button";
 import { cn } from "@/lib/utils/cn";
+import { useT } from "@/i18n";
 
 /** Pixel size of the source photo, used for the output readout. */
 const SOURCE = { width: 4025, height: 2673 };
@@ -11,7 +12,7 @@ const IMAGE_ASPECT = SOURCE.width / SOURCE.height;
 const FILL = 0.8;
 
 const PRESETS = [
-    { id: "original", label: "Original", ratio: null },
+    { id: "original", label: null, ratio: null },
     { id: "square", label: "1:1", ratio: 1 },
     { id: "portrait", label: "4:5", ratio: 4 / 5 },
     { id: "wide", label: "16:9", ratio: 16 / 9 },
@@ -47,6 +48,7 @@ function rectForPreset(preset: PresetId, quarterTurns: number, center: { x: numb
 }
 
 export function MiniEditor({ play }: { play: boolean }) {
+    const t = useT();
     const areaRef = useRef<HTMLDivElement>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const [area, setArea] = useState({ width: 0, height: 0 });
@@ -172,7 +174,7 @@ export function MiniEditor({ play }: { play: boolean }) {
                         <img
                             {...images.flamingo}
                             sizes="(min-width: 1024px) 640px, 100vw"
-                            alt="A flamingo curving its neck against dark green foliage"
+                            alt={t.miniEditor.alt}
                             loading="lazy"
                             decoding="async"
                             draggable={false}
@@ -181,7 +183,7 @@ export function MiniEditor({ play }: { play: boolean }) {
                         <div
                             role="group"
                             tabIndex={0}
-                            aria-label="Crop area. Drag, or use the arrow keys, to move it."
+                            aria-label={t.miniEditor.cropArea}
                             className={cn(
                                 "absolute cursor-move touch-none shadow-[0_0_0_9999px_rgb(10_10_10/0.55)] outline-none ring-1 ring-white/90",
                                 "focus-visible:ring-2",
@@ -208,7 +210,7 @@ export function MiniEditor({ play }: { play: boolean }) {
             </div>
 
             <div className="flex items-center justify-between gap-1 border-t border-secondary px-2 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-                <div role="radiogroup" aria-label="Aspect ratio" className="flex items-center gap-0.5">
+                <div role="radiogroup" aria-label={t.miniEditor.aspect} className="flex items-center gap-0.5">
                     {PRESETS.map((option) => {
                         const checked = option.id === preset;
                         return (
@@ -224,22 +226,22 @@ export function MiniEditor({ play }: { play: boolean }) {
                                     checked ? "bg-secondary text-primary dark:bg-tertiary" : "text-tertiary hover:text-primary",
                                 )}
                             >
-                                {option.label}
+                                {option.label ?? t.common.original}
                             </button>
                         );
                     })}
                 </div>
 
                 <div className="flex items-center gap-0.5">
-                    <output aria-label="Output size" className="mr-2 hidden text-sm text-tertiary tabular-nums sm:inline">
+                    <output aria-label={t.miniEditor.outputSize} className="mr-2 hidden text-sm text-tertiary tabular-nums sm:inline">
                         {format(outputWidth)} × {format(outputHeight)}
                     </output>
-                    <Button size="sm" color="tertiary" iconLeading={RotateCw} aria-label="Rotate 90°" onPress={rotate} className="press-scale rounded-full before:rounded-full" />
+                    <Button size="sm" color="tertiary" iconLeading={RotateCw} aria-label={t.miniEditor.rotate} onPress={rotate} className="press-scale rounded-full before:rounded-full" />
                     <Button
                         size="sm"
                         color="tertiary"
                         iconLeading={TrianglesCenterlineDashedVertical}
-                        aria-label="Flip horizontally"
+                        aria-label={t.miniEditor.flip}
                         aria-pressed={flipped}
                         onPress={() => setFlipped((f) => !f)}
                         className="press-scale rounded-full before:rounded-full"

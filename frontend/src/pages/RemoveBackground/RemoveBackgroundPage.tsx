@@ -7,28 +7,33 @@ import { useProcessingJob } from "@/features/image-processing/useProcessingJob";
 import { removeBackground } from "@/lib/api/backgroundRemovalApi";
 import { useImageStore } from "@/store/useImageStore";
 import type { ImageFile } from "@/types/image";
+import { useT } from "@/i18n";
 
 const fileNameFor = (image: ImageFile) => `${baseName(image.name)}-no-background.png`;
 
 export function RemoveBackgroundPage() {
+    const t = useT();
     const original = useImageStore((state) => state.original);
     const job = useProcessingJob(original, fileNameFor);
     const run = useCallback(() => void job.run(removeBackground), [job]);
 
     return (
         <ToolPage
+            name={t.pages.removeBackground.name}
+            badge={t.toolPage.aiTool}
+            guide={t.guides.removeBackground}
             title={
                 <>
-                    Remove background. <span className="text-quaternary">Keep the subject.</span>
+                    {t.pages.removeBackground.title} <span className="text-[var(--indigo)]">{t.pages.removeBackground.accent}</span>
                 </>
             }
-            description="Upload a photo and get a clean, transparent PNG of the subject."
+            description={t.pages.removeBackground.description}
         >
             <ImageWorkspace
                 original={original}
                 job={job}
-                action={{ label: "Remove background", icon: Eraser, onRun: run }}
-                compare={{ beforeLabel: "Original", afterLabel: "Background removed" }}
+                action={{ label: t.pages.removeBackground.action, icon: Eraser, onRun: run }}
+                compare={{ beforeLabel: t.common.original, afterLabel: t.workspace.backgroundRemoved }}
                 transparentResult
             />
         </ToolPage>

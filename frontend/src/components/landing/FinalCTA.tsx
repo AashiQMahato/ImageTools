@@ -1,34 +1,21 @@
 import { UploadButton } from "@/components/common/UploadButton";
 import { useInView } from "@/hooks/useInView";
-import { UPLOAD_HINT } from "@/lib/constants/upload";
-
-const STEPS = ["Upload", "Transform", "Download"];
+import { useT } from "@/i18n";
 
 export function FinalCTA() {
+    const t = useT();
     const [ref, inView] = useInView<HTMLElement>();
-
     return (
-        <section ref={ref} data-inview={inView} aria-labelledby="cta-title" className="pb-24 md:pb-32">
+        <section ref={ref} data-inview={inView} aria-labelledby="cta-title" className="pt-8 pb-24 md:pb-28">
             <div className="page-container">
-                {/* A dark closing tile: the page's last, calmest moment. */}
-                <div className="dark-mode tile flex flex-col items-center px-6 py-20 text-center md:py-28">
-                    <ol className="reveal flex items-center gap-2 text-sm font-medium whitespace-nowrap text-tertiary sm:gap-3" aria-label="How it works">
-                        {STEPS.map((step, index) => (
-                            <li key={step} className="flex items-center gap-2 sm:gap-3">
-                                {index > 0 && <span className="h-px w-4 bg-border-primary sm:w-6 md:w-10" aria-hidden />}
-                                <span>
-                                    <span className="text-quaternary tabular-nums">{index + 1}</span> {step}
-                                </span>
-                            </li>
-                        ))}
-                    </ol>
-                    <h2 id="cta-title" className="reveal mt-6 text-section text-balance text-primary [--i:1]">
-                        Ready when
-                        <br />
-                        <span className="text-quaternary">your image is.</span>
+                <div className="reveal card hero-glow flex flex-col items-center px-6 py-16 text-center md:py-20">
+                    <p className="section-badge">{t.cta.badge}</p>
+                    <h2 id="cta-title" className="mt-4 max-w-2xl text-section text-balance text-primary">
+                        {t.cta.title}
                     </h2>
-                    <UploadButton size="xl" className="reveal mt-10 [--i:2]" buttonClassName="rounded-full px-7 py-3.5 before:rounded-full" />
-                    <p className="reveal mt-6 text-sm text-quaternary [--i:3]">{UPLOAD_HINT}</p>
+                    <p className="mt-4 max-w-xl text-lead text-tertiary">{t.cta.description}</p>
+                    <UploadButton size="xl" className="mt-8" buttonClassName="btn-primary min-h-13 rounded-full px-8 text-[1.0625rem] ring-0 before:hidden" />
+                    <p className="mt-4 text-sm text-quaternary">{t.common.uploadHint}</p>
                 </div>
             </div>
         </section>

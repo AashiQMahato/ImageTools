@@ -9,23 +9,25 @@ import { getProcessorHealth } from "@/lib/api/processorsApi";
 import { upscaleImage } from "@/lib/api/upscaleApi";
 import { useImageStore } from "@/store/useImageStore";
 import type { ImageFile, UpscaleFactor } from "@/types/image";
+import { type AppErrorInfo, useT } from "@/i18n";
 
 /** Mirrors the API's default output limit, so impossible choices are disabled up front. */
 const MAX_OUTPUT_PIXELS = 40_000_000;
 
 export function UpscalerPage() {
+    const t = useT();
     const original = useImageStore((state) => state.original);
     const scale = useImageStore((state) => state.selectedScale);
     const setScale = useImageStore((state) => state.setSelectedScale);
     const fileNameFor = useCallback((image: ImageFile) => `${baseName(image.name)}-upscaled-${scale}x.png`, [scale]);
     const job = useProcessingJob(original, fileNameFor);
-    const [unsupported, setUnsupported] = useState<string | null>(null);
+    const [unsupported, setUnsupported] = useState<AppErrorInfo | null>(null);
 
     // Ask the API up front whether this server can upscale, instead of letting someone wait for a failure.
     useEffect(() => {
         const controller = new AbortController();
         getProcessorHealth(controller.signal)
-            .then((health) => setUnsupported(health.upscaling.available ? null : (health.upscaling.message ?? "Upscaling is unavailable on this server.")))
+            .then((health) => setUnsupported(health.upscaling.available ? null : { code: "UPSCALING_UNAVAILABLE", message: health.upscaling.message ?? undefined }))
             .catch(() => undefined);
         return () => controller.abort();
     }, []);
@@ -40,19 +42,22 @@ export function UpscalerPage() {
 
     return (
         <ToolPage
+            name={t.pages.upscale.name}
+            badge={t.toolPage.aiTool}
+            guide={t.guides.upscale}
             title={
                 <>
-                    Upscale. <span className="text-quaternary">Bring back the detail.</span>
+                    {t.pages.upscale.title} <span className="text-[var(--indigo)]">{t.pages.upscale.accent}</span>
                 </>
             }
-            description="Enlarge an image 2× or 4× with AI, then compare it with the original up close."
+            description={t.pages.upscale.description}
         >
             <ImageWorkspace
                 original={original}
                 job={job}
-                action={{ label: `Upscale ${scale}×`, icon: ZoomIn, onRun: run }}
+                action={{ label: t.pages.upscale.action(scale), icon: ZoomIn, onRun: run }}
                 controls={<ScalePicker disabledScales={tooLarge} />}
-                compare={{ beforeLabel: "Original", afterLabel: "Upscaled" }}
+                compare={{ beforeLabel: t.common.original, afterLabel: t.workspace.upscaled }}
                 zoomable
                 unsupportedMessage={unsupported}
             />

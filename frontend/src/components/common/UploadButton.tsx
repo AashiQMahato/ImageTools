@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/base/buttons/button";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import type { AppRoute } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
+import { useT } from "@/i18n";
 
 interface UploadButtonProps {
     size?: "sm" | "md" | "lg" | "xl";
@@ -19,7 +20,8 @@ interface UploadButtonProps {
 }
 
 /** Primary "Upload image" action. Validation errors appear in a small note beneath the button. */
-export function UploadButton({ size = "xl", className, buttonClassName, label = "Upload image", showIcon = true, onErrorChange, navigateTo }: UploadButtonProps) {
+export function UploadButton({ size = "xl", className, buttonClassName, label, showIcon = true, onErrorChange, navigateTo }: UploadButtonProps) {
+    const t = useT();
     const { openPicker, inputProps, error, clearError } = useImageUpload({ navigateTo });
 
     useEffect(() => {
@@ -41,7 +43,7 @@ export function UploadButton({ size = "xl", className, buttonClassName, label = 
                 onPress={openPicker}
                 className={cn("press-scale w-full", buttonClassName)}
             >
-                {label}
+                {label ?? t.common.uploadImage}
             </Button>
             <input {...inputProps} aria-hidden />
             {!onErrorChange && (

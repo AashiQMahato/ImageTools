@@ -1,6 +1,7 @@
 import { ChevronsLeftRight } from "lucide-react";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { useT } from "@/i18n";
 
 type Motion = "none" | "snap";
 
@@ -32,6 +33,7 @@ const transitions: Record<Motion, string> = {
 };
 
 export function CompareSlider({ before, after, beforeLabel, afterLabel, value: position, onChange, className, style, zoom, children }: CompareSliderProps) {
+    const t = useT();
     const containerRef = useRef<HTMLDivElement>(null);
     const gesture = useRef<{ id: number; startX: number; startY: number; dragging: boolean } | null>(null);
     const [motion, setMotion] = useState<Motion>("none");
@@ -133,11 +135,11 @@ export function CompareSlider({ before, after, beforeLabel, afterLabel, value: p
             <div
                 role="slider"
                 tabIndex={0}
-                aria-label={`Compare ${beforeLabel.toLowerCase()} and ${afterLabel.toLowerCase()}`}
+                aria-label={t.compare.slider(beforeLabel, afterLabel)}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(position)}
-                aria-valuetext={`${Math.round(position)}% ${beforeLabel.toLowerCase()}`}
+                aria-valuetext={t.compare.value(Math.round(position), beforeLabel)}
                 onKeyDown={onKeyDown}
                 className={cn(
                     "group absolute inset-y-0 -ml-5 flex w-10 justify-center outline-none transition-opacity duration-300",
