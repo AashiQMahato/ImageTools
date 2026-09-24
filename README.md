@@ -2,7 +2,7 @@
 
 An AI-powered image utility platform: background removal, upscaling, cropping, resizing, rotation/flip, before/after comparison, preview and download.
 
-> **Status:** project foundation only. No image processing or AI features are implemented yet.
+> **Status:** foundation plus the public landing page. No image processing or AI features are implemented yet.
 
 ## Architecture
 
@@ -25,6 +25,7 @@ Set up with the official CLI (`npx untitledui@latest init --vite`), which provid
 - `src/styles/theme.css` — design tokens (colors, typography, radius, shadows) for light and dark mode
 - `src/styles/globals.css` / `typography.css` — Tailwind base, plugins and the `dark` variant (`.dark-mode` class on `<html>`)
 - Components are added with `npx untitledui@latest add <component> -p components/ui` and live in `src/components/ui/` (currently: `button`, `badges`)
+- The brand scale is set to neutral in `theme.css`, and `src/index.css` makes the solid brand surface near-black in light mode and near-white in dark mode, so primary actions invert with the theme
 
 Use the semantic token classes (`bg-primary`, `text-tertiary`, `border-secondary`, `bg-brand-solid`, …) rather than raw palette colors. Untitled UI components use `@/lib/utils/cx`; the CLI writes new components with `@/utils/cx`, so update that import after adding a component. shadcn/ui is intentionally not used.
 
@@ -37,11 +38,11 @@ Node.js · Express 5 · TypeScript (strict) · Helmet · CORS · express-rate-li
 ```text
 frontend/src/
 ├── assets/          images/, icons/
-├── components/      ui/ (Untitled UI), layout/, common/ (shared app components)
+├── components/      ui/ (Untitled UI), layout/ (Navbar, Footer), common/ (Logo, UploadButton…), landing/ (home page sections)
 ├── features/        background-removal/, upscaler/, cropper/, image-editor/
 ├── pages/           Home/, RemoveBackground/, Upscaler/, Cropper/, Editor/
-├── hooks/           useTheme
-├── lib/             api/ (typed client), utils/ (cx, cn), constants/ (routes, tools)
+├── hooks/           useTheme, useInView, useImageUpload, useScrolled, usePrefersReducedMotion
+├── lib/             api/ (typed client), utils/ (cx, cn), constants/ (routes, navigation, upload)
 ├── store/           Zustand stores
 ├── types/           shared types
 └── routes/          React Router config

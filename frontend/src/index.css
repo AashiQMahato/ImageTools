@@ -4,9 +4,88 @@
 /* Tell Tailwind to scan the whole src tree for class names. */
 @source "./";
 
+/*
+ * Project token overrides (unlayered, so they win over Untitled UI's layered defaults).
+ *
+ * Neutrals follow an Apple-style ladder: near-black ink (#1d1d1f), graphite secondary text,
+ * and a cool off-white (#f5f5f7) for tiles. One accent — link blue — is reserved for text
+ * links and focus rings. The solid brand surface is near-black in light mode and near-white
+ * in dark mode, so primary actions invert with the theme.
+ *
+ * `.dark-mode` (not just `html.dark-mode`) so a single section can opt into the dark palette.
+ */
+:root {
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter, "Inter"), "Segoe UI", Roboto, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter, "Inter"), "Segoe UI", Roboto, Arial, sans-serif;
+
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f5f5f7;
+    --color-bg-tertiary: #ebebef;
+    --color-bg-primary_hover: #f5f5f7;
+    --color-bg-active: #ebebef;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #333336;
+    --color-text-tertiary: #6e6e73;
+    --color-text-quaternary: #86868b;
+    --color-fg-primary: #1d1d1f;
+    --color-fg-quaternary: #a1a1a6;
+    --color-border-primary: #d2d2d7;
+    --color-border-secondary: #e8e8ed;
+
+    --color-bg-brand-solid: #1d1d1f;
+    --color-bg-brand-solid_hover: #3a3a3c;
+    --color-text-primary_on-brand: #ffffff;
+
+    --accent: #0066cc;
+    --color-focus-ring: #0071e3;
+
+    --checker-a: #ffffff;
+    --checker-b: #ececf0;
+    --canvas: #f5f5f7;
+    --tile: #f5f5f7;
+
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    /* Critically damped spring (damping 1.0), sampled for CSS. Pair with ~600ms for "response 0.4". */
+    --ease-spring: linear(0, 0.0535, 0.1693, 0.3039, 0.4345, 0.5509, 0.6493, 0.7298, 0.794, 0.8443, 0.8832, 0.9129, 0.9354, 0.9523, 0.9649, 0.9743, 0.9812, 0.9863, 0.9901, 0.9928, 0.9948, 0.9963, 0.9973, 0.9981, 0.9986, 1);
+}
+
+.dark-mode {
+    --color-bg-primary: #0b0b0c;
+    --color-bg-secondary: #161617;
+    --color-bg-tertiary: #232325;
+    --color-bg-primary_hover: #1c1c1e;
+    --color-bg-active: #232325;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #d2d2d7;
+    --color-text-tertiary: #a1a1a6;
+    --color-text-quaternary: #86868b;
+    --color-fg-primary: #f5f5f7;
+    --color-fg-quaternary: #6e6e73;
+    --color-border-primary: #424245;
+    --color-border-secondary: #2c2c2e;
+
+    --color-bg-brand-solid: #f5f5f7;
+    --color-bg-brand-solid_hover: #d2d2d7;
+    --color-text-primary_on-brand: #1d1d1f;
+
+    --accent: #2997ff;
+    --color-focus-ring: #2997ff;
+
+    --checker-a: #232325;
+    --checker-b: #1c1c1e;
+    --canvas: #1c1c1e;
+    --tile: #161617;
+
+    color-scheme: dark;
+}
+
 @layer base {
     html {
         color-scheme: light;
+        font-optical-sizing: auto;
+        text-rendering: optimizeLegibility;
+        -webkit-tap-highlight-color: transparent;
     }
 
     html.dark-mode {
@@ -15,5 +94,219 @@
 
     body {
         @apply min-h-dvh bg-primary text-primary;
+        font-size: 1.0625rem;
+        letter-spacing: -0.011em;
     }
+
+    ::selection {
+        background: color-mix(in srgb, var(--color-focus-ring) 24%, transparent);
+    }
+}
+
+/* LAYOUT */
+
+@utility page-container {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 1200px;
+    padding-inline: 1.25rem;
+
+    @media (width >= 48rem) {
+        padding-inline: 2rem;
+    }
+}
+
+/* Large rounded surface for a chapter or bento tile. */
+@utility tile {
+    background-color: var(--tile);
+    border-radius: 1.75rem;
+}
+
+/* TYPE SCALE — tracking tightens and leading closes as size grows (SF Display / Inter Display). */
+
+@utility text-hero {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 1.6rem + 5.2vw, 6rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+}
+
+@utility text-section {
+    font-family: var(--font-display);
+    font-size: clamp(2.125rem, 1.4rem + 2.9vw, 4rem);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+}
+
+@utility text-tile {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);
+    line-height: 1.12;
+    letter-spacing: -0.022em;
+    font-weight: 700;
+}
+
+@utility text-statement {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 1.2rem + 2.3vw, 3.25rem);
+    line-height: 1.14;
+    letter-spacing: -0.028em;
+    font-weight: 700;
+}
+
+@utility text-lead {
+    font-size: clamp(1.1875rem, 1.05rem + 0.45vw, 1.5rem);
+    line-height: 1.42;
+    letter-spacing: -0.016em;
+    font-weight: 500;
+}
+
+@utility text-eyebrow {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+}
+
+/* Accent text link, e.g. "Open the upscaler ›". */
+@utility link-accent {
+    color: var(--accent);
+    border-radius: 0.25rem;
+    text-underline-offset: 0.2em;
+
+    &:hover {
+        text-decoration: underline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-focus-ring);
+        outline-offset: 3px;
+    }
+}
+
+/* SURFACES */
+
+/* Transparency grid shown behind cut-out subjects. */
+@utility bg-checkerboard {
+    background-color: var(--checker-a);
+    background-image: conic-gradient(var(--checker-b) 25%, transparent 0 50%, var(--checker-b) 0 75%, transparent 0);
+    background-size: 20px 20px;
+}
+
+@utility bg-canvas {
+    background-color: var(--canvas);
+}
+
+/* Ambient depth for image canvases: no hairline, just soft light falloff. */
+@utility shadow-canvas {
+    box-shadow:
+        0 1px 2px rgb(0 0 0 / 0.04),
+        0 24px 60px -24px rgb(0 0 0 / 0.22);
+
+    :where(.dark-mode) & {
+        box-shadow:
+            0 0 0 1px rgb(255 255 255 / 0.06),
+            0 30px 70px -30px rgb(0 0 0 / 0.8);
+    }
+}
+
+/* Floating material for toolbars over imagery (Apple "thin material"). */
+@utility material {
+    background-color: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+        0 0 0 0.5px rgb(0 0 0 / 0.08),
+        0 8px 24px -8px rgb(0 0 0 / 0.2);
+
+    :where(.dark-mode) & {
+        background-color: rgb(30 30 32 / 0.72);
+        box-shadow:
+            0 0 0 0.5px rgb(255 255 255 / 0.12),
+            0 8px 24px -8px rgb(0 0 0 / 0.6);
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+        background-color: var(--color-bg-primary);
+        backdrop-filter: none;
+    }
+}
+
+/* MOTION */
+
+/* Page-load stagger: set --i on each element to order it. */
+@keyframes enter {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+        filter: blur(6px);
+    }
+}
+
+@utility animate-enter {
+    animation: enter 900ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+
+/* Scroll reveal: toggled by data-inview (see useInView). Content materialises — fade, rise and focus. */
+@utility reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(4px);
+    transition:
+        opacity 1000ms var(--ease-out),
+        transform 1000ms var(--ease-out),
+        filter 800ms var(--ease-out);
+    transition-delay: calc(var(--i, 0) * 70ms);
+
+    &[data-inview="true"],
+    [data-inview="true"] & {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-enter {
+        animation: none;
+    }
+
+    .reveal {
+        transform: none;
+        filter: none;
+        transition: opacity 300ms linear;
+    }
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Theme switch cross-fade (View Transitions), so light/dark never flashes abruptly. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 320ms;
+    animation-timing-function: var(--ease-in-out);
+}
+
+/* Press feedback: responds on pointer-down (React Aria sets data-pressed). Pairs with the element's own transition. */
+@utility press-scale {
+    &:active,
+    &[data-pressed] {
+        scale: 0.97;
+    }
+}
+
+/* Chapter headline inside a pinned, full-viewport stage (smaller than text-section so the image fits). */
+@utility text-chapter {
+    font-family: var(--font-display);
+    font-size: clamp(1.875rem, 1.3rem + 2vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    font-weight: 700;
 }
