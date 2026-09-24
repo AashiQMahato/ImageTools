@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+*.log
+.DS_Store
+
+# Secrets — keep .env.example committed
+.env
+.env.*
+!.env.example

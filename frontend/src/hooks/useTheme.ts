@@ -1,0 +1,27 @@
+import { useCallback, useEffect, useState } from "react";
+
+export type Theme = "light" | "dark";
+
+const STORAGE_KEY = "theme";
+const DARK_CLASS = "dark-mode"; // Untitled UI's dark variant selector
+
+function getInitialTheme(): Theme {
+    return document.documentElement.classList.contains(DARK_CLASS) ? "dark" : "light";
+}
+
+export function useTheme() {
+    const [theme, setTheme] = useState<Theme>(getInitialTheme);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle(DARK_CLASS, theme === "dark");
+        try {
+            localStorage.setItem(STORAGE_KEY, theme);
+        } catch {
+            // Storage can be unavailable (private mode); the theme still applies for this session.
+        }
+    }, [theme]);
+
+    const toggleTheme = useCallback(() => setTheme((current) => (current === "dark" ? "light" : "dark")), []);
+
+    return { theme, toggleTheme };
+}

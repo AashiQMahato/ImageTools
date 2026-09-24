@@ -1,0 +1,19 @@
+/* Untitled UI foundation: Tailwind, design tokens (light + dark), typography and plugins. */
+@import "./styles/globals.css";
+
+/* Tell Tailwind to scan the whole src tree for class names. */
+@source "./";
+
+@layer base {
+    html {
+        color-scheme: light;
+    }
+
+    html.dark-mode {
+        color-scheme: dark;
+    }
+
+    body {
+        @apply min-h-dvh bg-primary text-primary;
+    }
+}
