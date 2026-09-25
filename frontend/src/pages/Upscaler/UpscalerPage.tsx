@@ -64,7 +64,6 @@ export function UpscalerPage() {
             name={t.pages.upscale.name}
             badge={t.toolPage.aiTool}
             hue="upscale"
-            guide={t.guides.upscale}
             status={<EngineChip available={engineOk} />}
             title={
                 <>

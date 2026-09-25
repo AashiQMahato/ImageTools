@@ -64,7 +64,6 @@ export function RemoveBackgroundPage() {
             name={t.pages.removeBackground.name}
             badge={t.toolPage.aiTool}
             hue="remove-background"
-            guide={t.guides.removeBackground}
             title={
                 <>
                     {t.pages.removeBackground.title} <span className="text-[var(--tool)]">{t.pages.removeBackground.accent}</span>

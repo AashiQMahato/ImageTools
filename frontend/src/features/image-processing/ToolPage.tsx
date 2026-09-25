@@ -1,9 +1,7 @@
-import { Lightbulb, Sparkles, Target } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { FaqItem } from "@/components/landing/FaqSection";
-import { useInView } from "@/hooks/useInView";
-import { type ToolGuide, useT } from "@/i18n";
+import { Sparkles } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useT } from "@/i18n";
 import { Segmented } from "@/components/common/Segmented";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { ROUTES } from "@/lib/constants/routes";
@@ -22,7 +20,6 @@ interface ToolPageProps {
     badge: string;
     title: ReactNode;
     description: string;
-    guide: ToolGuide;
     /** Live chip shown opposite the breadcrumb (e.g. whether this server can run the tool). */
     status?: ReactNode;
     /**
@@ -36,9 +33,9 @@ interface ToolPageProps {
 
 /**
  * Shared frame for every tool: breadcrumb, a centred header on a soft glow, the tool switcher,
- * the workspace, then a short guide (how to use, best for, tips) and questions — plus page-wide drop / paste.
+ * then the workspace — plus page-wide drop / paste.
  */
-export function ToolPage({ name, badge, title, description, guide, status, hue, children }: ToolPageProps) {
+export function ToolPage({ name, badge, title, description, status, hue, children }: ToolPageProps) {
     const t = useT();
     return (
         <div data-tool={hue}>
@@ -60,94 +57,11 @@ export function ToolPage({ name, badge, title, description, guide, status, hue, 
                 </div>
             </section>
 
-            <section aria-label={t.toolPage.workspace(name)} className="page-container">
+            <section aria-label={t.toolPage.workspace(name)} className="page-container pb-20 md:pb-24">
                 <div className="animate-enter [--i:5]">{children}</div>
             </section>
 
-            <ToolGuideSection guide={guide} />
             <PageDropTarget />
-        </div>
-    );
-}
-
-function ToolGuideSection({ guide }: { guide: ToolGuide }) {
-    const t = useT();
-    const [ref, inView] = useInView<HTMLElement>();
-    const [open, setOpen] = useState<number | null>(null);
-    const bullet = <span aria-hidden className="mt-[0.55rem] size-1.5 shrink-0 rounded-full bg-[var(--tool)]" />;
-
-    return (
-        <section ref={ref} data-inview={inView} aria-labelledby="guide-title" className="page-container py-20 md:py-24">
-            <div className="max-w-2xl">
-                <p className="reveal section-badge">{t.toolPage.guideBadge}</p>
-                <h2 id="guide-title" className="reveal mt-4 text-section text-balance text-primary [--i:1]">
-                    {t.toolPage.guideTitle}
-                </h2>
-            </div>
-
-            <div className="mt-10 grid gap-5 md:mt-12 lg:grid-cols-3 lg:gap-6">
-                <GuideCard title={t.toolPage.howTo} chip="01" hue="hue-blue" index={2}>
-                    <ol className="flex flex-col gap-3">
-                        {guide.howTo.map((step, i) => (
-                            <li key={step} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
-                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--tool-soft)] text-xs font-semibold text-[var(--tool)]">{i + 1}</span>
-                                {step}
-                            </li>
-                        ))}
-                    </ol>
-                </GuideCard>
-                <GuideCard title={t.toolPage.bestFor} chip={<Target className="size-4" aria-hidden />} hue="hue-teal" index={3}>
-                    <ul className="flex flex-col gap-3">
-                        {guide.bestFor.map((item) => (
-                            <li key={item} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
-                                {bullet}
-                                {item}
-                            </li>
-                        ))}
-                    </ul>
-                </GuideCard>
-                <GuideCard title={t.toolPage.tips} chip={<Lightbulb className="size-4" aria-hidden />} hue="hue-amber" index={4}>
-                    <ul className="flex flex-col gap-3">
-                        {guide.tips.map((tip) => (
-                            <li key={tip} className="flex gap-3 text-[0.9375rem] leading-relaxed text-tertiary">
-                                {bullet}
-                                {tip}
-                            </li>
-                        ))}
-                    </ul>
-                </GuideCard>
-            </div>
-
-            <div className="reveal card mt-6 grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12 [--i:5]">
-                <div>
-                    <p className="section-badge">{t.toolPage.questionsBadge}</p>
-                    <h3 className="mt-4 text-2xl font-semibold tracking-[-0.01em] text-primary">{t.toolPage.goodToKnow}</h3>
-                    <p className="mt-2 text-[0.9375rem] text-tertiary">
-                        {t.toolPage.moreAnswers}{" "}
-                        <Link to={`${ROUTES.home}#faq`} className="link-accent font-medium">
-                            {t.toolPage.mainFaq}
-                        </Link>
-                        .
-                    </p>
-                </div>
-                <div className="divide-y divide-[var(--card-line)]">
-                    {guide.faqs.map((item, index) => (
-                        <FaqItem key={item.q} question={item.q} answer={item.a} open={open === index} onToggle={() => setOpen(open === index ? null : index)} />
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
-}
-
-function GuideCard({ title, chip, hue, index, children }: { title: string; chip: ReactNode; hue: string; index: number; children: ReactNode }) {
-    return (
-        <div className="reveal card flex flex-col p-6 sm:p-7" style={{ "--i": index } as CSSProperties}>
-            <span className={cn("guide-chip", hue)} aria-hidden>
-                {chip}
-            </span>
-            <h3 className="mt-5 text-lg font-semibold text-primary">{title}</h3>
-            <div className="mt-4">{children}</div>
         </div>
     );
 }
