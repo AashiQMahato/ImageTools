@@ -1,32 +1,28 @@
-import { Eraser } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { type Background, losesTransparency, TRANSPARENT } from "@/features/background-removal/background";
-import type { ExportFormat } from "@/features/image-processing/exportFormat";
-import { RemoveBackgroundPanel } from "@/features/background-removal/RemoveBackgroundPanel";
-import { RetouchStage } from "@/features/background-removal/RetouchStage";
-import { useComposite } from "@/features/background-removal/useComposite";
-import { useRetouch } from "@/features/background-removal/useRetouch";
-import { baseName, formatDimensions } from "@/features/image-processing/format";
-import { ImageWorkspace } from "@/features/image-processing/ImageWorkspace";
-import { ToolPage } from "@/features/image-processing/ToolPage";
+import { Eraser, Image as ImageIcon, Wand2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/base/buttons/button";
+import { PanelBody, PanelIntro, PanelTabs, StudioCanvas, StudioDropzone, StudioError, StudioNotice, StudioProgress, Fitted } from "@/components/studio/StudioParts";
+import { StudioShell } from "@/components/studio/StudioShell";
+import { BackgroundRemovalEditor } from "@/features/background-removal/editor/BackgroundRemovalEditor";
+import { baseName } from "@/features/image-processing/format";
 import { useProcessingJob } from "@/features/image-processing/useProcessingJob";
 import { removeBackground } from "@/lib/api/backgroundRemovalApi";
 import { useImageStore } from "@/store/useImageStore";
 import type { ImageFile } from "@/types/image";
-import { useT } from "@/i18n";
+import { errorMessage, useT } from "@/i18n";
 
 const fileNameFor = (image: ImageFile) => `${baseName(image.name)}-no-background.png`;
 
 export function RemoveBackgroundPage() {
-    const t = useT();
     const original = useImageStore((state) => state.original);
     const job = useProcessingJob(original, fileNameFor);
-    const run = useCallback(() => void job.run(removeBackground), [job]);
+    /** The image whose removal was cancelled — shown as stopped, with a button to start again. */
+    const [cancelledId, setCancelledId] = useState<string | null>(null);
 
     /**
      * Removing the background is the only thing this tool does, so choosing an image is already the
      * instruction — there is nothing to configure first. Keyed by image id so cancelling doesn't
-     * immediately start it again; the button is still there to retry by hand.
+     * immediately start it again; Try again is there to retry by hand.
      */
     const autoRan = useRef<string | null>(null);
     const { run: start, status } = job;
@@ -36,98 +32,87 @@ export function RemoveBackgroundPage() {
         void start(removeBackground);
     }, [original, start, status]);
 
-    const [background, setBackground] = useState<Background>(TRANSPARENT);
-    // A new image means a new subject, so the previous backdrop no longer applies. Adjusted during
-    // render rather than in an effect, so the workspace never paints one frame with the stale choice.
-    const [chosenFor, setChosenFor] = useState(original?.id);
-    if (chosenFor !== original?.id) {
-        setChosenFor(original?.id);
-        setBackground(TRANSPARENT);
+    // With the cut-out in hand, the studio gains its background, refine and export tools.
+    if (original && job.status === "success" && job.result) {
+        return <BackgroundRemovalEditor key={job.result.url} original={original} cutout={job.result} />;
     }
+    return (
+        <WaitingStudio
+            original={original}
+            job={job}
+            cancelled={Boolean(original && cancelledId === original.id && job.status === "selected")}
+            onCancel={() => {
+                job.cancel();
+                setCancelledId(original?.id ?? null);
+            }}
+            onRetry={() => {
+                setCancelledId(null);
+                void job.run(removeBackground);
+            }}
+        />
+    );
+}
 
-    // Manual clean-up sits between the model's output and the backdrop: brush first, composite second.
-    const retouch = useRetouch(job.result, original);
-    const [retouching, setRetouching] = useState(false);
-    const canRetouch = Boolean(job.result) && retouch.ready;
-    const active = retouching && canRetouch;
-    const cutout = retouch.edited ?? job.result;
+/** The same studio before the cut-out exists: upload, the upload and processing states, and errors. */
+function WaitingStudio({ original, job, cancelled, onCancel, onRetry }: { original: ImageFile | null; job: ReturnType<typeof useProcessingJob>; cancelled: boolean; onCancel: () => void; onRetry: () => void }) {
+    const t = useT();
+    const copy = t.studio;
+    const intro = copy.intros.removeBackground;
+    const busy = !cancelled && (job.status === "uploading" || job.status === "processing" || job.status === "selected");
+    const failed = job.status === "error" || job.status === "unsupported";
 
-    const [format, setFormat] = useState<ExportFormat>("png");
-    // Switching to a transparent backdrop while JPG is selected would silently flatten it.
-    const exportFormat: ExportFormat = losesTransparency(background, format) ? "png" : format;
-
-    const { composed, working } = useComposite(cutout, background, exportFormat, original?.name);
-    const shown = composed ?? cutout;
+    const panel = (
+        <>
+            <PanelTabs
+                label={t.bgEditor.controlsLabel}
+                value="background"
+                onChange={() => undefined}
+                tabs={[
+                    { id: "background", label: t.bgEditor.tabs.background, icon: <ImageIcon className="size-4" aria-hidden /> },
+                    { id: "refine", label: t.bgEditor.tabs.refine, icon: <Wand2 className="size-4" aria-hidden />, disabled: true },
+                ]}
+            />
+            <PanelBody>
+                <PanelIntro title={copy.howItWorks} steps={intro.steps} />
+                <p className="rounded-xl bg-secondary p-3 text-xs text-tertiary">{busy && original ? copy.removingBackground : copy.panelEmpty}</p>
+            </PanelBody>
+        </>
+    );
 
     return (
-        <ToolPage
-            name={t.pages.removeBackground.name}
-            badge={t.toolPage.aiTool}
-            hue="remove-background"
-            title={
-                <>
-                    {t.pages.removeBackground.title} <span className="text-[var(--tool)]">{t.pages.removeBackground.accent}</span>
-                </>
-            }
-            description={t.pages.removeBackground.description}
-        >
-            <ImageWorkspace
-                original={original}
-                job={job}
-                action={{ label: t.pages.removeBackground.action, icon: Eraser, onRun: run }}
-                configPanel={
-                    <RemoveBackgroundPanel
-                        background={background}
-                        onBackgroundChange={setBackground}
-                        hasResult={Boolean(job.result)}
-                        format={exportFormat}
-                        onFormatChange={setFormat}
-                        result={shown}
-                        working={working}
-                        retouch={{
-                            available: canRetouch,
-                            active,
-                            onToggle: setRetouching,
-                            mode: retouch.mode,
-                            onModeChange: retouch.setMode,
-                            hasSelection: retouch.selection !== null,
-                            onApply: retouch.apply,
-                            onClearSelection: () => retouch.setSelection(null),
-                            editCount: retouch.editCount,
-                            onUndo: retouch.undo,
-                            onClear: retouch.clear,
-                        }}
-                    />
-                }
-                railSpecs={
-                    <>
-                        <span>
-                            {t.pages.removeBackground.inputSpec} {original ? formatDimensions(original.dimensions) : t.pages.removeBackground.noImageYet}
-                        </span>
-                        <span>
-                            {t.pages.removeBackground.formatSpec}{" "}
-                            {background.kind === "transparent" ? t.pages.removeBackground.formatValue : t.pages.removeBackground.formatValueOpaque}
-                        </span>
-                    </>
-                }
-                transparentResult={active || background.kind === "transparent"}
-                displayResult={active ? cutout : shown}
-                stageOverride={
-                    active
-                        ? (size) => (
-                              <RetouchStage
-                                  canvas={retouch.canvas}
-                                  revision={retouch.revision}
-                                  size={size}
-                                  mode={retouch.mode}
-                                  selection={retouch.selection}
-                                  onSelect={retouch.setSelection}
-                                  onApply={retouch.apply}
-                              />
-                          )
-                        : null
-                }
-            />
-        </ToolPage>
+        <StudioShell tool="removeBackground" panel={panel} panelLabel={t.bgEditor.controlsLabel}>
+            <StudioCanvas>
+                {!original ? (
+                    <StudioDropzone title={copy.dropTitle} hint={intro.hint} />
+                ) : failed ? (
+                    <StudioError title={copy.errorTitle} message={errorMessage(t, job.error)} onRetry={job.status === "error" ? onRetry : undefined} />
+                ) : (
+                    <Fitted dimensions={original.dimensions}>
+                        {(size) => (
+                            <figure className="animate-enter relative overflow-hidden rounded-lg [--i:-1]" style={size}>
+                                <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
+                                {busy && (
+                                    <StudioProgress
+                                        uploading={job.status === "uploading"}
+                                        uploadProgress={job.uploadProgress}
+                                        startedAt={job.startedAt}
+                                        label={copy.removingBackground}
+                                        onCancel={job.status === "selected" ? undefined : onCancel}
+                                    />
+                                )}
+                                {cancelled && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-neutral-950/25">
+                                        <Button size="md" color="primary" iconLeading={Eraser} onPress={onRetry} className="press-scale shadow-lg pointer-coarse:min-h-11">
+                                            {t.pages.removeBackground.action}
+                                        </Button>
+                                    </div>
+                                )}
+                            </figure>
+                        )}
+                    </Fitted>
+                )}
+            </StudioCanvas>
+            {original && !failed && <StudioNotice notice={cancelled ? { tone: "info", text: copy.cancelled } : { tone: "info", text: copy.removingBackground }} />}
+        </StudioShell>
     );
 }

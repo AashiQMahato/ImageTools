@@ -3,10 +3,12 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
 import { useDocumentLanguage, useT } from "@/i18n";
+import { useLayoutStore } from "@/store/useLayoutStore";
 
 export function AppLayout() {
     const { pathname, hash } = useLocation();
     const t = useT();
+    const immersive = useLayoutStore((state) => state.immersive);
     useDocumentLanguage();
 
     // Start each route at the top, like a normal page load — or at the linked section (e.g. /#faq).
@@ -29,11 +31,11 @@ export function AppLayout() {
             >
                 {t.common.skipToContent}
             </a>
-            <Navbar />
+            {!immersive && <Navbar />}
             <main id="main" className="flex-1">
                 <Outlet />
             </main>
-            <Footer />
+            {!immersive && <Footer />}
         </div>
     );
 }
