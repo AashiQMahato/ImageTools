@@ -41,6 +41,7 @@ export const en = {
         closeMenu: "Close menu",
         skipToContent: "Skip to content",
         dimensions: (w: number, h: number) => `${num(w)} × ${num(h)}`,
+        startEditing: "Start Editing",
     },
 
     nav: {
@@ -51,6 +52,19 @@ export const en = {
         upscaler: "Upscaler",
         crop: "Crop",
         editor: "Editor",
+        howItWorks: "How it works",
+        features: "Features",
+        main: "Main",
+        exploreAll: "Explore all tools",
+        groups: { ai: "AI tools", image: "Image tools", editor: "Editor" },
+        toolItems: {
+            removeBackground: { title: "Background Remover", description: "Remove backgrounds in seconds" },
+            upscaler: { title: "AI Upscaler", description: "Enlarge images 2× or 4× with AI" },
+            crop: { title: "Crop", description: "Crop to any aspect ratio" },
+            resize: { title: "Resize", description: "Set exact dimensions in the editor" },
+            rotateFlip: { title: "Rotate & Flip", description: "Rotate, flip and straighten" },
+            editor: { title: "Image Editor", description: "Adjust light, colour and filters" },
+        },
     },
 
     footer: {
@@ -82,20 +96,21 @@ export const en = {
 
     hero: {
         badge: "Image tools",
-        title: "Your images, at their best.",
-        description: "Clean up backgrounds, restore detail with AI upscaling, and crop, adjust and resize your photos — in a few clicks, no design skills required.",
-        tryDemo: "Try the demo",
-        points: ["Remove backgrounds", "Upscale 2× or 4×", "Crop, adjust and resize"],
-    },
-
-    heroDemo: {
-        alt: "A common kingfisher perched on a mossy branch against a soft, blurred background",
-        removeBackground: "Remove background",
-        removing: "Removing background…",
-        holdToCompare: "Hold to compare",
-        done: "Background removed. The result is ready to download.",
-        hoverHint: "Hover to preview.",
-        caption: "A live demo on a sample photo.",
+        titleLead: "Transform your images",
+        titleAccent: "in seconds.",
+        description: "Remove backgrounds, upscale, crop and edit your images with powerful tools that run right from your workspace.",
+        exploreTools: "Explore Tools",
+        visualLabel: "Animated example: a product photo has its background removed, is upscaled 4×, is cropped to three aspect ratios, and is colour-edited.",
+        centralAlt: "A smartwatch with a woven band on a grey studio surface",
+        chips: { remove: "Remove", upscale: "Upscale", crop: "Crop", edit: "Edit" },
+        cardLabels: { backgroundRemoved: "Cut out", upscaled: "4×", cropped: "4:5", edited: "Edited" },
+        badges: {
+            backgroundRemoved: "Background removed",
+            upscaled: "Upscaled 4×",
+            crop: "Crop",
+            edited: "Edited",
+            ready: "Ready",
+        },
     },
 
     showcase: {

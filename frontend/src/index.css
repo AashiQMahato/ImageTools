@@ -126,15 +126,28 @@
 
 /* LAYOUT */
 
+/*
+ * One layout margin for chrome and content, like Apple's layout margins: the logo, every heading and
+ * every card start on the same vertical line, and the navbar's last control ends where content ends.
+ * 16px on phones (the compact margin), 24px from 640px, 40px from 1024px, on a 1280px column.
+ */
+:root {
+    --page-max: 80rem;
+    --page-gutter: 1rem;
+
+    @media (width >= 40rem) {
+        --page-gutter: 1.5rem;
+    }
+    @media (width >= 64rem) {
+        --page-gutter: 2.5rem;
+    }
+}
+
 @utility page-container {
     margin-inline: auto;
     width: 100%;
-    max-width: 1200px;
-    padding-inline: 1.25rem;
-
-    @media (width >= 48rem) {
-        padding-inline: 2rem;
-    }
+    max-width: var(--page-max);
+    padding-inline: var(--page-gutter);
 }
 
 /* Large rounded surface for a chapter or bento tile. */
@@ -784,5 +797,541 @@
     &:focus-visible {
         outline: 2px solid var(--color-focus-ring);
         outline-offset: 4px;
+    }
+}
+
+/* ------------------------------------------------------------------ HERO
+ * One product photo runs the app's own pipeline — remove, upscale, crop, edit — on a 12-second
+ * loop, while real outputs float around it. Everything animates transform, opacity or filter, so
+ * it stays on the compositor. No gradients anywhere: the landing's look is flat, solid and
+ * image-first, and the checkerboard below is a mask, not a conic-gradient.
+ *
+ * Timing: every `.hero-timeline` element shares one duration and starts together, and each
+ * shifts its window with `--start` via a negative delay — so they stay in lockstep, and pausing
+ * them pauses all of them on the same frame.
+ */
+
+@property --hero-sat {
+    syntax: "<integer>";
+    inherits: true;
+    initial-value: 0;
+}
+
+/* The before image is wiped away left to right; its window slides while the picture holds still. */
+@keyframes hero-curtain {
+    0%, 25% { translate: 0 0; opacity: 1; }
+    33% { translate: 100% 0; opacity: 1; }
+    95% { translate: 100% 0; opacity: 0; }
+    95.5%, 96.5% { translate: 0 0; opacity: 0; }
+    100% { translate: 0 0; opacity: 1; }
+}
+@keyframes hero-curtain-inner {
+    0%, 25% { translate: 0 0; }
+    33%, 95% { translate: -100% 0; }
+    95.5%, 100% { translate: 0 0; }
+}
+@keyframes hero-scan {
+    0%, 24.5% { opacity: 0; }
+    25.5%, 32% { opacity: 1; }
+    33.5%, 100% { opacity: 0; }
+}
+
+/* Upscale: a loupe over the dial, a genuine 4x-smaller copy resolving into the full-resolution one. */
+@keyframes hero-loupe {
+    0%, 41% { opacity: 0; scale: 0.9; }
+    44%, 56% { opacity: 1; scale: 1; }
+    59%, 100% { opacity: 0; scale: 0.96; }
+}
+@keyframes hero-loupe-sharp {
+    0%, 47% { opacity: 0; }
+    52%, 100% { opacity: 1; }
+}
+
+/* Crop: four shades close in to 1:1, then 4:5, then 16:9, and release. Translate only. */
+@keyframes hero-crop {
+    0%, 57% { opacity: 0; }
+    58.5%, 75% { opacity: 1; }
+    77%, 100% { opacity: 0; }
+}
+@keyframes hero-shade-left {
+    0%, 58% { translate: -100% 0; }
+    60.5%, 64% { translate: -87.5% 0; }
+    66.5%, 69% { translate: -80% 0; }
+    71.5%, 100% { translate: -100% 0; }
+}
+@keyframes hero-shade-right {
+    0%, 58% { translate: 100% 0; }
+    60.5%, 64% { translate: 87.5% 0; }
+    66.5%, 69% { translate: 80% 0; }
+    71.5%, 100% { translate: 100% 0; }
+}
+@keyframes hero-shade-top {
+    0%, 69% { translate: 0 -100%; }
+    71.5%, 73.5% { translate: 0 -87.5%; }
+    75.5%, 100% { translate: 0 -100%; }
+}
+@keyframes hero-shade-bottom {
+    0%, 69% { translate: 0 100%; }
+    71.5%, 73.5% { translate: 0 87.5%; }
+    75.5%, 100% { translate: 0 100%; }
+}
+
+/* Edit: a modest grade, the same kind the editor's sliders apply — then back before the loop. */
+@keyframes hero-edit {
+    0%, 75% { filter: saturate(1) contrast(1) brightness(1); }
+    81%, 96.5% { filter: saturate(1.35) contrast(1.08) brightness(1.04); }
+    100% { filter: saturate(1) contrast(1) brightness(1); }
+}
+@keyframes hero-sat {
+    0%, 75% { --hero-sat: 0; }
+    81%, 96.5% { --hero-sat: 35; }
+    100% { --hero-sat: 0; }
+}
+@keyframes hero-row-active {
+    0%, 74% { opacity: 0; }
+    76%, 94% { opacity: 1; }
+    96%, 100% { opacity: 0; }
+}
+
+/* Windows, shifted into place by --start. */
+@keyframes hero-flash {
+    0% { opacity: 0; translate: 0 4px; }
+    1.5%, 8% { opacity: 1; translate: 0 0; }
+    9.5%, 100% { opacity: 0; translate: 0 -2px; }
+}
+@keyframes hero-flash-short {
+    0% { opacity: 0; }
+    0.8%, 4.2% { opacity: 1; }
+    5%, 100% { opacity: 0; }
+}
+@keyframes hero-chip-on {
+    0% { opacity: 0; }
+    2%, 15% { opacity: 1; }
+    17%, 100% { opacity: 0; }
+}
+
+/* Floating cards: five different motions so no two neighbours move alike. */
+@keyframes hero-float-y {
+    from { translate: 0 calc(var(--hero-amp) * -1); }
+    to { translate: 0 var(--hero-amp); }
+}
+@keyframes hero-float-x {
+    from { translate: calc(var(--hero-amp) * -1) 0; }
+    to { translate: var(--hero-amp) 0; }
+}
+@keyframes hero-tilt {
+    from { rotate: -2deg; }
+    to { rotate: 2deg; }
+}
+@keyframes hero-breathe {
+    from { scale: 0.97; }
+    to { scale: 1.03; }
+}
+@keyframes hero-drift {
+    from { translate: calc(var(--hero-amp) * -0.8) calc(var(--hero-amp) * -0.8); }
+    to { translate: calc(var(--hero-amp) * 0.8) calc(var(--hero-amp) * 0.8); }
+}
+/* The centre piece barely moves: enough to feel alive, not enough to soften the photo. */
+@keyframes hero-central {
+    0%, 100% { translate: 0 -4px; scale: 0.992; rotate: -0.4deg; }
+    50% { translate: 0 4px; scale: 1.008; rotate: 0.4deg; }
+}
+@keyframes hero-icon-pop {
+    0% { rotate: 0deg; scale: 1; }
+    40% { rotate: -10deg; scale: 1.18; }
+    100% { rotate: 0deg; scale: 1; }
+}
+
+@layer components {
+    .hero-visual {
+        --hero-loop: 12s;
+        --hero-amp: 5px;
+
+        @media (width >= 48rem) {
+            --hero-amp: 7px;
+        }
+        @media (width >= 64rem) {
+            --hero-amp: 10px;
+        }
+    }
+
+    .hero-timeline {
+        animation-duration: var(--hero-loop);
+        animation-iteration-count: infinite;
+        animation-timing-function: var(--ease-in-out);
+        animation-fill-mode: both;
+    }
+
+    /* Shift a shared window keyframe to begin at --start (seconds into the loop). */
+    .hero-window {
+        animation-delay: calc(var(--start, 0s) - var(--hero-loop));
+    }
+
+    .hero-float {
+        animation-name: var(--float, none);
+        animation-duration: var(--float-duration, 8s);
+        animation-delay: var(--float-delay, 0s);
+        animation-iteration-count: infinite;
+        animation-direction: alternate;
+        animation-timing-function: var(--ease-in-out);
+        animation-fill-mode: both;
+        will-change: translate, rotate, scale;
+    }
+
+    .hero-central {
+        animation: hero-central 14s var(--ease-in-out) infinite;
+    }
+
+    /* Static states double as the reduced-motion picture: the background already removed. */
+    .hero-curtain {
+        translate: 100% 0;
+        animation-name: hero-curtain;
+    }
+    .hero-curtain-inner {
+        translate: -100% 0;
+        animation-name: hero-curtain-inner;
+    }
+    .hero-scan {
+        opacity: 0;
+        animation-name: hero-scan;
+    }
+    .hero-loupe {
+        opacity: 0;
+        animation-name: hero-loupe;
+    }
+    .hero-loupe-sharp {
+        opacity: 0;
+        animation-name: hero-loupe-sharp;
+    }
+    .hero-crop {
+        opacity: 0;
+        animation-name: hero-crop;
+    }
+    .hero-shade-left {
+        translate: -100% 0;
+        animation-name: hero-shade-left;
+    }
+    .hero-shade-right {
+        translate: 100% 0;
+        animation-name: hero-shade-right;
+    }
+    .hero-shade-top {
+        translate: 0 -100%;
+        animation-name: hero-shade-top;
+    }
+    .hero-shade-bottom {
+        translate: 0 100%;
+        animation-name: hero-shade-bottom;
+    }
+    .hero-edit {
+        animation-name: hero-edit;
+    }
+    .hero-flash {
+        opacity: 0;
+        animation-name: hero-flash;
+    }
+    .hero-flash-short {
+        opacity: 0;
+        animation-name: hero-flash-short;
+    }
+    .hero-chip-on {
+        opacity: 0;
+        animation-name: hero-chip-on;
+    }
+    .hero-sat {
+        animation-name: hero-sat;
+    }
+    .hero-row-active {
+        opacity: 0;
+        animation-name: hero-row-active;
+    }
+    /* The one badge that stays up when nothing moves. */
+    .hero-static-visible {
+        opacity: 1;
+    }
+
+    /* Transparency grid: two theme tokens and a mask, so it follows light and dark with no gradient. */
+    .hero-checker {
+        background-color: var(--checker-a);
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-color: var(--checker-b);
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8'/%3E%3Crect x='8' y='8' width='8' height='8'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8'/%3E%3Crect x='8' y='8' width='8' height='8'/%3E%3C/svg%3E");
+            -webkit-mask-size: 16px 16px;
+            mask-size: 16px 16px;
+        }
+    }
+
+    /* Hover: the centre lifts, its shadow deepens, and the cards step back a few pixels. */
+    .hero-lift {
+        transition: scale 500ms var(--ease-out);
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            box-shadow: var(--shadow-3xl);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 500ms var(--ease-out);
+        }
+
+        &:hover {
+            scale: 1.012;
+        }
+        &:hover::after {
+            opacity: 1;
+        }
+    }
+    .hero-nudge {
+        transition: translate 600ms var(--ease-out);
+    }
+    .hero-visual:has(.hero-lift:hover) .hero-nudge {
+        translate: var(--nudge-x, 0) var(--nudge-y, 0);
+    }
+
+    /* Tool chips: a small rise, the icon answers, and the demo holds still while you look. */
+    .hero-chip {
+        transition: translate 200ms var(--ease-out);
+
+        &:hover,
+        &:focus-visible {
+            translate: 0 -2px;
+        }
+        &:hover .hero-chip-icon,
+        &:focus-visible .hero-chip-icon {
+            animation: hero-icon-pop 450ms var(--ease-out);
+        }
+    }
+    .hero-visual:has(.hero-chip:hover, .hero-chip:focus-visible) .hero-timeline,
+    .hero-visual[data-offscreen] :is(.hero-timeline, .hero-float, .hero-central) {
+        animation-play-state: paused;
+    }
+
+    /* Editor card: the saturation value and its thumb read one animated number. */
+    .hero-sat-value::after {
+        counter-reset: hero-sat var(--hero-sat);
+        content: counter(hero-sat);
+    }
+    .hero-sat-thumb {
+        translate: calc(var(--hero-sat) * 0.5%) 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-visual :is(.hero-timeline, .hero-float, .hero-central) {
+            animation: none;
+        }
+        .hero-lift,
+        .hero-nudge,
+        .hero-chip {
+            transition: none;
+        }
+        .hero-lift:hover,
+        .hero-chip:hover,
+        .hero-chip:focus-visible,
+        .hero-visual:has(.hero-lift:hover) .hero-nudge {
+            scale: none;
+            translate: none;
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ NAVBAR
+ * Quiet at rest, precise on interaction. Panels enter in ~180 ms and leave faster than they
+ * arrive; nothing bounces. Solid surfaces, borders and shadow only — no gradients.
+ */
+@layer components {
+    /* Transparent over the hero; a solid, lightly raised surface once the page scrolls under it. */
+    .nav-bar {
+        transition:
+            background-color 250ms var(--ease-out),
+            border-color 250ms var(--ease-out),
+            box-shadow 250ms var(--ease-out);
+    }
+
+    .nav-logo {
+        transition: opacity 200ms var(--ease-out), scale 200ms var(--ease-out);
+
+        &:hover {
+            opacity: 0.85;
+            scale: 0.985;
+        }
+    }
+
+    /* Tools panel. Kept mounted so it can animate out; `inert` and pointer-events keep it inactive. */
+    .nav-panel {
+        opacity: 0;
+        translate: 0 -6px;
+        scale: 0.98;
+        visibility: hidden;
+        pointer-events: none;
+        transform-origin: top center;
+        transition:
+            opacity 130ms var(--ease-out),
+            translate 130ms var(--ease-out),
+            scale 130ms var(--ease-out),
+            visibility 0s linear 130ms;
+
+        &[data-open] {
+            opacity: 1;
+            translate: 0 0;
+            scale: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transition-duration: 180ms, 180ms, 180ms, 0s;
+            transition-delay: 0s;
+        }
+    }
+
+    .nav-chevron {
+        transition: rotate 200ms var(--ease-out);
+
+        [aria-expanded="true"] > & {
+            rotate: 180deg;
+        }
+    }
+
+    /* A tool in the panel: the surface warms, the icon lifts a touch, the arrow leans in. */
+    .nav-tool {
+        transition: background-color 150ms var(--ease-out);
+
+        & .nav-tool-icon {
+            transition: scale 200ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+        }
+        & .nav-tool-arrow {
+            opacity: 0;
+            transition: translate 200ms var(--ease-out), opacity 150ms var(--ease-out);
+        }
+        &:is(:hover, :focus-visible) .nav-tool-icon {
+            scale: 1.06;
+            color: var(--brand);
+            border-color: var(--brand-line);
+        }
+        &:is(:hover, :focus-visible) .nav-tool-arrow {
+            opacity: 1;
+            translate: 3px 0;
+        }
+    }
+
+    .nav-arrow {
+        transition: translate 200ms var(--ease-out);
+
+        :is(a, button):is(:hover, :focus-visible) > & {
+            translate: 3px 0;
+        }
+    }
+
+    /* Primary action: a slight lift on hover, a firm press. */
+    .nav-cta {
+        transition: scale 150ms var(--ease-out), box-shadow 200ms var(--ease-out);
+
+        &:hover {
+            scale: 1.015;
+            box-shadow: var(--shadow-md);
+        }
+        &:active,
+        &[data-pressed] {
+            scale: 0.98;
+        }
+    }
+
+    /* Theme icon: the outgoing icon turns away as the incoming one settles in. */
+    .theme-icon {
+        transition: opacity 200ms var(--ease-out), rotate 300ms var(--ease-out), scale 300ms var(--ease-out);
+        opacity: 0;
+        rotate: -60deg;
+        scale: 0.6;
+
+        &[data-shown] {
+            opacity: 1;
+            rotate: 0deg;
+            scale: 1;
+        }
+    }
+
+    /* Mobile panel: fades in and settles 8px. */
+    .nav-sheet {
+        opacity: 0;
+        translate: 0 -8px;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+            opacity 160ms var(--ease-out),
+            translate 160ms var(--ease-out),
+            visibility 0s linear 160ms;
+
+        &[data-open] {
+            opacity: 1;
+            translate: 0 0;
+            visibility: visible;
+            pointer-events: auto;
+            transition-duration: 200ms, 200ms, 0s;
+            transition-delay: 0s;
+        }
+    }
+    .nav-scrim {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 200ms var(--ease-out), visibility 0s linear 200ms;
+
+        &[data-open] {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0s;
+        }
+    }
+
+    /* Accordion: rows grow from 0fr to 1fr, so the content's own height drives the motion. */
+    .nav-accordion {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 220ms var(--ease-out);
+
+        &[data-open] {
+            grid-template-rows: 1fr;
+        }
+        & > * {
+            min-height: 0;
+            overflow: hidden;
+        }
+    }
+    .nav-plus {
+        transition: rotate 220ms var(--ease-out);
+
+        [aria-expanded="true"] > & {
+            rotate: 45deg;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .nav-panel,
+        .nav-sheet {
+            translate: none;
+            scale: none;
+        }
+        .nav-logo:hover,
+        .nav-cta:hover,
+        .nav-cta:active,
+        .nav-tool:is(:hover, :focus-visible) .nav-tool-icon {
+            scale: none;
+        }
+        .nav-tool:is(:hover, :focus-visible) .nav-tool-arrow,
+        :is(a, button):is(:hover, :focus-visible) > .nav-arrow {
+            translate: none;
+        }
+        .theme-icon {
+            rotate: none;
+            scale: none;
+        }
+        .nav-accordion,
+        .nav-chevron,
+        .nav-plus {
+            transition: none;
+        }
     }
 }

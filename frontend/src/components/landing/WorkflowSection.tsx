@@ -13,7 +13,7 @@ export function WorkflowSection() {
     const steps = t.workflow.steps.map((step, index) => ({ ...step, visual: visuals[index] }));
 
     return (
-        <section ref={ref} data-inview={inView} aria-labelledby="workflow-title" className="py-20 md:py-24">
+        <section id="how-it-works" ref={ref} data-inview={inView} aria-labelledby="workflow-title" className="scroll-mt-20 py-20 md:py-24">
             <div className="page-container">
                 <SectionHeading
                     id="workflow-title"
