@@ -38,6 +38,3 @@ export const images = {
 
 /** Full-resolution goose for the upscaler's "after" loupe, and a 6× downsampled copy for "before". */
 export const gooseDetail = { high: goose2400, low: gooseLowres, aspect: 2400 / 1594 } as const;
-
-/** Real cut-out file offered by the hero demo's Download button. */
-export const KINGFISHER_CUTOUT_PNG = "/samples/kingfisher-cutout.png";

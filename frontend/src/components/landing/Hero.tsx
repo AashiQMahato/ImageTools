@@ -1,74 +1,44 @@
-import { Check, PlayCircle } from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowDown } from "lucide-react";
+import { useState } from "react";
 import { UploadButton } from "@/components/common/UploadButton";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { cn } from "@/lib/utils/cn";
-import { HeroDemo, type HeroDemoHandle } from "./HeroDemo";
-import { outlinePill } from "./OutlineLink";
+import { Button } from "@/components/ui/base/buttons/button";
+import { ROUTES } from "@/lib/constants/routes";
 import { useT } from "@/i18n";
+import { HeroVisual } from "./HeroVisual";
 
-
+/**
+ * The first viewport: what the product does, in one line, then the product doing it. The headline
+ * leads; the pipeline running beneath it is the proof. Flat and solid throughout — no gradients.
+ */
 export function Hero() {
     const t = useT();
-    const demoRef = useRef<HeroDemoHandle>(null);
-    const demoContainerRef = useRef<HTMLDivElement>(null);
-    const reduceMotion = usePrefersReducedMotion();
     const [uploadError, setUploadError] = useState<string | null>(null);
-
-    const tryDemo = () => {
-        const container = demoContainerRef.current;
-        if (!container) return;
-        const visible = container.getBoundingClientRect().top < window.innerHeight * 0.6;
-        if (!visible) container.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-        window.setTimeout(() => demoRef.current?.run(), visible || reduceMotion ? 0 : 650);
-    };
+    const pill = "press-scale rounded-full before:rounded-full";
 
     return (
-        <section aria-labelledby="hero-title" className="hero-glow -mt-16 pt-16">
-            <div className="page-container grid items-center gap-14 py-16 md:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:py-28">
-                <div>
+        <section aria-labelledby="hero-title" className="-mt-18 overflow-x-clip bg-primary pt-18">
+            <div className="page-container pt-8 pb-16 md:pt-10 md:pb-20 lg:pt-6">
+                <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
                     <p className="animate-enter section-badge [--i:1]">{t.hero.badge}</p>
-                    <h1 id="hero-title" className="animate-enter mt-5 text-hero text-balance text-primary [--i:2]">
-                        {t.hero.title}
+                    <h1 id="hero-title" className="animate-enter mt-4 text-hero text-balance text-primary [--i:2]">
+                        <span className="sm:block">{t.hero.titleLead}</span> <span className="text-[var(--brand)] sm:block">{t.hero.titleAccent}</span>
                     </h1>
-                    <p className="animate-enter mt-5 max-w-xl text-lead text-pretty text-tertiary [--i:3]">
-                        {t.hero.description}
-                    </p>
+                    <p className="animate-enter mt-3 max-w-2xl text-lead text-pretty text-tertiary [--i:3]">{t.hero.description}</p>
 
-                    <div className="animate-enter mt-9 flex flex-wrap items-center gap-3 [--i:4]">
-                        <UploadButton
-                            size="xl"
-                            onErrorChange={setUploadError}
-                            buttonClassName="btn-primary min-h-13 rounded-full px-7 text-[1.0625rem] ring-0 before:hidden"
-                        />
-                        <button type="button" onClick={tryDemo} className={cn(outlinePill, "min-h-13 px-6 text-[1.0625rem]")}>
-                            <PlayCircle className="size-5 text-fg-quaternary" aria-hidden />
-                            {t.hero.tryDemo}
-                        </button>
+                    <div className="animate-enter mt-7 flex flex-wrap items-center justify-center gap-3 [--i:4]">
+                        <UploadButton size="xl" label={t.common.startEditing} navigateTo={ROUTES.editor} onErrorChange={setUploadError} buttonClassName={`${pill} px-7`} />
+                        <Button size="xl" color="secondary" href="#tools" iconTrailing={ArrowDown} className={`${pill} px-6`}>
+                            {t.hero.exploreTools}
+                        </Button>
                     </div>
-
-                    <p role="status" className={cn("animate-enter mt-5 text-sm [--i:5]", uploadError ? "text-error-primary" : "text-quaternary")}>
-                        {uploadError ?? t.common.uploadHint}
-                    </p>
-
-                    <ul className="animate-enter mt-8 flex flex-wrap gap-x-6 gap-y-2 [--i:6]">
-                        {t.hero.points.map((point) => (
-                            <li key={point} className="flex items-center gap-2 text-sm font-medium text-secondary">
-                                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
-                                    <Check className="size-3" strokeWidth={3} aria-hidden />
-                                </span>
-                                {point}
-                            </li>
-                        ))}
-                    </ul>
+                    {uploadError && (
+                        <p role="alert" className="mt-4 text-sm text-error-primary">
+                            {uploadError}
+                        </p>
+                    )}
                 </div>
 
-                {/* The product, framed like a device: an outer bezel card holding the live demo. */}
-                <div ref={demoContainerRef} className="animate-enter [--i:4]">
-                    <div className="card rounded-[2rem] p-3 sm:p-4">
-                        <HeroDemo ref={demoRef} />
-                    </div>
-                </div>
+                <HeroVisual className="animate-enter mt-8 md:mt-10 lg:mt-7 [--i:5]" />
             </div>
         </section>
     );

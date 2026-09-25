@@ -42,7 +42,7 @@ export function ToolPage({ name, badge, title, description, guide, status, hue, 
     const t = useT();
     return (
         <div data-tool={hue}>
-            <section className="hero-glow -mt-16 pt-16">
+            <section className="hero-glow -mt-18 pt-18">
                 <div className="page-container pt-2 pb-9 md:pt-4 md:pb-11">
                     {status && <div className="animate-enter flex justify-end [--i:0]">{status}</div>}
 

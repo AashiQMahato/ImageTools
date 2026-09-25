@@ -33,7 +33,7 @@ export function ToolsSection() {
     const t = useT();
     const [ref, inView] = useInView<HTMLElement>();
     return (
-        <section ref={ref} data-inview={inView} aria-labelledby="tools-title" className="py-20 md:py-24">
+        <section ref={ref} data-inview={inView} id="tools" aria-labelledby="tools-title" className="scroll-mt-20 py-20 md:py-24">
             <div className="page-container">
                 <SectionHeading
                     id="tools-title"

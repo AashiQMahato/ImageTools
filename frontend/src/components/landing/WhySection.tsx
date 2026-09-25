@@ -10,7 +10,7 @@ export function WhySection() {
     const t = useT();
     const [ref, inView] = useInView<HTMLElement>();
     return (
-        <section ref={ref} data-inview={inView} aria-labelledby="why-title" className="py-20 md:py-24">
+        <section id="features" ref={ref} data-inview={inView} aria-labelledby="why-title" className="scroll-mt-20 py-20 md:py-24">
             <div className="page-container">
                 <SectionHeading
                     id="why-title"
