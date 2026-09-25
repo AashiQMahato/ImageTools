@@ -15,7 +15,7 @@ export function DropZone({ onChoose, className }: DropZoneProps) {
             <button type="button" onClick={onChoose} className="dropzone group flex min-h-[13rem] flex-1 cursor-pointer flex-col items-center justify-center px-5 py-6 text-center">
                 <span className="relative flex size-16 items-center justify-center rounded-2xl bg-[var(--tool-solid)] text-white shadow-lg transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-translate-y-1">
                     <ImagePlus className="size-7" aria-hidden />
-                    <span aria-hidden className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full border-2 border-[var(--studio-stage)] bg-[var(--a-sky-solid)] text-white">
+                    <span aria-hidden className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full border-2 border-[var(--studio-stage)] bg-[color-mix(in_srgb,var(--tool-solid)_72%,black)] text-white">
                         <Plus className="size-3.5" />
                     </span>
                 </span>
@@ -30,7 +30,7 @@ export function DropZone({ onChoose, className }: DropZoneProps) {
                 <span className="mt-2 max-w-sm text-sm text-tertiary">{t.common.uploadHint}</span>
 
                 <span className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                    <span className="fact-chip hue-teal [@media(hover:none)]:hidden">
+                    <span className="fact-chip hue-blue [@media(hover:none)]:hidden">
                         <Clipboard className="size-3" aria-hidden />
                         {t.upload.pasteChip}
                     </span>
