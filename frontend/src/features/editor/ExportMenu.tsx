@@ -1,7 +1,8 @@
-import { Download, LoaderCircle } from "lucide-react";
+import { ChevronDown, Download, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Segmented } from "@/components/common/Segmented";
 import { Button } from "@/components/ui/base/buttons/button";
+import { studioExportButton } from "@/components/studio/styles";
 import { cn } from "@/lib/utils/cn";
 import { downloadFile } from "@/lib/utils/download";
 import { outputSize } from "./geometry";
@@ -10,7 +11,8 @@ import { useT } from "@/i18n";
 
 interface ExportMenuProps {
     source: ImageBitmap | null;
-    edit: EditState;
+    /** Null until an image is open; the button is then disabled. */
+    edit: EditState | null;
     defaultFormat: ExportFormat;
     baseName: string;
     suffix: string;
@@ -31,7 +33,7 @@ export function ExportMenu({ source, edit, defaultFormat, baseName, suffix }: Ex
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const root = useRef<HTMLDivElement>(null);
-    const size = edit.resize ?? outputSize(edit.crop);
+    const size = edit ? (edit.resize ?? outputSize(edit.crop)) : null;
 
     useEffect(() => {
         if (!open) return;
@@ -48,7 +50,7 @@ export function ExportMenu({ source, edit, defaultFormat, baseName, suffix }: Ex
     }, [open]);
 
     const save = async () => {
-        if (!source) return;
+        if (!source || !edit) return;
         setBusy(true);
         setError(null);
         try {
@@ -68,25 +70,18 @@ export function ExportMenu({ source, edit, defaultFormat, baseName, suffix }: Ex
 
     return (
         <div ref={root} className="relative">
-            <Button
-                size="md"
-                color="primary"
-                iconLeading={Download}
-                onPress={() => setOpen((value) => !value)}
-                aria-expanded={open}
-                aria-haspopup="dialog"
-                className="press-scale rounded-full px-4 before:rounded-full"
-                isDisabled={!source}
-            >
-                {t.editor.export}
-            </Button>
+            <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" disabled={!source || !edit} className={studioExportButton}>
+                <Download className="size-4" aria-hidden />
+                <span className="sr-only sm:not-sr-only">{t.editor.export}</span>
+                <ChevronDown className={cn("size-4 opacity-70 transition-transform duration-200", open && "rotate-180")} aria-hidden />
+            </button>
 
             <div
                 role="dialog"
                 aria-label={t.editor.exportMenu.title}
                 className={cn(
-                    "material absolute top-full right-0 z-30 mt-2 w-72 origin-top-right rounded-2xl p-4 transition-[opacity,scale,filter] duration-300 ease-[var(--ease-spring)]",
-                    open ? "scale-100 opacity-100 blur-none" : "pointer-events-none scale-90 opacity-0 blur-[2px]",
+                    "absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] origin-top-right rounded-2xl border border-[var(--card-line)] bg-primary p-4 shadow-xl transition-[opacity,scale] duration-200 ease-[var(--ease-out)]",
+                    open ? "scale-100 opacity-100" : "pointer-events-none invisible scale-95 opacity-0",
                 )}
             >
                 <p className="text-label text-tertiary">{t.editor.exportMenu.format}</p>
@@ -111,16 +106,14 @@ export function ExportMenu({ source, edit, defaultFormat, baseName, suffix }: Ex
                             max={100}
                             value={quality}
                             onChange={(event) => setQuality(Number(event.target.value))}
-                            className="mt-2 w-full accent-[var(--color-fg-primary)]"
+                            className="mt-2 w-full accent-[var(--color-bg-brand-solid)] pointer-coarse:h-8"
                         />
                     </label>
                 )}
 
                 <div className="mt-4 flex items-center justify-between border-t border-secondary pt-4">
-                    <span className="text-sm text-tertiary tabular-nums">
-                        {size.width.toLocaleString("en-US")} × {size.height.toLocaleString("en-US")}
-                    </span>
-                    <Button size="sm" color="primary" onPress={save} isDisabled={busy} className="press-scale rounded-full px-4 before:rounded-full">
+                    <span className="text-sm text-tertiary tabular-nums">{size && `${size.width.toLocaleString("en-US")} × ${size.height.toLocaleString("en-US")}`}</span>
+                    <Button size="md" color="primary" iconLeading={busy ? undefined : Download} onPress={save} isDisabled={busy} className="press-scale pointer-coarse:min-h-11">
                         {busy ? <LoaderCircle className="size-4 animate-spin" aria-label={t.editor.exportMenu.preparing} /> : t.common.download}
                     </Button>
                 </div>
