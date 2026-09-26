@@ -1,4 +1,4 @@
-import { ChevronDown, ImagePlus } from "lucide-react";
+import { ChevronDown, ImagePlus, LoaderCircle } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/common/Logo";
@@ -140,6 +140,17 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
                     )}
                 >
                     {upload.error}
+                </p>
+                {/* A file on its way in, e.g. a HEIC photo being converted. */}
+                <p
+                    role="status"
+                    className={cn(
+                        "fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-[var(--card-line)] bg-primary px-4 py-2.5 text-sm font-medium text-secondary shadow-lg transition-[opacity,translate] duration-200",
+                        upload.status && !upload.error ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
+                    )}
+                >
+                    {upload.status && <LoaderCircle className="size-4 animate-spin text-[var(--brand)] motion-reduce:animate-none" aria-hidden />}
+                    {upload.status}
                 </p>
             </div>
         </StudioContext.Provider>

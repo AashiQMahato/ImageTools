@@ -5,3 +5,6 @@ rembg[cpu]==2.0.85
 fastapi==0.141.1
 uvicorn==0.53.0
 python-multipart==0.0.32
+# Face detection (YuNet via OpenCV) and HEIC/HEIF decoding for the photo generator.
+opencv-python-headless==5.0.0.93
+pillow-heif==1.8.0

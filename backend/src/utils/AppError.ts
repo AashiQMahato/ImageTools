@@ -17,7 +17,15 @@ export type ErrorCode =
     | "INVALID_MODE"
     | "INVALID_MASK"
     | "EMPTY_MASK"
-    | "RETOUCH_UNAVAILABLE";
+    | "RETOUCH_UNAVAILABLE"
+    | "INVALID_REQUEST"
+    | "INVALID_PRESET"
+    | "INVALID_CROP"
+    | "CONVERSION_FAILED"
+    | "NO_FACE"
+    | "MULTIPLE_FACES"
+    | "FACE_DETECTION_UNAVAILABLE"
+    | "FILE_EXPIRED";
 
 /** An error whose message is safe to show to users. Internal details belong in logs, never here. */
 export class AppError extends Error {

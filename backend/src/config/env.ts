@@ -89,6 +89,18 @@ export const env = {
         maxWorkingSize: Math.floor(parsePositive(env_.RETOUCH_MAX_WORKING_SIZE, 2048)),
     },
 
+    photoGenerator: {
+        /** OpenCV YuNet face model, downloaded by scripts/setup-ml.sh. */
+        faceModelPath: resolvePath(env_.FACE_DETECTOR_MODEL, "python/.models/face_detection_yunet_2023mar.onnx"),
+        /** Output resolution per preset. Physical size is fixed by the preset; DPI is the operator's choice. */
+        passportDpi: Math.floor(parsePositive(env_.PHOTO_PASSPORT_DPI, 300)),
+        mrpDpi: Math.floor(parsePositive(env_.PHOTO_MRP_DPI, 600)),
+        concurrency: Math.floor(parsePositive(env_.PHOTO_GENERATOR_CONCURRENCY, 2)),
+        /** How long generated photos stay downloadable (in memory only), in minutes. */
+        fileTtlMinutes: parsePositive(env_.PHOTO_FILE_TTL_MINUTES, 30),
+        timeoutMs: parsePositive(env_.PHOTO_GENERATOR_TIMEOUT_MS, 60_000),
+    },
+
     /** Requests waiting for a processing slot beyond this are turned away with "busy". */
     maxQueuedJobs: Math.floor(parsePositive(env_.PROCESSING_MAX_QUEUE, 8)),
     /** Processing requests per client per 15 minutes. */

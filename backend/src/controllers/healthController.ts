@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { RequestHandler } from "express";
 import { env } from "../config/env.js";
 import { backgroundRemoval } from "../services/background-removal/backgroundRemovalService.js";
@@ -44,6 +45,11 @@ export const getProcessorHealth: RequestHandler = (_req, res) => {
                 gpu: upscayl.gpu,
                 scales: [2, 4],
                 queue: upscaling.stats(),
+            },
+            photoGenerator: {
+                // Needs the image service (background removal, face detection, conversion) and the face model.
+                available: backgroundRemoval.isAvailable() && existsSync(env.photoGenerator.faceModelPath),
+                faceModelInstalled: existsSync(env.photoGenerator.faceModelPath),
             },
             retouch: {
                 available: retouching.isAvailable(),

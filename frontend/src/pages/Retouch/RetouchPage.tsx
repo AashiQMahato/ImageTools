@@ -2,6 +2,7 @@ import { Check, ChevronDown, Download, FileDown, GitCompareArrows, LoaderCircle,
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Notice, PanelBody, PanelIntro, PanelTabs, StudioActions, StudioCanvas, StudioDropzone, StudioNotice } from "@/components/studio/StudioParts";
 import { useSettled } from "@/components/studio/ImageProcessingPreview";
+import { BottomSheet } from "@/components/studio/BottomSheet";
 import { StudioShell } from "@/components/studio/StudioShell";
 import { studioExportButton } from "@/components/studio/styles";
 import { usePopover } from "@/components/studio/usePopover";
@@ -18,7 +19,7 @@ import { type BrushOptions, modeConfig, type RetouchTool } from "@/features/reto
 import { ProcessingOverlay } from "@/features/retouch/ProcessingOverlay";
 import { RetouchModeSelector } from "@/features/retouch/RetouchModeSelector";
 import { ExportControls, RetouchResultPanel } from "@/features/retouch/RetouchResultPanel";
-import { BottomSheet, RetouchToolbar } from "@/features/retouch/RetouchToolbar";
+import { RetouchToolbar } from "@/features/retouch/RetouchToolbar";
 import { type SelectionStroke, useSelectionMask } from "@/features/retouch/useSelectionMask";
 import { type RetouchMode, retouchImage } from "@/lib/api/retouchApi";
 import { cn } from "@/lib/utils/cn";
@@ -534,7 +535,7 @@ function RetouchStudio({ original, session: imageSession }: { original: ImageFil
                 }
             />
 
-            <BottomSheet open={sheetOpen} onClose={closeSheet} title={copy.settings}>
+            <BottomSheet open={sheetOpen} onClose={closeSheet} title={copy.settings} closeLabel={copy.closeSettings}>
                 {controls}
                 {downloadable && <div className="border-t border-[var(--card-line)] pt-5">{exportSection}</div>}
             </BottomSheet>

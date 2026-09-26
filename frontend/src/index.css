@@ -465,6 +465,17 @@
     }
 }
 
+/* Photo generator — a soft band of light sweeping across the photo while it's being worked on. */
+.pg-scan {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
+    animation: scan 1.8s var(--ease-in-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .pg-scan {
+        display: none;
+    }
+}
+
 /* ------------------------------------------------------------------ STUDIO (tool workspaces)
  * One surface language for every tool, following the theme. Light: white chrome around a soft grey
  * stage. Dark: graphite chrome around a near-black stage. Segmented controls use Apple's system values.
