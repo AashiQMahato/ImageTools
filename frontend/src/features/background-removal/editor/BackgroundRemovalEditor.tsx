@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Image as ImageIcon, LoaderCircle, PencilLine, Redo2, RotateCcw, Undo2, Wand2 } from "lucide-react";
+import { ChevronDown, Download, FileDown, Image as ImageIcon, LoaderCircle, PencilLine, Redo2, RotateCcw, Undo2, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Segmented } from "@/components/common/Segmented";
@@ -24,7 +24,7 @@ import { ExportPanel } from "./ExportPanel";
 import { RefineCard, RefinePanel } from "./RefinePanel";
 import { useMaskEngine } from "./useMaskEngine";
 
-type Tab = "background" | "refine";
+type Tab = "background" | "refine" | "export";
 
 interface BackgroundRemovalEditorProps {
     original: ImageFile;
@@ -240,7 +240,8 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [undo, redo, shortSide, maxBrush]);
 
-    const exportPanel = (
+    /** The same export controls in the top-bar menu and in the Export tab. */
+    const exportPanel = (onContinue: () => void) => (
         <ExportPanel
             doc={doc}
             subject={engine.ready ? engine.subject() : null}
@@ -253,7 +254,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
             exporting={exporting === "download"}
             error={exportError}
             onDownload={() => void download()}
-            onContinue={() => setExportOpen(false)}
+            onContinue={onContinue}
         />
     );
 
@@ -291,7 +292,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
             </button>
             {exportOpen && (
                 <div role="dialog" aria-label={copy.exportTitle} className="absolute top-full right-0 z-50 mt-2 max-h-[calc(100dvh-5rem)] w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl border border-[var(--card-line)] bg-primary p-4 shadow-xl">
-                    {exportPanel}
+                    {exportPanel(() => setExportOpen(false))}
                 </div>
             )}
         </div>
@@ -306,6 +307,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
                 tabs={[
                     { id: "background" as Tab, label: copy.tabs.background, icon: <ImageIcon className="size-4" aria-hidden /> },
                     { id: "refine" as Tab, label: copy.tabs.refine, icon: <Wand2 className="size-4" aria-hidden /> },
+                    { id: "export" as Tab, label: copy.tabs.export, icon: <FileDown className="size-4" aria-hidden /> },
                 ]}
             />
             <PanelBody id={tab}>
@@ -316,6 +318,8 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
                             <RefineCard brush={brush} onBrushChange={changeBrush} maxSize={maxBrush} strokeCount={doc.strokes.length} onResetMask={resetMask} />
                         </div>
                     </>
+                ) : tab === "export" ? (
+                    exportPanel(() => changeTab("background"))
                 ) : (
                     <RefinePanel
                         brush={brush}
@@ -334,7 +338,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
     );
 
     return (
-        <StudioShell tool="removeBackground" actions={actions} exportSlot={exportSlot} shortcuts={copy.shortcuts} panel={panel} panelLabel={copy.controlsLabel}>
+        <StudioShell tool="removeBackground" actions={actions} exportSlot={exportSlot} shortcuts={copy.shortcuts} panel={panel} panelLabel={copy.controlsLabel} dirty={doc !== INITIAL_DOC}>
             <div className="flex justify-center">
                 <Segmented
                     size="sm"
@@ -371,7 +375,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
                 <Button size="lg" color="secondary" onPress={() => void continueEditing()} isDisabled={!engine.ready || exporting !== null} className="press-scale pointer-coarse:min-h-12">
                     <span className="flex items-center justify-center gap-2">
                         {exporting === "continue" ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <PencilLine className="size-4" aria-hidden />}
-                        {copy.continueEditing}
+                        {copy.openInEditor}
                     </span>
                 </Button>
                 <Button size="lg" color="primary" onPress={() => void download()} isDisabled={!engine.ready || exporting !== null} className="press-scale pointer-coarse:min-h-12">

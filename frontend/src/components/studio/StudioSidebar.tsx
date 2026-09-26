@@ -1,7 +1,7 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TOOL_ICONS } from "@/components/layout/toolIcons";
-import { TOOL_GROUPS, type ToolKey } from "@/lib/constants/navigation";
+import { STUDIO_TOOL_GROUPS, type ToolKey } from "@/lib/constants/navigation";
 import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
@@ -17,7 +17,7 @@ export function StudioSidebar({ current }: { current: ToolKey }) {
     return (
         <nav aria-label={copy.toolsNav} className="hidden shrink-0 flex-col rounded-2xl border border-[var(--card-line)] bg-primary p-2 lg:flex lg:w-[4.25rem] xl:w-64 xl:p-3">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
-                {TOOL_GROUPS.map((group) => (
+                {STUDIO_TOOL_GROUPS.map((group) => (
                     <section key={group.key} aria-labelledby={`studio-group-${group.key}`} className="flex flex-col gap-1">
                         <h2 id={`studio-group-${group.key}`} className="px-2 pb-1 text-[0.6875rem] font-semibold tracking-[0.06em] text-quaternary uppercase lg:sr-only xl:not-sr-only">
                             {t.nav.groups[group.key]}

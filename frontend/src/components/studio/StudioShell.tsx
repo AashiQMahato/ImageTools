@@ -5,7 +5,7 @@ import { LogoMark } from "@/components/common/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { TOOL_ICONS } from "@/components/layout/toolIcons";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import { TOOL_GROUPS, type ToolKey } from "@/lib/constants/navigation";
+import { STUDIO_TOOL_GROUPS, type ToolKey } from "@/lib/constants/navigation";
 import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
 import { useImageStore } from "@/store/useImageStore";
@@ -37,13 +37,15 @@ interface StudioShellProps {
     panelLabel: string;
     /** The centre card: canvas, status and actions. */
     children: ReactNode;
+    /** There are edits that would be lost: ask before starting over, and warn before leaving the page. */
+    dirty?: boolean;
 }
 
 /**
  * The frame every tool shares: a top bar, the tools on the left, the image in the middle and the
  * tool's controls on the right. An image can be dropped or pasted anywhere on it.
  */
-export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panelLabel, children }: StudioShellProps) {
+export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panelLabel, children, dirty = false }: StudioShellProps) {
     useImmersiveLayout();
     const t = useT();
     const copy = t.studio;
@@ -52,6 +54,16 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
     const upload = useImageUpload({ navigateTo: null });
     const dragging = usePageDrop(upload.acceptFile);
     const { clearError } = upload;
+    const [confirming, setConfirming] = useState(false);
+    const requestNewImage = () => (dirty ? setConfirming(true) : clearImage());
+
+    // Closing or reloading the tab would throw the edits away too; let the browser ask first.
+    useEffect(() => {
+        if (!dirty) return;
+        const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+        window.addEventListener("beforeunload", onBeforeUnload);
+        return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    }, [dirty]);
 
     useEffect(() => {
         if (!upload.error) return;
@@ -75,14 +87,14 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
                         </span>
                     </Link>
                     <span aria-hidden className="mx-1 hidden h-6 w-px bg-[var(--card-line)] md:block" />
-                    <ToolBreadcrumb tool={tool} fileName={original?.name} />
+                    <ToolBreadcrumb tool={tool} fileName={original?.name} onNewImage={original ? requestNewImage : undefined} />
 
                     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
                         {actions}
                         {original && (
                             <>
                                 {actions && <span aria-hidden className="mx-1 hidden h-6 w-px bg-[var(--card-line)] sm:block" />}
-                                <button type="button" className={cn(iconButton, "hidden sm:grid")} onClick={clearImage} aria-label={copy.newImage} title={copy.newImage}>
+                                <button type="button" className={cn(iconButton, "hidden sm:grid")} onClick={requestNewImage} aria-label={copy.newImage} title={copy.newImage}>
                                     <ImagePlus className="size-[1.125rem]" aria-hidden />
                                 </button>
                             </>
@@ -114,6 +126,15 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
                         <p className="text-tile text-primary">{t.upload.dropToOpen}</p>
                     </div>
                 </div>
+                {confirming && (
+                    <ConfirmDiscard
+                        onKeep={() => setConfirming(false)}
+                        onDiscard={() => {
+                            setConfirming(false);
+                            clearImage();
+                        }}
+                    />
+                )}
                 <p
                     role="alert"
                     className={cn(
@@ -178,7 +199,7 @@ function usePageDrop(acceptFile: (file: File) => Promise<boolean>) {
 }
 
 /** "Tool › file". On small screens, where the sidebar is hidden, the tool name also switches tools. */
-function ToolBreadcrumb({ tool, fileName }: { tool: ToolKey; fileName?: string }) {
+function ToolBreadcrumb({ tool, fileName, onNewImage }: { tool: ToolKey; fileName?: string; onNewImage?: () => void }) {
     const t = useT();
     const copy = t.studio;
     const { open, setOpen, wrap, trigger } = usePopover();
@@ -209,7 +230,7 @@ function ToolBreadcrumb({ tool, fileName }: { tool: ToolKey; fileName?: string }
                 </button>
                 {open && (
                     <div ref={menuRef} className="absolute top-full left-0 z-50 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--card-line)] bg-primary p-1.5 shadow-xl">
-                        {TOOL_GROUPS.flatMap((group) => group.items).map((item) => {
+                        {STUDIO_TOOL_GROUPS.flatMap((group) => group.items).map((item) => {
                             const ItemIcon = TOOL_ICONS[item.key];
                             const current = !item.alias && item.key === tool;
                             return (
@@ -228,6 +249,19 @@ function ToolBreadcrumb({ tool, fileName }: { tool: ToolKey; fileName?: string }
                                 </Link>
                             );
                         })}
+                        {onNewImage && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setOpen(false);
+                                    onNewImage();
+                                }}
+                                className="mt-1 flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl border-t border-[var(--card-line)] px-3 text-sm font-medium text-secondary outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2"
+                            >
+                                <ImagePlus className="size-4 shrink-0" aria-hidden />
+                                {copy.newImage}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -276,6 +310,40 @@ function HelpMenu({ shortcuts }: { shortcuts: readonly (readonly [string, string
                     </dl>
                 </div>
             )}
+        </div>
+    );
+}
+
+/** Asks before throwing edits away. The safe choice is focused, and Escape keeps editing. */
+function ConfirmDiscard({ onKeep, onDiscard }: { onKeep: () => void; onDiscard: () => void }) {
+    const t = useT();
+    const copy = t.studio;
+    const keepRef = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        keepRef.current?.focus();
+        const onKey = (event: KeyboardEvent) => event.key === "Escape" && onKeep();
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [onKeep]);
+    return (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+            <div aria-hidden className="absolute inset-0 bg-neutral-950/40" onClick={onKeep} />
+            <div role="alertdialog" aria-modal="true" aria-labelledby="discard-title" aria-describedby="discard-body" className="animate-enter relative w-full max-w-sm rounded-2xl border border-[var(--card-line)] bg-primary p-5 shadow-xl [--i:-1]">
+                <h2 id="discard-title" className="text-md font-semibold text-primary">
+                    {copy.discardTitle}
+                </h2>
+                <p id="discard-body" className="mt-1.5 text-sm text-tertiary">
+                    {copy.discardBody}
+                </p>
+                <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button ref={keepRef} type="button" onClick={onKeep} className="h-10 cursor-pointer rounded-lg border border-[var(--card-line)] px-4 text-sm font-semibold text-secondary outline-focus-ring hover:bg-primary_hover focus-visible:outline-2 pointer-coarse:h-11">
+                        {copy.keepEditing}
+                    </button>
+                    <button type="button" onClick={onDiscard} className="h-10 cursor-pointer rounded-lg bg-error-solid px-4 text-sm font-semibold text-white outline-focus-ring hover:bg-error-solid_hover focus-visible:outline-2 pointer-coarse:h-11">
+                        {copy.discard}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -118,7 +118,6 @@ export function PhotoEditor({ mode }: PhotoEditorProps) {
     const edited = edit && session ? !isUnedited(edit, session.source.width, session.source.height) : false;
     const size = edit ? (edit.resize ?? outputSize(edit.crop)) : null;
     const tool = mode === "crop" ? "crop" : "editor";
-
     const iconButton =
         "grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-secondary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-35 pointer-coarse:size-11";
 
@@ -185,7 +184,7 @@ export function PhotoEditor({ mode }: PhotoEditorProps) {
     ] as const;
 
     return (
-        <StudioShell tool={tool} actions={actions} exportSlot={exportSlot} shortcuts={shortcuts} panel={panel} panelLabel={t.editor.editTools}>
+        <StudioShell tool={tool} actions={actions} exportSlot={exportSlot} shortcuts={shortcuts} panel={panel} panelLabel={t.editor.editTools} dirty={edited}>
             <StudioCanvas>
                 {!original ? (
                     <StudioDropzone title={copy.dropTitle} hint={copy.intros[tool].hint} />

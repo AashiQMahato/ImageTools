@@ -361,6 +361,52 @@
     }
 }
 
+/* ImageProcessingPreview — the photo sits softly out of focus under a living dot matrix of itself
+ * while the server works, then sharpens back as the dots dissolve (see the component). */
+.ipp-base {
+    filter: blur(5px) brightness(0.62) saturate(1.1);
+    scale: 1.04;
+    transition:
+        filter 450ms var(--ease-out),
+        scale 450ms var(--ease-out);
+}
+.ipp-base-sharp {
+    filter: none;
+    scale: 1;
+}
+.ipp-layer {
+    transition:
+        opacity 450ms var(--ease-out),
+        scale 450ms var(--ease-out);
+}
+.ipp-layer-out {
+    opacity: 0;
+    scale: 1.02;
+}
+.ipp-corners {
+    animation: ipp-breathe 2.2s var(--ease-in-out) infinite;
+}
+@keyframes ipp-breathe {
+    0%,
+    100% {
+        inset: 0.75rem;
+        opacity: 0.9;
+    }
+    50% {
+        inset: 1.1rem;
+        opacity: 0.55;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ipp-corners {
+        animation: none;
+    }
+    .ipp-base,
+    .ipp-layer {
+        transition-duration: 1ms;
+    }
+}
+
 /* ------------------------------------------------------------------ STUDIO (tool workspaces)
  * One surface language for every tool, following the theme. Light: white chrome around a soft grey
  * stage. Dark: graphite chrome around a near-black stage. Segmented controls use Apple's system values.

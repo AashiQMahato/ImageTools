@@ -1,7 +1,8 @@
 import { Eraser, Image as ImageIcon, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/base/buttons/button";
-import { PanelBody, PanelIntro, PanelTabs, StudioCanvas, StudioDropzone, StudioError, StudioNotice, StudioProgress, Fitted } from "@/components/studio/StudioParts";
+import { ImageProcessingPreview, useSettled } from "@/components/studio/ImageProcessingPreview";
+import { PanelBody, PanelIntro, PanelTabs, StudioCanvas, StudioDropzone, StudioError, StudioNotice, Fitted } from "@/components/studio/StudioParts";
 import { StudioShell } from "@/components/studio/StudioShell";
 import { BackgroundRemovalEditor } from "@/features/background-removal/editor/BackgroundRemovalEditor";
 import { baseName } from "@/features/image-processing/format";
@@ -32,14 +33,18 @@ export function RemoveBackgroundPage() {
         void start(removeBackground);
     }, [original, start, status]);
 
-    // With the cut-out in hand, the studio gains its background, refine and export tools.
-    if (original && job.status === "success" && job.result) {
+    // With the cut-out in hand, the studio gains its background, refine and export tools — once the
+    // processing effect has faded, so the photo doesn't snap from one view to the next.
+    const done = Boolean(original && job.status === "success" && job.result);
+    const settled = useSettled(done);
+    if (original && job.result && done && settled) {
         return <BackgroundRemovalEditor key={job.result.url} original={original} cutout={job.result} />;
     }
     return (
         <WaitingStudio
             original={original}
             job={job}
+            finishing={done}
             cancelled={Boolean(original && cancelledId === original.id && job.status === "selected")}
             onCancel={() => {
                 job.cancel();
@@ -54,11 +59,11 @@ export function RemoveBackgroundPage() {
 }
 
 /** The same studio before the cut-out exists: upload, the upload and processing states, and errors. */
-function WaitingStudio({ original, job, cancelled, onCancel, onRetry }: { original: ImageFile | null; job: ReturnType<typeof useProcessingJob>; cancelled: boolean; onCancel: () => void; onRetry: () => void }) {
+function WaitingStudio({ original, job, finishing, cancelled, onCancel, onRetry }: { original: ImageFile | null; job: ReturnType<typeof useProcessingJob>; finishing: boolean; cancelled: boolean; onCancel: () => void; onRetry: () => void }) {
     const t = useT();
     const copy = t.studio;
     const intro = copy.intros.removeBackground;
-    const busy = !cancelled && (job.status === "uploading" || job.status === "processing" || job.status === "selected");
+    const busy = !cancelled && (finishing || job.status === "uploading" || job.status === "processing" || job.status === "selected");
     const failed = job.status === "error" || job.status === "unsupported";
 
     const panel = (
@@ -89,17 +94,21 @@ function WaitingStudio({ original, job, cancelled, onCancel, onRetry }: { origin
                 ) : (
                     <Fitted dimensions={original.dimensions}>
                         {(size) => (
+                            busy ? (
+                                <ImageProcessingPreview
+                                    src={original.previewUrl}
+                                    alt={t.workspace.selectedAlt(original.name)}
+                                    size={size}
+                                    status={finishing ? "finishing" : "processing"}
+                                    label={t.studio.processing}
+                                    uploading={job.status === "uploading"}
+                                    uploadProgress={job.uploadProgress}
+                                    startedAt={job.startedAt}
+                                    onCancel={job.status === "uploading" || job.status === "processing" ? onCancel : undefined}
+                                />
+                            ) : (
                             <figure className="animate-enter relative overflow-hidden rounded-lg [--i:-1]" style={size}>
                                 <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
-                                {busy && (
-                                    <StudioProgress
-                                        uploading={job.status === "uploading"}
-                                        uploadProgress={job.uploadProgress}
-                                        startedAt={job.startedAt}
-                                        label={copy.removingBackground}
-                                        onCancel={job.status === "selected" ? undefined : onCancel}
-                                    />
-                                )}
                                 {cancelled && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-neutral-950/25">
                                         <Button size="md" color="primary" iconLeading={Eraser} onPress={onRetry} className="press-scale shadow-lg pointer-coarse:min-h-11">
@@ -108,11 +117,12 @@ function WaitingStudio({ original, job, cancelled, onCancel, onRetry }: { origin
                                     </div>
                                 )}
                             </figure>
+                            )
                         )}
                     </Fitted>
                 )}
             </StudioCanvas>
-            {original && !failed && <StudioNotice notice={cancelled ? { tone: "info", text: copy.cancelled } : { tone: "info", text: copy.removingBackground }} />}
+            {original && !failed && <StudioNotice notice={finishing ? { tone: "success", text: t.bgEditor.removedSuccess } : cancelled ? { tone: "info", text: copy.cancelled } : { tone: "info", text: copy.removingBackground }} />}
         </StudioShell>
     );
 }

@@ -59,7 +59,7 @@ export function EditorCanvas({ engine, doc, photo, tool, onToolChange, brush, vi
     const beforeRef = useRef<HTMLCanvasElement>(null);
     const ringRef = useRef<HTMLDivElement>(null);
 
-    const [area, setArea] = useState({ width: 0, height: 0, padding: 24 });
+    const [area, setArea] = useState({ width: 0, height: 0, padX: 24, padY: 24 });
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [snap, setSnap] = useState({ x: false, y: false });
@@ -72,15 +72,15 @@ export function EditorCanvas({ engine, doc, photo, tool, onToolChange, brush, vi
     const gesture = useRef<Gesture | null>(null);
 
     const { width, height } = engine;
-    const fit = width && area.width ? Math.min((area.width - area.padding * 2) / width, (area.height - area.padding * 2) / height) : 0;
+    const fit = width && area.width ? Math.min((area.width - area.padX * 2) / width, (area.height - area.padY * 2) / height) : 0;
     const scale = fit * zoom;
     const frameWidth = width * scale;
     const frameHeight = height * scale;
 
     const clampPan = useCallback(
         (x: number, y: number, s: number) => {
-            const maxX = Math.max(0, (width * s - (area.width - area.padding * 2)) / 2);
-            const maxY = Math.max(0, (height * s - (area.height - area.padding * 2)) / 2);
+            const maxX = Math.max(0, (width * s - (area.width - area.padX * 2)) / 2);
+            const maxY = Math.max(0, (height * s - (area.height - area.padY * 2)) / 2);
             return { x: Math.min(maxX, Math.max(-maxX, x)), y: Math.min(maxY, Math.max(-maxY, y)) };
         },
         [width, height, area],
@@ -115,7 +115,7 @@ export function EditorCanvas({ engine, doc, photo, tool, onToolChange, brush, vi
         const observer = new ResizeObserver(([entry]) => {
             if (!entry) return;
             const { width: w, height: h } = entry.contentRect;
-            setArea({ width: w, height: h, padding: w < 640 ? 12 : 64 });
+            setArea(w < 640 ? { width: w, height: h, padX: 12, padY: 64 } : { width: w, height: h, padX: 64, padY: 28 });
         });
         observer.observe(element);
         return () => observer.disconnect();
@@ -421,8 +421,8 @@ export function EditorCanvas({ engine, doc, photo, tool, onToolChange, brush, vi
             </div>
 
             {/* Tools and zoom, top left — the tool you're using is always visible. */}
-            <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-2">
-                <div role="toolbar" aria-label={copy.canvasTools} aria-orientation="vertical" className="material pointer-events-auto flex flex-col gap-0.5 rounded-xl p-1">
+            <div className="pointer-events-none absolute top-3 left-3 flex gap-2 sm:flex-col">
+                <div role="toolbar" aria-label={copy.canvasTools} className="material pointer-events-auto flex gap-0.5 rounded-xl p-1 sm:flex-col">
                     <button type="button" className={cn(toolButton, tool === "move" && "bg-[var(--tool-soft)] text-[var(--tool)]")} onClick={() => onToolChange("move")} aria-pressed={tool === "move"} aria-label={copy.moveTool} title={`${copy.moveTool} (V)`}>
                         <Hand className="size-4" aria-hidden />
                     </button>
@@ -430,7 +430,7 @@ export function EditorCanvas({ engine, doc, photo, tool, onToolChange, brush, vi
                         <Brush className="size-4" aria-hidden />
                     </button>
                 </div>
-                <div role="toolbar" aria-label={copy.viewControls} aria-orientation="vertical" className="material pointer-events-auto flex flex-col gap-0.5 rounded-xl p-1">
+                <div role="toolbar" aria-label={copy.viewControls} className="material pointer-events-auto flex gap-0.5 rounded-xl p-1 sm:flex-col">
                     <button type="button" className={toolButton} onClick={() => zoomAt(zoom * 1.5)} disabled={zoom >= MAX_ZOOM} aria-label={copy.zoomIn} title={`${copy.zoomIn} (+)`}>
                         <ZoomIn className="size-4" aria-hidden />
                     </button>

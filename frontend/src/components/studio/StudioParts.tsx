@@ -1,5 +1,5 @@
-import { AlertCircle, CheckCircle2, CircleAlert, Clipboard, ImagePlus, Info, LoaderCircle, Lock, RotateCcw, X } from "lucide-react";
-import { type KeyboardEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, CircleAlert, Clipboard, ImagePlus, Info, Lock, RotateCcw } from "lucide-react";
+import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react";
 import { CompareSlider } from "@/components/common/CompareSlider";
 import { Segmented } from "@/components/common/Segmented";
 import { Button } from "@/components/ui/base/buttons/button";
@@ -51,42 +51,6 @@ export function StudioDropzone({ title, hint }: { title: string; hint: string })
                     {uploadError}
                 </p>
             )}
-        </div>
-    );
-}
-
-/** Honest progress: the real upload percentage, then an indeterminate state (with elapsed time) while the server works. */
-export function StudioProgress({ uploading, uploadProgress, startedAt, label, onCancel }: { uploading: boolean; uploadProgress: number; startedAt: number | null; label: string; onCancel?: () => void }) {
-    const t = useT();
-    const [elapsed, setElapsed] = useState(0);
-    useEffect(() => {
-        if (!startedAt) return;
-        const tick = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-        tick();
-        const timer = window.setInterval(tick, 1000);
-        return () => window.clearInterval(timer);
-    }, [startedAt]);
-
-    return (
-        <div className="absolute inset-0 flex items-center justify-center">
-            <div className="absolute inset-0 bg-neutral-950/25" />
-            <span aria-hidden className="absolute inset-y-0 w-px animate-[scan_2.4s_var(--ease-in-out)_infinite] bg-white/80 shadow-[0_0_24px_4px_rgb(255_255_255/0.35)] motion-reduce:hidden" />
-            <div role="status" className="relative flex items-center gap-3 rounded-xl border border-[var(--card-line)] bg-primary py-2 pr-2 pl-4 text-sm font-medium text-primary shadow-lg">
-                <LoaderCircle className="size-4 animate-spin text-[var(--brand)] motion-reduce:animate-none" aria-hidden />
-                {uploading ? (
-                    <span className="tabular-nums">{t.workspace.uploading(Math.round(uploadProgress * 100))}</span>
-                ) : (
-                    <span>
-                        {label}
-                        {elapsed >= 3 && <span className="ml-1.5 text-quaternary tabular-nums">{elapsed}s</span>}
-                    </span>
-                )}
-                {onCancel && (
-                    <Button size="sm" color="tertiary" iconLeading={X} onPress={onCancel} className="press-scale pointer-coarse:min-h-11">
-                        {t.common.cancel}
-                    </Button>
-                )}
-            </div>
         </div>
     );
 }
@@ -177,7 +141,8 @@ export function PanelTabs<T extends string>({ tabs, value, onChange, label }: { 
                         value === tab.id ? "bg-primary text-[var(--brand)] shadow-xs" : "text-tertiary hover:text-primary",
                     )}
                 >
-                    {tab.icon}
+                    {/* Phones keep the words, which say more than the icons in the space there is. */}
+                    <span className="hidden shrink-0 sm:inline-flex">{tab.icon}</span>
                     <span className="truncate">{tab.label}</span>
                     {value === tab.id && <span aria-hidden className="absolute inset-x-5 -bottom-1.5 h-0.5 rounded-full bg-[var(--brand)]" />}
                 </button>

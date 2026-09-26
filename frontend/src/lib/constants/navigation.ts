@@ -72,3 +72,9 @@ export type SectionKey = (typeof SECTION_LINKS)[number]["key"];
 
 /** Where "Explore all tools" leads: the tools overview on the home page. */
 export const ALL_TOOLS_HREF = `${ROUTES.home}#tools`;
+
+/**
+ * The studio's own list: one entry per page. Resize and Rotate & Flip are shortcuts into the editor
+ * and the crop tool (useful as landing-page entry points), so inside the studio they'd only repeat.
+ */
+export const STUDIO_TOOL_GROUPS: readonly NavToolGroup[] = TOOL_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.alias) })).filter((group) => group.items.length > 0);
