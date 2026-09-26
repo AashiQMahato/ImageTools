@@ -1,69 +1,84 @@
 import { Eraser, Image as ImageIcon, Wand2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/base/buttons/button";
 import { ImageProcessingPreview, useSettled } from "@/components/studio/ImageProcessingPreview";
-import { PanelBody, PanelIntro, PanelTabs, StudioCanvas, StudioDropzone, StudioError, StudioNotice, Fitted } from "@/components/studio/StudioParts";
+import { ClearImageButton, PanelBody, PanelIntro, PanelTabs, StudioActions, StudioCanvas, StudioDropzone, StudioError, StudioNotice, Fitted } from "@/components/studio/StudioParts";
 import { StudioShell } from "@/components/studio/StudioShell";
 import { BackgroundRemovalEditor } from "@/features/background-removal/editor/BackgroundRemovalEditor";
+import { INITIAL_DOC } from "@/features/background-removal/editor/document";
+import { backgroundSessionFor, rememberRemoval, rememberResult } from "@/features/background-removal/resume";
 import { baseName } from "@/features/image-processing/format";
 import { useProcessingJob } from "@/features/image-processing/useProcessingJob";
 import { removeBackground } from "@/lib/api/backgroundRemovalApi";
-import { useImageStore } from "@/store/useImageStore";
+import { useImageStore, useToolImage } from "@/store/useImageStore";
 import type { ImageFile } from "@/types/image";
 import { errorMessage, useT } from "@/i18n";
 
 const fileNameFor = (image: ImageFile) => `${baseName(image.name)}-no-background.png`;
 
 export function RemoveBackgroundPage() {
-    const original = useImageStore((state) => state.original);
-    const job = useProcessingJob(original, fileNameFor);
-    /** The image whose removal was cancelled — shown as stopped, with a button to start again. */
-    const [cancelledId, setCancelledId] = useState<string | null>(null);
+    const tool = useToolImage();
+    // Each image gets its own studio; a result published from inside it doesn't count as a new image.
+    return <RemoveBackgroundStudio key={tool.image?.id ?? "none"} original={tool.image} session={tool.session} />;
+}
 
-    /**
-     * Removing the background is the only thing this tool does, so choosing an image is already the
-     * instruction — there is nothing to configure first. Keyed by image id so cancelling doesn't
-     * immediately start it again; Try again is there to retry by hand.
-     */
-    const autoRan = useRef<string | null>(null);
-    const { run: start, status } = job;
+function RemoveBackgroundStudio({ original, session }: { original: ImageFile | null; session: string }) {
+    const publish = useImageStore((state) => state.publish);
+    /** Back at an image this studio already made (or at its photo): reopen it exactly as left — no processing. */
+    const [resumed] = useState(() => backgroundSessionFor(original));
+    const job = useProcessingJob(resumed ? null : original, fileNameFor);
+    /** A background-removal result this visit no longer remembers (restored after a reload). */
+    const alreadyEdited = !resumed && original?.editedBy === "removeBackground";
+    /** Removal was started and then stopped, for the status line. */
+    const [cancelled, setCancelled] = useState(false);
+
+    // The moment the cut-out arrives it's the shared image, and the studio remembers it — so leaving
+    // straight away (or coming back later) never means removing the background again.
+    const result = job.status === "success" ? job.result : null;
     useEffect(() => {
-        if (!original || status !== "selected" || autoRan.current === original.id) return;
-        autoRan.current = original.id;
-        void start(removeBackground);
-    }, [original, start, status]);
+        if (!original || !result) return;
+        const background = rememberRemoval(original, result);
+        const image = publish(session, { blob: result.blob, name: result.fileName, dimensions: result.dimensions }, "removeBackground");
+        rememberResult(background, INITIAL_DOC, image?.id ?? null);
+    }, [original, result, publish, session]);
 
     // With the cut-out in hand, the studio gains its background, refine and export tools — once the
     // processing effect has faded, so the photo doesn't snap from one view to the next.
-    const done = Boolean(original && job.status === "success" && job.result);
+    const done = Boolean(original && result);
     const settled = useSettled(done);
-    if (original && job.result && done && settled) {
-        return <BackgroundRemovalEditor key={job.result.url} original={original} cutout={job.result} />;
+    const background = resumed ?? (done && settled ? backgroundSessionFor(original) : null);
+    if (background) {
+        return <BackgroundRemovalEditor key={background.cutout.url} background={background} session={session} />;
     }
     return (
         <WaitingStudio
             original={original}
             job={job}
             finishing={done}
-            cancelled={Boolean(original && cancelledId === original.id && job.status === "selected")}
+            cancelled={cancelled}
+            alreadyEdited={alreadyEdited}
             onCancel={() => {
                 job.cancel();
-                setCancelledId(original?.id ?? null);
+                setCancelled(true);
             }}
-            onRetry={() => {
-                setCancelledId(null);
+            onStart={() => {
+                setCancelled(false);
                 void job.run(removeBackground);
             }}
         />
     );
 }
 
-/** The same studio before the cut-out exists: upload, the upload and processing states, and errors. */
-function WaitingStudio({ original, job, finishing, cancelled, onCancel, onRetry }: { original: ImageFile | null; job: ReturnType<typeof useProcessingJob>; finishing: boolean; cancelled: boolean; onCancel: () => void; onRetry: () => void }) {
+/**
+ * The same studio before the cut-out exists: upload, then the image waiting for "Remove background"
+ * (nothing is sent anywhere until it's pressed), the upload and processing states, and errors.
+ */
+function WaitingStudio({ original, job, finishing, cancelled, alreadyEdited, onCancel, onStart }: { original: ImageFile | null; job: ReturnType<typeof useProcessingJob>; finishing: boolean; cancelled: boolean; alreadyEdited: boolean; onCancel: () => void; onStart: () => void }) {
     const t = useT();
     const copy = t.studio;
     const intro = copy.intros.removeBackground;
-    const busy = !cancelled && (finishing || job.status === "uploading" || job.status === "processing" || job.status === "selected");
+    const busy = finishing || job.status === "uploading" || job.status === "processing";
+    const ready = job.status === "selected";
     const failed = job.status === "error" || job.status === "unsupported";
 
     const panel = (
@@ -90,7 +105,7 @@ function WaitingStudio({ original, job, finishing, cancelled, onCancel, onRetry 
                 {!original ? (
                     <StudioDropzone title={copy.dropTitle} hint={intro.hint} />
                 ) : failed ? (
-                    <StudioError title={copy.errorTitle} message={errorMessage(t, job.error)} onRetry={job.status === "error" ? onRetry : undefined} />
+                    <StudioError title={copy.errorTitle} message={errorMessage(t, job.error)} onRetry={job.status === "error" ? onStart : undefined} />
                 ) : (
                     <Fitted dimensions={original.dimensions}>
                         {(size) => (
@@ -109,20 +124,33 @@ function WaitingStudio({ original, job, finishing, cancelled, onCancel, onRetry 
                             ) : (
                             <figure className="animate-enter relative overflow-hidden rounded-lg [--i:-1]" style={size}>
                                 <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
-                                {cancelled && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-neutral-950/25">
-                                        <Button size="md" color="primary" iconLeading={Eraser} onPress={onRetry} className="press-scale shadow-lg pointer-coarse:min-h-11">
-                                            {t.pages.removeBackground.action}
-                                        </Button>
-                                    </div>
-                                )}
                             </figure>
                             )
                         )}
                     </Fitted>
                 )}
             </StudioCanvas>
-            {original && !failed && <StudioNotice notice={finishing ? { tone: "success", text: t.bgEditor.removedSuccess } : cancelled ? { tone: "info", text: copy.cancelled } : { tone: "info", text: copy.removingBackground }} />}
+            {original && !failed && (
+                <StudioNotice
+                    notice={
+                        finishing
+                            ? { tone: "success", text: t.bgEditor.removedSuccess }
+                            : busy
+                              ? { tone: "info", text: copy.removingBackground }
+                              : { tone: "info", text: cancelled ? copy.cancelled : alreadyEdited ? copy.alreadyRemoved : copy.readyToRemove }
+                    }
+                />
+            )}
+            {original && !busy && (
+                <StudioActions>
+                    <ClearImageButton />
+                    {ready && (
+                        <Button size="lg" color="primary" iconLeading={Eraser} onPress={onStart} className="press-scale pointer-coarse:min-h-12">
+                            {t.pages.removeBackground.action}
+                        </Button>
+                    )}
+                </StudioActions>
+            )}
         </StudioShell>
     );
 }

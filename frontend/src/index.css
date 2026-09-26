@@ -407,6 +407,64 @@
     }
 }
 
+/* Retouch — the selection reads as a selection, not paint: translucent, and breathing very gently.
+ * It fades out (rather than vanishing) while a result is shown or the image is being worked on. */
+.retouch-mask {
+    opacity: 0.5;
+    transition: opacity 250ms var(--ease-out);
+    animation: retouch-breathe 2.8s var(--ease-in-out) infinite;
+}
+.retouch-mask[data-hidden] {
+    opacity: 0;
+    animation: none;
+}
+@keyframes retouch-breathe {
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+/* New layers (a kept version, the comparison) settle in instead of snapping. */
+.retouch-fade-in {
+    animation: retouch-fade 300ms var(--ease-out) both;
+}
+@keyframes retouch-fade {
+    from {
+        opacity: 0;
+    }
+}
+/* The result, emerging from under the processing effect. */
+.retouch-reveal {
+    animation: retouch-reveal 650ms var(--ease-out) both;
+}
+@keyframes retouch-reveal {
+    from {
+        opacity: 0;
+        filter: blur(3px);
+    }
+}
+/* Each processing stage's words rise into place. */
+.retouch-stage {
+    animation: retouch-stage 350ms var(--ease-out) both;
+}
+@keyframes retouch-stage {
+    from {
+        opacity: 0;
+        translate: 0 4px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .retouch-mask,
+    .retouch-fade-in,
+    .retouch-reveal,
+    .retouch-stage {
+        animation: none;
+    }
+}
+
 /* ------------------------------------------------------------------ STUDIO (tool workspaces)
  * One surface language for every tool, following the theme. Light: white chrome around a soft grey
  * stage. Dark: graphite chrome around a near-black stage. Segmented controls use Apple's system values.

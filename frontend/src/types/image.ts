@@ -14,6 +14,8 @@ export interface ImageFile {
     /** Object URL for previewing the image in the browser. */
     previewUrl: string;
     dimensions: ImageDimensions;
+    /** The tool whose result this is; absent for an image as uploaded. */
+    editedBy?: string;
 }
 
 /** A processed image held in the browser only (never stored on the server). */

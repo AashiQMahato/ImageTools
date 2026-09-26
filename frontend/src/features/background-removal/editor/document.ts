@@ -70,14 +70,14 @@ interface HistoryState<T> {
 }
 
 /**
- * Undo/redo over the whole document. `commit` records a step at once; `preview` changes what's shown
+ * Undo/redo over a whole document (the background editor's, or any other plain-data state). `commit` records a step at once; `preview` changes what's shown
  * without recording, and the change becomes a single step when it settles (or when `settle` is
  * called, e.g. on pointer-up) — so a drag is one undo, not a hundred.
  */
-export function useDocHistory(initial: EditorDoc) {
-    const [state, setState] = useState<HistoryState<EditorDoc>>({ past: [], present: initial, future: [] });
+export function useDocHistory<T = EditorDoc>(initial: T) {
+    const [state, setState] = useState<HistoryState<T>>({ past: [], present: initial, future: [] });
     /** The document as it was when the current continuous change began. */
-    const anchor = useRef<EditorDoc | null>(null);
+    const anchor = useRef<T | null>(null);
     const timer = useRef<number | undefined>(undefined);
 
     const settle = useCallback(() => {
@@ -89,7 +89,7 @@ export function useDocHistory(initial: EditorDoc) {
     }, []);
 
     const preview = useCallback(
-        (update: (doc: EditorDoc) => EditorDoc) => {
+        (update: (doc: T) => T) => {
             setState((current) => {
                 if (!anchor.current) anchor.current = current.present;
                 return { ...current, present: update(current.present) };
@@ -101,7 +101,7 @@ export function useDocHistory(initial: EditorDoc) {
     );
 
     const commit = useCallback(
-        (update: (doc: EditorDoc) => EditorDoc) => {
+        (update: (doc: T) => T) => {
             window.clearTimeout(timer.current);
             const from = anchor.current;
             anchor.current = null;
@@ -147,4 +147,4 @@ export function useDocHistory(initial: EditorDoc) {
     };
 }
 
-export type DocHistory = ReturnType<typeof useDocHistory>;
+export type DocHistory<T = EditorDoc> = ReturnType<typeof useDocHistory<T>>;

@@ -20,6 +20,11 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
     return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
+function parseChoice<T extends string>(value: string | undefined, choices: readonly T[], fallback: T): T {
+    const chosen = value?.trim().toLowerCase();
+    return choices.find((choice) => choice === chosen) ?? fallback;
+}
+
 function parseOrigins(value: string | undefined): string[] {
     return (value ?? "http://localhost:5173")
         .split(",")
@@ -71,6 +76,17 @@ export const env = {
         maxOutputPixels: parsePositive(env_.UPSCALE_MAX_OUTPUT_PIXELS, 40_000_000),
         /** Reserved for an optional hosted fallback. Server-side only; never sent to the browser. */
         cloudApiKey: env_.UPSCAYL_API_KEY?.trim() || "",
+    },
+
+    retouch: {
+        /** "auto" uses the AI inpainting service when RETOUCH_SERVICE_URL is set, else the built-in engine. */
+        provider: parseChoice(env_.RETOUCH_PROVIDER, ["auto", "local", "iopaint"] as const, "auto"),
+        /** Base URL of an IOPaint server (LaMa inpainting), e.g. http://127.0.0.1:8080. */
+        serviceUrl: (env_.RETOUCH_SERVICE_URL?.trim() || "").replace(/\/$/, ""),
+        timeoutMs: parsePositive(env_.RETOUCH_TIMEOUT_MS, 120_000),
+        concurrency: Math.floor(parsePositive(env_.RETOUCH_CONCURRENCY, 2)),
+        /** Longest side of the region handed to a provider. Larger selections are processed scaled down, then blended back at full size. */
+        maxWorkingSize: Math.floor(parsePositive(env_.RETOUCH_MAX_WORKING_SIZE, 2048)),
     },
 
     /** Requests waiting for a processing slot beyond this are turned away with "busy". */

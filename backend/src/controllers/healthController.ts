@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { env } from "../config/env.js";
 import { backgroundRemoval } from "../services/background-removal/backgroundRemovalService.js";
 import { rembgProcess } from "../services/background-removal/rembgProcess.js";
+import { retouching } from "../services/retouch/retouchService.js";
 import { upscaylProvider } from "../services/upscaling/upscaylProvider.js";
 import { upscaling } from "../services/upscaling/upscaleService.js";
 
@@ -13,6 +14,7 @@ export const getHealth: RequestHandler = (_req, res) => {
             api: true,
             backgroundRemoval: backgroundRemoval.isAvailable(),
             upscaling: upscaling.isAvailable(),
+            retouch: retouching.isAvailable(),
         },
     });
 };
@@ -42,6 +44,11 @@ export const getProcessorHealth: RequestHandler = (_req, res) => {
                 gpu: upscayl.gpu,
                 scales: [2, 4],
                 queue: upscaling.stats(),
+            },
+            retouch: {
+                available: retouching.isAvailable(),
+                engines: retouching.engines(),
+                queue: retouching.stats(),
             },
             limits: {
                 maxFileSizeMb: env.maxImageSizeMb,

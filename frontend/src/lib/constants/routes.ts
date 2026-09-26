@@ -4,6 +4,7 @@ export const ROUTES = {
     upscale: "/upscale",
     crop: "/crop",
     editor: "/editor",
+    retouch: "/retouch",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

@@ -1,8 +1,8 @@
 import { ChevronDown, Download, FileDown, Image as ImageIcon, LoaderCircle, PencilLine, Redo2, RotateCcw, Undo2, Wand2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Segmented } from "@/components/common/Segmented";
-import { type Notice, PanelBody, PanelTabs, StudioActions, StudioCanvas, StudioNotice } from "@/components/studio/StudioParts";
+import { ClearImageButton, type Notice, PanelBody, PanelTabs, StudioActions, StudioCanvas, StudioNotice } from "@/components/studio/StudioParts";
 import { StudioShell } from "@/components/studio/StudioShell";
 import { studioExportButton } from "@/components/studio/styles";
 import { usePopover } from "@/components/studio/usePopover";
@@ -13,8 +13,8 @@ import { ROUTES } from "@/lib/constants/routes";
 import { downloadFile } from "@/lib/utils/download";
 import { cn } from "@/lib/utils/cn";
 import { useImageStore } from "@/store/useImageStore";
-import type { ImageFile, ProcessedImage } from "@/types/image";
 import { useT } from "@/i18n";
+import { type BackgroundSession, rememberResult } from "../resume";
 import { BackgroundControls, type UploadedBackground } from "./BackgroundControls";
 import { isTransparent } from "./backgrounds";
 import { exportComposition } from "./composition";
@@ -27,9 +27,10 @@ import { useMaskEngine } from "./useMaskEngine";
 type Tab = "background" | "refine" | "export";
 
 interface BackgroundRemovalEditorProps {
-    original: ImageFile;
-    /** The model's cut-out, straight from the server. */
-    cutout: ProcessedImage;
+    /** The photo, the model's cut-out and the edits so far — reopened exactly as they were left. */
+    background: BackgroundSession;
+    /** The shared image's session, for publishing the result back to it. */
+    session: string;
 }
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
@@ -64,13 +65,14 @@ function usePhotoBitmaps(url: string | null) {
  * The background studio: the cut-out on a large canvas, the tools for it beside it, and the export a
  * click away. Everything after the server's cut-out happens on this device.
  */
-export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalEditorProps) {
+export function BackgroundRemovalEditor({ background, session }: BackgroundRemovalEditorProps) {
+    const { source: original, cutout } = background;
     const t = useT();
     const copy = t.bgEditor;
     const navigate = useNavigate();
     const setOriginal = useImageStore((state) => state.setOriginal);
 
-    const history = useDocHistory(INITIAL_DOC);
+    const history = useDocHistory(background.doc);
     const { doc } = history;
     const engine = useMaskEngine(original.previewUrl, cutout.url);
     const { sync } = engine;
@@ -84,9 +86,11 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
     const maxBrush = Math.max(40, Math.round(shortSide * 0.3));
 
     const [uploaded, setUploaded] = useState<UploadedBackground | null>(null);
-    /** Every uploaded background stays alive until the editor closes — undo may bring any of them back. */
+    /**
+     * Every uploaded background stays alive until the editor closes — undo may bring any of them back.
+     * The one in use outlives it: the remembered session still shows it when the studio reopens.
+     */
     const uploads = useRef<string[]>([]);
-    useEffect(() => () => uploads.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
     const photoUrl = doc.background.kind === "image" ? doc.background.url : null;
     const { photo, loading: photoLoading } = usePhotoBitmaps(photoUrl);
@@ -204,6 +208,56 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
             setExporting(null);
         }
     };
+
+    // Every tool (and a reload) opens the latest composition: once edits settle, it's rendered at full
+    // size and becomes the shared image, and the session remembers the edits behind it.
+    const publishImage = useImageStore((state) => state.publish);
+    /** The engine's live canvas — the same object for the editor's life, so it's a stable dependency. */
+    const subject = engine.ready ? engine.subject() : null;
+    const latest = useRef({ doc, photo, subject });
+    useLayoutEffect(() => {
+        latest.current = { doc, photo, subject };
+    });
+    /** The document last sent out; the session's own starting point is already the shared image. */
+    const sent = useRef<{ doc: EditorDoc; photo: ImageBitmap | null } | null>({ doc: background.doc, photo: null });
+    const sequence = useRef(0);
+    const publishLatest = useCallback(() => {
+        const { doc: current, photo: currentPhoto, subject: canvas } = latest.current;
+        if (!canvas || (sent.current?.doc === current && (current.background.kind !== "image" || sent.current.photo === currentPhoto))) return;
+        // A photo background that hasn't loaded yet would render without it; wait for it.
+        if (current.background.kind === "image" && !currentPhoto) return;
+        sent.current = { doc: current, photo: currentPhoto };
+        const id = ++sequence.current;
+        const size = { width: canvas.width, height: canvas.height };
+        // Draws synchronously, so it's safe to start even while the editor is closing.
+        exportComposition(current, canvas, currentPhoto, "png", QUALITY)
+            .then((blob) => {
+                if (id !== sequence.current) return;
+                const name = `${baseName(original.name)}-${isTransparent(current.background) ? "no-background" : "edited"}.png`;
+                const image = publishImage(session, { blob, name, dimensions: size }, "removeBackground");
+                if (image) rememberResult(background, current, image.id);
+            })
+            .catch(() => undefined);
+    }, [background, original.name, publishImage, session]);
+    useEffect(() => {
+        if (!subject) return;
+        const timer = window.setTimeout(publishLatest, 350);
+        return () => window.clearTimeout(timer);
+    }, [doc, photo, subject, publishLatest]);
+    // Leaving before the last change was sent (straight to another tool): send it now. A layout-effect
+    // cleanup runs before the passive ones that release the photo and the engine's pixels.
+    const flush = useRef(publishLatest);
+    useLayoutEffect(() => {
+        flush.current = publishLatest;
+    });
+    useLayoutEffect(
+        () => () => {
+            flush.current();
+            const inUse = latest.current.doc.background;
+            for (const url of uploads.current) if (inUse.kind !== "image" || inUse.url !== url) URL.revokeObjectURL(url);
+        },
+        [],
+    );
 
     // Keyboard: undo/redo everywhere; tool and brush keys when not typing.
     useEffect(() => {
@@ -338,7 +392,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
     );
 
     return (
-        <StudioShell tool="removeBackground" actions={actions} exportSlot={exportSlot} shortcuts={copy.shortcuts} panel={panel} panelLabel={copy.controlsLabel} dirty={doc !== INITIAL_DOC}>
+        <StudioShell tool="removeBackground" actions={actions} exportSlot={exportSlot} panel={panel} panelLabel={copy.controlsLabel} dirty={doc !== INITIAL_DOC}>
             <div className="flex justify-center">
                 <Segmented
                     size="sm"
@@ -372,6 +426,7 @@ export function BackgroundRemovalEditor({ original, cutout }: BackgroundRemovalE
             <StudioNotice notice={notice} />
 
             <StudioActions>
+                <ClearImageButton />
                 <Button size="lg" color="secondary" onPress={() => void continueEditing()} isDisabled={!engine.ready || exporting !== null} className="press-scale pointer-coarse:min-h-12">
                     <span className="flex items-center justify-center gap-2">
                         {exporting === "continue" ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <PencilLine className="size-4" aria-hidden />}

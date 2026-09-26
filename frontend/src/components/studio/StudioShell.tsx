@@ -1,4 +1,4 @@
-import { ChevronDown, CircleHelp, ImagePlus } from "lucide-react";
+import { ChevronDown, ImagePlus } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/common/Logo";
@@ -19,9 +19,11 @@ interface StudioContextValue {
     openPicker: () => void;
     /** The last problem with a picked, dropped or pasted file. */
     uploadError: string | null;
+    /** Clears the image (asking first when there are edits that would be lost). */
+    clearImage: () => void;
 }
 
-const StudioContext = createContext<StudioContextValue>({ openPicker: () => undefined, uploadError: null });
+const StudioContext = createContext<StudioContextValue>({ openPicker: () => undefined, uploadError: null, clearImage: () => undefined });
 export const useStudio = () => useContext(StudioContext);
 
 interface StudioShellProps {
@@ -30,8 +32,6 @@ interface StudioShellProps {
     actions?: ReactNode;
     /** The primary export control, top right. */
     exportSlot?: ReactNode;
-    /** Keyboard shortcuts listed under Help. */
-    shortcuts?: readonly (readonly [string, string])[];
     /** The right-hand panel. */
     panel: ReactNode;
     panelLabel: string;
@@ -39,13 +39,15 @@ interface StudioShellProps {
     children: ReactNode;
     /** There are edits that would be lost: ask before starting over, and warn before leaving the page. */
     dirty?: boolean;
+    /** Below desktop width the panel stacks under the canvas, unless the tool shows it its own way (a bottom sheet). */
+    mobilePanel?: "stack" | "none";
 }
 
 /**
  * The frame every tool shares: a top bar, the tools on the left, the image in the middle and the
  * tool's controls on the right. An image can be dropped or pasted anywhere on it.
  */
-export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panelLabel, children, dirty = false }: StudioShellProps) {
+export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, children, dirty = false, mobilePanel = "stack" }: StudioShellProps) {
     useImmersiveLayout();
     const t = useT();
     const copy = t.studio;
@@ -75,7 +77,7 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
         "grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-secondary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-35 pointer-coarse:size-11";
 
     return (
-        <StudioContext.Provider value={{ openPicker: upload.openPicker, uploadError: upload.error }}>
+        <StudioContext.Provider value={{ openPicker: upload.openPicker, uploadError: upload.error, clearImage: requestNewImage }}>
             <div className="flex min-h-dvh flex-col bg-secondary lg:h-dvh">
                 <input {...upload.inputProps} aria-hidden />
 
@@ -99,11 +101,6 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
                                 </button>
                             </>
                         )}
-                        {shortcuts && shortcuts.length > 0 && (
-                            <div className="hidden sm:block">
-                                <HelpMenu shortcuts={shortcuts} />
-                            </div>
-                        )}
                         <ThemeToggle className="hidden sm:flex" />
                         {exportSlot && <div className="ml-1">{exportSlot}</div>}
                     </div>
@@ -114,7 +111,7 @@ export function StudioShell({ tool, actions, exportSlot, shortcuts, panel, panel
 
                     <main className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">{children}</main>
 
-                    <aside aria-label={panelLabel} className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--card-line)] bg-primary lg:min-h-0 lg:w-[22.5rem] xl:w-[24rem]">
+                    <aside aria-label={panelLabel} className={cn("flex shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--card-line)] bg-primary lg:min-h-0 lg:w-[22.5rem] xl:w-[24rem]", mobilePanel === "none" && "hidden lg:flex")}>
                         {panel}
                     </aside>
                 </div>
@@ -276,41 +273,6 @@ function ToolBreadcrumb({ tool, fileName, onNewImage }: { tool: ToolKey; fileNam
                 </>
             )}
         </nav>
-    );
-}
-
-function HelpMenu({ shortcuts }: { shortcuts: readonly (readonly [string, string])[] }) {
-    const t = useT();
-    const copy = t.studio;
-    const { open, setOpen, wrap, trigger } = usePopover();
-    return (
-        <div ref={wrap} className="relative">
-            <button
-                ref={trigger}
-                type="button"
-                onClick={() => setOpen((value) => !value)}
-                aria-expanded={open}
-                aria-haspopup="dialog"
-                className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-secondary outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 pointer-coarse:h-11"
-            >
-                <CircleHelp className="size-[1.125rem]" aria-hidden />
-                <span className="hidden xl:inline">{copy.help}</span>
-                <span className="sr-only xl:hidden">{copy.help}</span>
-            </button>
-            {open && (
-                <div role="dialog" aria-label={copy.shortcutsTitle} className="absolute top-full right-0 z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--card-line)] bg-primary p-4 shadow-xl">
-                    <p className="text-sm font-semibold text-primary">{copy.shortcutsTitle}</p>
-                    <dl className="mt-3 flex flex-col gap-2 text-xs">
-                        {shortcuts.map(([keys, label]) => (
-                            <div key={label} className="flex items-center justify-between gap-3">
-                                <dt className="text-tertiary">{label}</dt>
-                                <dd className="shrink-0 font-mono text-secondary">{keys}</dd>
-                            </div>
-                        ))}
-                    </dl>
-                </div>
-            )}
-        </div>
     );
 }
 
