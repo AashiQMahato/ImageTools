@@ -1,7 +1,8 @@
 import { ChevronDown, Download, FileDown, LoaderCircle, RotateCcw, ZoomIn } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/base/buttons/button";
-import { CompareView, Fitted, type Notice, PanelBody, PanelIntro, PanelTabs, StudioActions, StudioCanvas, StudioDropzone, StudioError, StudioNotice, StudioProgress } from "@/components/studio/StudioParts";
+import { CompareView, Fitted, type Notice, PanelBody, PanelIntro, PanelTabs, StudioActions, StudioCanvas, StudioDropzone, StudioError, StudioNotice } from "@/components/studio/StudioParts";
+import { ImageProcessingPreview, useSettled } from "@/components/studio/ImageProcessingPreview";
 import { StudioShell } from "@/components/studio/StudioShell";
 import { studioExportButton } from "@/components/studio/styles";
 import { usePopover } from "@/components/studio/usePopover";
@@ -71,6 +72,8 @@ export function UpscalerPage() {
     const status = job.status;
     const busy = status === "uploading" || status === "processing";
     const done = status === "success" && Boolean(shown);
+    // The processing effect fades out before the comparison takes its place.
+    const settled = useSettled(done);
     const blocked = Boolean(unsupported) || (tooLarge.includes(2) && tooLarge.includes(4));
     const target = original ? targetSize(original.dimensions, scale) : null;
 
@@ -192,7 +195,7 @@ export function UpscalerPage() {
                     <StudioError title={copy.unavailableTitle} message={errorMessage(t, unsupported)} />
                 ) : status === "error" ? (
                     <StudioError title={copy.errorTitle} message={errorMessage(t, job.error)} onRetry={run} />
-                ) : done && shown ? (
+                ) : done && settled && shown ? (
                     <Fitted dimensions={original.dimensions}>
                         {(size) => (
                             <CompareView
@@ -207,12 +210,25 @@ export function UpscalerPage() {
                     </Fitted>
                 ) : (
                     <Fitted dimensions={original.dimensions}>
-                        {(size) => (
-                            <figure className="animate-enter relative overflow-hidden rounded-lg [--i:-1]" style={size}>
-                                <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
-                                {busy && <StudioProgress uploading={status === "uploading"} uploadProgress={job.uploadProgress} startedAt={job.startedAt} label={copy.upscaling(resultScale)} onCancel={job.cancel} />}
-                            </figure>
-                        )}
+                        {(size) =>
+                            busy || done ? (
+                                <ImageProcessingPreview
+                                    src={original.previewUrl}
+                                    alt={t.workspace.selectedAlt(original.name)}
+                                    size={size}
+                                    status={done ? "finishing" : "processing"}
+                                    label={copy.upscaling(resultScale)}
+                                    uploading={status === "uploading"}
+                                    uploadProgress={job.uploadProgress}
+                                    startedAt={job.startedAt}
+                                    onCancel={busy ? job.cancel : undefined}
+                                />
+                            ) : (
+                                <figure className="animate-enter relative overflow-hidden rounded-lg [--i:-1]" style={size}>
+                                    <img src={original.previewUrl} alt={t.workspace.selectedAlt(original.name)} className="size-full object-contain" draggable={false} />
+                                </figure>
+                            )
+                        }
                     </Fitted>
                 )}
             </StudioCanvas>

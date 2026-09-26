@@ -97,7 +97,7 @@ export function ExportPanel({ doc, subject, photo, revision, format, onFormatCha
                     </span>
                 </Button>
                 <Button size="md" color="tertiary" iconLeading={PencilLine} onPress={onContinue} className="press-scale w-full pointer-coarse:min-h-11">
-                    {copy.backToEditing}
+                    {copy.continueEditing}
                 </Button>
             </div>
             {error && (

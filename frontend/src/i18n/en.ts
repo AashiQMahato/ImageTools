@@ -571,6 +571,7 @@ export const en = {
         panelEmpty: "Upload an image to unlock these controls.",
         howItWorks: "How it works",
         removingBackground: "Removing background…",
+        processing: "Processing…",
         cancelled: "Stopped. Start again whenever you're ready.",
         tabs: { upscale: "Upscale", export: "Export", crop: "Crop" },
         export: "Export",
@@ -582,6 +583,10 @@ export const en = {
         editingNotice: (name: string, size: string) => `${name} · ${size}`,
         editedNotice: "Changes are applied live — export when you're happy.",
         closeImage: "Close image",
+        discardTitle: "Start over with a new image?",
+        discardBody: "Your edits to this image will be lost. Download it first if you want to keep it.",
+        keepEditing: "Keep editing",
+        discard: "Discard edits",
         upscaling: (scale: number) => `Upscaling ${scale}×…`,
         intros: {
             removeBackground: {
@@ -604,7 +609,7 @@ export const en = {
     },
     bgEditor: {
         controlsLabel: "Editing controls",
-        tabs: { background: "Background", refine: "Refine" },
+        tabs: { background: "Background", refine: "Refine", export: "Export" },
         compareLabel: "Compare with the original",
         before: "Before",
         after: "After",
@@ -629,10 +634,10 @@ export const en = {
         resetDone: "All changes reset. Undo brings them back.",
         downloaded: (name: string) => `Downloaded ${name}`,
         exportFailed: "The image couldn't be exported. Please try again.",
-        continueEditing: "Continue Editing",
+        openInEditor: "Open in Editor",
         downloadImage: "Download Image",
         preparingDownload: "Preparing…",
-        backToEditing: "Back to editing",
+        continueEditing: "Continue Editing",
 
         // canvas
         canvasLabel: "Canvas",
@@ -658,6 +663,8 @@ export const en = {
         kinds: { transparent: "Transparent", colour: "Color", gradient: "Gradient", image: "Image" },
         transparentHint: "Keep your image background-free.",
         customColour: "Custom Color",
+        customColourHint: "Select a color for your new background.",
+        applyColour: "Apply Color",
         pickColour: "Pick a colour",
         hex: "Hex colour",
         invalidHex: "Enter a hex colour such as #FFFFFF.",

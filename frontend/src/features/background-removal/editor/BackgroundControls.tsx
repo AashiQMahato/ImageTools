@@ -231,41 +231,47 @@ function ColourSection({ background, onCommit, onPreview, recent, remember }: { 
     return (
         <section>
             <SectionTitle>{copy.customColour}</SectionTitle>
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="flex h-10 w-36 shrink-0 items-center gap-2 rounded-lg border border-[var(--card-line)] bg-primary pr-1 pl-1.5 focus-within:outline-2 focus-within:outline-[var(--color-focus-ring)] pointer-coarse:h-11">
-                    {/* The platform's own colour picker, previewing live as it moves. */}
-                    <label htmlFor={pickerId} className="relative size-7 shrink-0 cursor-pointer overflow-hidden rounded-md border border-[var(--card-line)]" style={{ backgroundColor: valid ? normaliseHex(hex) : current }}>
-                        <span className="sr-only">{copy.pickColour}</span>
+            <p className="-mt-1.5 mb-3 text-xs text-tertiary">{copy.customColourHint}</p>
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                    <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--card-line)] bg-primary pr-1 pl-1.5 focus-within:outline-2 focus-within:outline-[var(--color-focus-ring)] pointer-coarse:h-11">
+                        {/* The platform's own colour picker, previewing live as it moves. */}
+                        <label htmlFor={pickerId} className="relative size-7 shrink-0 cursor-pointer overflow-hidden rounded-md border border-[var(--card-line)]" style={{ backgroundColor: valid ? normaliseHex(hex) : current }}>
+                            <span className="sr-only">{copy.pickColour}</span>
+                            <input
+                                id={pickerId}
+                                type="color"
+                                value={valid ? normaliseHex(hex) : current}
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    setHex(value.toUpperCase());
+                                    onPreview(setBackground({ kind: "colour", value }));
+                                }}
+                                onBlur={(event) => remember(event.target.value)}
+                                className="absolute inset-0 size-full cursor-pointer opacity-0"
+                            />
+                        </label>
                         <input
-                            id={pickerId}
-                            type="color"
-                            value={valid ? normaliseHex(hex) : current}
-                            onChange={(event) => {
-                                const value = event.target.value;
-                                setHex(value.toUpperCase());
-                                onPreview(setBackground({ kind: "colour", value }));
+                            value={hex}
+                            onChange={(event) => setHex(event.target.value.toUpperCase())}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" && valid) choose(normaliseHex(hex));
                             }}
-                            onBlur={(event) => remember(event.target.value)}
-                            className="absolute inset-0 size-full cursor-pointer opacity-0"
+                            onBlur={() => {
+                                if (valid && normaliseHex(hex) !== current.toLowerCase()) choose(normaliseHex(hex));
+                            }}
+                            aria-label={copy.hex}
+                            aria-invalid={!valid}
+                            spellCheck={false}
+                            maxLength={7}
+                            className="min-w-0 flex-1 bg-transparent font-mono text-sm text-primary outline-none"
                         />
-                    </label>
-                    <input
-                        value={hex}
-                        onChange={(event) => setHex(event.target.value.toUpperCase())}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter" && valid) choose(normaliseHex(hex));
-                        }}
-                        onBlur={() => {
-                            if (valid && normaliseHex(hex) !== current.toLowerCase()) choose(normaliseHex(hex));
-                        }}
-                        aria-label={copy.hex}
-                        aria-invalid={!valid}
-                        spellCheck={false}
-                        maxLength={7}
-                        className="min-w-0 flex-1 bg-transparent font-mono text-sm text-primary outline-none"
-                    />
+                    </div>
+                    <Button size="md" color="secondary" onPress={() => choose(normaliseHex(hex))} isDisabled={!valid || isSelected(normaliseHex(hex))} className="press-scale shrink-0 pointer-coarse:min-h-11">
+                        {copy.applyColour}
+                    </Button>
                 </div>
-                <div role="radiogroup" aria-label={copy.presetColours} className="flex flex-1 flex-wrap gap-1.5">
+                <div role="radiogroup" aria-label={copy.presetColours} className="flex flex-wrap gap-1.5">
                     {SOLID_PRESETS.map((preset) => (
                         <button
                             key={preset.key}
