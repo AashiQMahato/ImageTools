@@ -29,6 +29,13 @@ On macOS, port 5000 is taken by AirPlay Receiver — disable it or set `PORT=505
 | GET | `/api/health/processors` | — | availability, status, model, GPU name, queue, limits (no paths or secrets) |
 | POST | `/api/remove-background` | multipart `file` | `image/png` (transparent), same dimensions as the input |
 | POST | `/api/upscale` | multipart `file`, `scale` = `2` or `4` | the image at 2×/4×; JPEG stays JPEG, PNG/WebP keep transparency |
+| POST | `/api/retouch` | multipart `file`, `mask` (PNG; transparent = untouched), `mode`, `strength`, `texture` | the retouched image, full resolution |
+| POST | `/api/convert` | multipart `file` (JPG, PNG, WebP, HEIC/HEIF, AVIF, TIFF, BMP, GIF) | an upright `image/jpeg` |
+| GET | `/api/photo-generator/presets` | — | photo types: physical size, DPI, pixel size, sheet capacity |
+| POST | `/api/photo-generator/process` | multipart `file`, `preset` | `application/x-ndjson`: one progress event per line, then `{ type: "result" }` or `{ type: "error" }` |
+| POST | `/api/photo-generator/adjust` | JSON `{ workId, crop }` | the photo re-rendered from a manual crop, with its checks |
+| POST | `/api/photo-generator/sheet` | JSON `{ photoId, copies }` | an A4 sheet of copies at the photo's DPI |
+| GET | `/api/photo-generator/files/:id` | `?download=1` to save | a generated file; kept in memory only, deleted after `PHOTO_FILE_TTL_MINUTES` |
 
 Successful responses include `Content-Disposition` (e.g. `photo-no-background.png`, `photo-upscaled-2x.jpg`), `X-Image-Width/Height` and `X-Original-Width/Height`. Errors are JSON: `{ "success": false, "message": "…", "code": "…" }` with codes such as `FILE_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `INVALID_IMAGE`, `IMAGE_TOO_LARGE`, `INVALID_SCALE`, `SERVER_BUSY`, `PROCESSING_TIMEOUT`, `BACKGROUND_REMOVAL_UNAVAILABLE`, `UPSCALING_UNAVAILABLE`, `RATE_LIMITED`.
 

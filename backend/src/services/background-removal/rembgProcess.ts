@@ -62,6 +62,7 @@ class RembgProcess {
                     INTERNAL_SERVICE_TOKEN: token,
                     REMBG_MODEL: env.rembg.model,
                     U2NET_HOME: env.rembg.modelsDir,
+                    FACE_DETECTOR_MODEL: env.photoGenerator.faceModelPath,
                     MAX_IMAGE_SIZE_MB: String(env.maxImageSizeMb),
                     MAX_IMAGE_PIXELS: String(env.maxImagePixels),
                     BACKGROUND_REMOVAL_CONCURRENCY: String(env.rembg.concurrency),

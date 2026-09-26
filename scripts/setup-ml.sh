@@ -116,6 +116,20 @@ if ! $SKIP_REMBG; then
   echo "  Downloading model '$REMBG_MODEL' (can be large; first run only)…"
   U2NET_HOME="$MODELS_HOME" "$VENV/bin/python" -c "from rembg import new_session; new_session('$REMBG_MODEL', providers=['CPUExecutionProvider'])" >/dev/null
   ok "Model '$REMBG_MODEL' ready"
+
+  # Face detection for the photo generator: OpenCV's YuNet (MIT), from the OpenCV model zoo.
+  FACE_MODEL="$MODELS_HOME/face_detection_yunet_2023mar.onnx"
+  FACE_MODEL_SHA256="8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+  if [[ ! -s "$FACE_MODEL" ]]; then
+    curl -fsSL "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx" -o "$FACE_MODEL.part"
+    if [[ "$(shasum -a 256 "$FACE_MODEL.part" | cut -d' ' -f1)" != "$FACE_MODEL_SHA256" ]]; then
+      rm -f "$FACE_MODEL.part"
+      fail "Face detection model checksum mismatch; not installed."
+      exit 1
+    fi
+    mv "$FACE_MODEL.part" "$FACE_MODEL"
+  fi
+  ok "Face detection model (YuNet) ready"
 fi
 
 # ---------------------------------------------------------------- Upscayl

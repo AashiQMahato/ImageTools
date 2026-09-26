@@ -18,6 +18,24 @@ export const uploadImage = multer({
     },
 }).single(uploadConfig.fieldName);
 
+/** Photos for the photo generator and format conversion: also HEIC/HEIF, AVIF, TIFF, BMP and GIF. */
+const PHOTO_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif", ".tif", ".tiff", ".bmp", ".gif"];
+
+/**
+ * A photo in any common format. The declared type and extension are only a first filter (phones and
+ * browsers are inconsistent about HEIC's); the content itself is identified and decoded later.
+ */
+export const uploadPhoto = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: uploadConfig.maxFileSizeBytes, files: 1, fields: 4, fieldSize: 1024, parts: 6 },
+    fileFilter: (_req, file, callback) => {
+        const extension = file.originalname.slice(file.originalname.lastIndexOf(".")).toLowerCase();
+        const typeOk = file.mimetype.startsWith("image/") || file.mimetype === "application/octet-stream" || file.mimetype === "";
+        if (PHOTO_EXTENSIONS.includes(extension) && typeOk) callback(null, true);
+        else callback(new AppError("This image format isn't supported. Please use a JPG, PNG, WebP or HEIC photo.", 415, "UNSUPPORTED_MEDIA_TYPE"));
+    },
+}).single(uploadConfig.fieldName);
+
 /**
  * The retouch upload: the image (`file`) and the selection painted over it (`mask`, a PNG whose
  * transparency is the selection), sent separately and never merged. Both are checked for real later.

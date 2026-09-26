@@ -5,6 +5,7 @@ export const ROUTES = {
     crop: "/crop",
     editor: "/editor",
     retouch: "/retouch",
+    photoGenerator: "/photo-generator",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

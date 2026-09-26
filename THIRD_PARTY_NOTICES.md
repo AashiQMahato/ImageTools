@@ -53,6 +53,18 @@ Downloaded by `scripts/setup-ml.sh` from the Upscayl repository at commit `4f39a
 
 Upscayl does not publish a separate licence for each bundled weight file. Confirm the terms of the model you enable before commercial use.
 
+## Photo generator — face detection and HEIC decoding
+
+| | |
+| --- | --- |
+| Face detection | [OpenCV](https://github.com/opencv/opencv) via `opencv-python-headless` 5.0 (Apache-2.0), running the [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) model `face_detection_yunet_2023mar.onnx` (MIT) |
+| HEIC/HEIF decoding | [pillow-heif](https://github.com/bigcat88/pillow_heif) 1.8 (BSD-3-Clause) |
+| Used as | Python libraries inside our internal service (`backend/python/rembg_service`) |
+
+The YuNet weights are downloaded by `scripts/setup-ml.sh` from the OpenCV model zoo (checksum-verified) into `backend/python/.models/` (not committed).
+
+**Check before distributing:** pillow-heif's binary wheels bundle libheif and libde265 (LGPL-3.0) and, for encoding, x265 (GPL-2.0). Running them on your own server is different from shipping them to others; if you package or redistribute the backend, review those licences. HEVC (the codec inside HEIC) is also covered by patents in some countries.
+
 ## Frontend
 
 UI built with [Untitled UI React](https://www.untitledui.com/react) (MIT), [React Aria Components](https://react-spectrum.adobe.com/react-aria/) (Apache-2.0), [Lucide](https://lucide.dev) (ISC) and Tailwind CSS (MIT). Landing-page photography is CC0 — see `frontend/src/assets/images/landing/CREDITS.md`.

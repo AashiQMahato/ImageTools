@@ -53,6 +53,44 @@ export async function clearDraftImage() {
         // Nothing to clear.
     }
     clearDraftEdits();
+    await clearDraftPhoto();
+}
+
+// The photo generator's finished photo (the files themselves, not links to them), so a reload shows
+// the same photo — including any crop adjustment — without making it again.
+const PHOTO_KEY = "photo-generator";
+
+export interface DraftPhoto<T = unknown> {
+    /** The image it was made from; it's only restored for that image. */
+    imageId: string;
+    result: T;
+    jpg: Blob;
+    png: Blob;
+}
+
+export async function saveDraftPhoto<T>(photo: DraftPhoto<T>) {
+    try {
+        await run("readwrite", (store) => store.put(photo, PHOTO_KEY));
+    } catch {
+        // No storage: the photo just won't survive a reload.
+    }
+}
+
+export async function loadDraftPhoto<T>(imageId: string): Promise<DraftPhoto<T> | null> {
+    try {
+        const photo = (await run("readonly", (store) => store.get(PHOTO_KEY))) as DraftPhoto<T> | undefined;
+        return photo?.imageId === imageId && photo.jpg instanceof Blob && photo.png instanceof Blob ? photo : null;
+    } catch {
+        return null;
+    }
+}
+
+export async function clearDraftPhoto() {
+    try {
+        await run("readwrite", (store) => store.delete(PHOTO_KEY));
+    } catch {
+        // Nothing to clear.
+    }
 }
 
 export async function loadDraftImage(): Promise<DraftImage | null> {

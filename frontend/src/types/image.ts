@@ -16,6 +16,8 @@ export interface ImageFile {
     dimensions: ImageDimensions;
     /** The tool whose result this is; absent for an image as uploaded. */
     editedBy?: string;
+    /** The format it was uploaded in, when it had to be converted to open (e.g. "HEIC"). */
+    convertedFrom?: string;
 }
 
 /** A processed image held in the browser only (never stored on the server). */
