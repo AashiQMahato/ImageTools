@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, CircleAlert, Clipboard, ImagePlus, Info, Lock, RotateCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, CircleAlert, Clipboard, ImagePlus, Info, Lock, RotateCcw, Trash2 } from "lucide-react";
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react";
 import { CompareSlider } from "@/components/common/CompareSlider";
 import { Segmented } from "@/components/common/Segmented";
@@ -97,6 +97,17 @@ export function StudioNotice({ notice }: { notice: Notice }) {
             <Icon className="size-4 shrink-0" aria-hidden />
             <span className="min-w-0 truncate">{notice.text}</span>
         </p>
+    );
+}
+
+/** Removes the image from the studio (and every tool), back to the empty drop zone. */
+export function ClearImageButton({ className }: { className?: string }) {
+    const t = useT();
+    const { clearImage } = useStudio();
+    return (
+        <Button size="lg" color="tertiary" iconLeading={Trash2} onPress={clearImage} className={cn("press-scale pointer-coarse:min-h-12", className)}>
+            {t.studio.clearImage}
+        </Button>
     );
 }
 

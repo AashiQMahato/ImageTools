@@ -6,6 +6,7 @@ import { env } from "../../config/env.js";
 import type { ImageInput, ImageOutput, ProcessingContext, UpscaleOptions, UpscaleProvider } from "../../types/image.js";
 import { AppError } from "../../utils/AppError.js";
 import { withTempDir } from "../../utils/tempDir.js";
+import { encodeLike } from "../image-processing/encode.js";
 
 export type UpscaylStatus = "disabled" | "checking" | "ready" | "unavailable";
 export type UpscaylReason = "disabled" | "binary-missing" | "model-missing" | "gpu-unavailable" | null;
@@ -161,7 +162,7 @@ class UpscaylProvider implements UpscaleProvider {
                 throw new AppError("Upscaling failed. Please try again.", 502, "PROCESSING_FAILED");
             }
 
-            return encodeLike(raw, input);
+            return encodeLike(sharp(raw, { limitInputPixels: false }), input);
         });
     }
 
@@ -174,29 +175,6 @@ class UpscaylProvider implements UpscaleProvider {
         const sizes = await Promise.all(files.map((file) => stat(file).then((s) => s.size).catch(() => 0)));
         return sizes.every((size) => size > 0);
     }
-}
-
-/** Return the result in the same family as the upload: JPEG stays JPEG (much smaller), PNG/WebP keep transparency. */
-async function encodeLike(png: Buffer, input: ImageInput): Promise<ImageOutput> {
-    const image = sharp(png, { limitInputPixels: false });
-    let buffer: Buffer;
-    let mimeType: string;
-    let extension: string;
-    if (input.format === "jpeg") {
-        buffer = await image.jpeg({ quality: 92, mozjpeg: true }).toBuffer();
-        mimeType = "image/jpeg";
-        extension = "jpg";
-    } else if (input.format === "webp") {
-        buffer = await image.webp({ quality: 92, alphaQuality: 100 }).toBuffer();
-        mimeType = "image/webp";
-        extension = "webp";
-    } else {
-        buffer = await image.png({ compressionLevel: 6 }).toBuffer();
-        mimeType = "image/png";
-        extension = "png";
-    }
-    const { width, height } = await sharp(buffer, { limitInputPixels: false }).metadata();
-    return { buffer, mimeType, extension, width: width ?? 0, height: height ?? 0 };
 }
 
 export const upscaylProvider = new UpscaylProvider();

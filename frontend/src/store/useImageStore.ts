@@ -1,35 +1,126 @@
+import { useEffect, useRef, useState } from "react";
 import { create } from "zustand";
 import { clearDraftImage, loadDraftImage, saveDraftImage } from "@/lib/draft";
-import type { ImageFile, UpscaleFactor } from "@/types/image";
+import type { ImageDimensions, ImageFile, UpscaleFactor } from "@/types/image";
 
 /**
- * State shared across pages: the image the user is working on (it follows them from the landing page
- * into any tool, and survives a reload as a local draft) and their preferred upscale factor.
- * Per-run processing state stays local to each tool.
+ * State shared across pages: the image the user is working on and their preferred upscale factor.
+ *
+ * The image follows the user everywhere — from the landing page into any tool, from one tool to the
+ * next, and across a reload (as a local draft). Tools write their results back (`publish`), so the
+ * next tool, and the page after a reload, always open the latest version.
+ *
+ * A *new* image (upload, "new image") starts a new `session`; a tool publishing its result does not.
+ * That's how the tool you're in keeps its own session while its output updates everything else.
  */
 interface ImageState {
     original: ImageFile | null;
+    /** Changes only when a different image is chosen, never when a tool publishes a result. */
+    session: string;
     selectedScale: UpscaleFactor;
 
     setOriginal: (image: ImageFile | null) => void;
+    /**
+     * A tool's result becomes the working image, which is returned. Ignored (null) if a different image
+     * has been chosen since `session`.
+     */
+    publish: (session: string, result: { blob: Blob; name: string; dimensions: ImageDimensions }, editedBy: string | undefined) => ImageFile | null;
     setSelectedScale: (scale: UpscaleFactor) => void;
     clear: () => void;
 }
 
+/** Object URLs a mounted tool is still showing, with how many tools hold each. */
+const pinned = new Map<string, number>();
+/** URLs replaced while pinned: revoked as soon as the last tool lets go. */
+const retired = new Set<string>();
+
+function retire(url: string) {
+    if (pinned.has(url)) retired.add(url);
+    else URL.revokeObjectURL(url);
+}
+
+function persist(image: ImageFile | null) {
+    if (image) void saveDraftImage({ id: image.id, file: image.file, width: image.dimensions.width, height: image.dimensions.height, editedBy: image.editedBy });
+    else void clearDraftImage();
+}
+
 export const useImageStore = create<ImageState>()((set, get) => ({
     original: null,
+    session: crypto.randomUUID(),
     selectedScale: 2,
 
     setOriginal: (image) => {
         const previous = get().original;
-        if (previous && previous.previewUrl !== image?.previewUrl) URL.revokeObjectURL(previous.previewUrl);
+        if (previous && previous.previewUrl !== image?.previewUrl) retire(previous.previewUrl);
+        set({ original: image, session: crypto.randomUUID() });
+        persist(image);
+    },
+    publish: (session, { blob, name, dimensions }, editedBy) => {
+        const { original: previous, session: current } = get();
+        if (session !== current) return null;
+        const file = blob instanceof File && blob.name === name ? blob : new File([blob], name, { type: blob.type });
+        const image: ImageFile = { id: crypto.randomUUID(), file, name, size: file.size, mimeType: file.type, previewUrl: URL.createObjectURL(file), dimensions, editedBy };
+        if (previous) retire(previous.previewUrl);
         set({ original: image });
-        if (image) void saveDraftImage({ id: image.id, file: image.file, width: image.dimensions.width, height: image.dimensions.height });
-        else void clearDraftImage();
+        persist(image);
+        return image;
     },
     setSelectedScale: (selectedScale) => set({ selectedScale }),
     clear: () => get().setOriginal(null),
 }));
+
+/**
+ * The image a tool works on: the shared image as it was when the tool opened (or when a new image was
+ * chosen while it's open). Results this tool — or any — publishes don't swap it out underneath the
+ * tool; they're picked up the next time a tool opens. Its preview URL stays valid while in use.
+ */
+export function useToolImage() {
+    const original = useImageStore((state) => state.original);
+    const session = useImageStore((state) => state.session);
+    const [snapshot, setSnapshot] = useState({ session, image: original });
+    let current = snapshot;
+    if (snapshot.session !== session) {
+        current = { session, image: original };
+        setSnapshot(current);
+    }
+    const image = current.image;
+    useEffect(() => {
+        if (!image) return;
+        const url = image.previewUrl;
+        pinned.set(url, (pinned.get(url) ?? 0) + 1);
+        return () => {
+            const left = (pinned.get(url) ?? 1) - 1;
+            if (left > 0) return void pinned.set(url, left);
+            pinned.delete(url);
+            if (retired.delete(url)) URL.revokeObjectURL(url);
+        };
+    }, [image]);
+    return { image, session: current.session };
+}
+
+/** A tool's current output: a result to publish, or null for "unchanged" (the image as the tool opened it). */
+export interface ToolOutput {
+    blob: Blob;
+    name: string;
+    dimensions: ImageDimensions;
+}
+
+/**
+ * Keeps the shared image in step with a tool's output: every new result is published; going back to
+ * "unchanged" (undo, reset, discard) publishes the image the tool started from again. `undefined`
+ * means a result is still being made — nothing changes until it's ready.
+ */
+export function usePublishOutput(tool: { image: ImageFile | null; session: string }, output: ToolOutput | null | undefined, editedBy: string) {
+    const publish = useImageStore((state) => state.publish);
+    const published = useRef<ToolOutput | null>(null);
+    const { image, session } = tool;
+    useEffect(() => {
+        if (!image || output === undefined || output === published.current) return;
+        published.current = output;
+        if (output) publish(session, output, editedBy);
+        else publish(session, { blob: image.file, name: image.name, dimensions: image.dimensions }, image.editedBy);
+    }, [image, session, output, publish, editedBy]);
+}
 
 /** Bring back the image from the last visit, before the first render so pages open with it in place. */
 export async function restoreDraftImage() {
@@ -45,6 +136,8 @@ export async function restoreDraftImage() {
             mimeType: file.type,
             previewUrl: URL.createObjectURL(file),
             dimensions: { width: draft.width, height: draft.height },
+            editedBy: draft.editedBy,
         },
+        session: crypto.randomUUID(),
     });
 }

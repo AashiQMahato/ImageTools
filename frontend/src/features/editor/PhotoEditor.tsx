@@ -5,7 +5,7 @@ import { PanelBody, PanelIntro, PanelTabs, StudioActions, StudioCanvas, StudioDr
 import { StudioShell } from "@/components/studio/StudioShell";
 import { baseName, formatDimensions } from "@/features/image-processing/format";
 import { cn } from "@/lib/utils/cn";
-import { useImageStore } from "@/store/useImageStore";
+import { type ToolOutput, usePublishOutput, useToolImage } from "@/store/useImageStore";
 import { AdjustPanel } from "./AdjustPanel";
 import { CropControls } from "./CropControls";
 import { CropStage } from "./CropStage";
@@ -13,7 +13,7 @@ import { ExportMenu } from "./ExportMenu";
 import { FiltersPanel } from "./FiltersPanel";
 import { outputSize } from "./geometry";
 import { aspectRatio } from "./operations";
-import { decodeSource, type EditState, formatFromMime, makePreviewBase, paintPreview } from "./render";
+import { decodeSource, type EditState, EXTENSIONS, formatFromMime, makePreviewBase, paintPreview, renderEdit } from "./render";
 import { ResizePanel } from "./ResizePanel";
 import { isUnedited, useEditStore } from "./useEditStore";
 import { useT } from "@/i18n";
@@ -45,7 +45,8 @@ const NEUTRAL = { exposure: 0, brightness: 0, contrast: 0, saturation: 0, warmth
 export function PhotoEditor({ mode }: PhotoEditorProps) {
     const t = useT();
     const copy = t.studio;
-    const original = useImageStore((state) => state.original);
+    const toolImage = useToolImage();
+    const original = toolImage.image;
     const [decoded, setDecoded] = useState<Decoded | null>(null);
     const [decodeError, setDecodeError] = useState<string | null>(null);
     const [tab, setTab] = useState<EditorTab>(mode === "crop" ? "crop" : "adjust");
@@ -108,6 +109,33 @@ export function PhotoEditor({ mode }: PhotoEditorProps) {
             window.removeEventListener("keyup", onUp);
         };
     }, [undo, redo, mode]);
+
+    // Every other tool (and a reload) opens the edited image: render it at full size once edits settle.
+    // Unedited, the output is "unchanged", which puts the image the editor opened back.
+    const [rendered, setRendered] = useState<{ edit: EditState; output: ToolOutput } | null>(null);
+    const unedited = !edit || !session || isUnedited(edit, session.source.width, session.source.height);
+    const bitmap = decoded?.bitmap ?? null;
+    useEffect(() => {
+        if (!original || !bitmap || !edit || unedited) return;
+        let cancelled = false;
+        const format = formatFromMime(original.mimeType);
+        const timer = window.setTimeout(() => {
+            renderEdit(bitmap, edit, format)
+                .then((blob) => {
+                    if (cancelled) return;
+                    const width = Math.max(1, Math.round(edit.resize?.width ?? edit.crop.w));
+                    const height = Math.max(1, Math.round(edit.resize?.height ?? edit.crop.h));
+                    setRendered({ edit, output: { blob, name: `${baseName(original.name)}-${mode === "crop" ? "cropped" : "edited"}.${EXTENSIONS[format]}`, dimensions: { width, height } } });
+                })
+                .catch(() => undefined);
+        }, 700);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [original, bitmap, edit, unedited, mode]);
+    // While the latest edit is still rendering, nothing is published (the last result stays).
+    usePublishOutput(toolImage, unedited ? null : rendered?.edit === edit ? rendered.output : undefined, mode === "crop" ? "crop" : "editor");
 
     const source = useMemo(() => (session ? session.source : { width: 1, height: 1 }), [session]);
     const lockedAspect = session && edit ? aspectRatio(session.aspect, session.portrait, edit, source) : null;
@@ -177,14 +205,8 @@ export function PhotoEditor({ mode }: PhotoEditorProps) {
         </>
     );
 
-    const shortcuts = [
-        ["⌘Z", t.editor.undo],
-        ["⇧⌘Z", t.editor.redo],
-        ...(mode === "edit" ? [["M", t.editor.showingOriginal] as const] : []),
-    ] as const;
-
     return (
-        <StudioShell tool={tool} actions={actions} exportSlot={exportSlot} shortcuts={shortcuts} panel={panel} panelLabel={t.editor.editTools} dirty={edited}>
+        <StudioShell tool={tool} actions={actions} exportSlot={exportSlot} panel={panel} panelLabel={t.editor.editTools} dirty={edited}>
             <StudioCanvas>
                 {!original ? (
                     <StudioDropzone title={copy.dropTitle} hint={copy.intros[tool].hint} />

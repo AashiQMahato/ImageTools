@@ -13,7 +13,11 @@ export type ErrorCode =
     | "PROCESSING_FAILED"
     | "REQUEST_CANCELLED"
     | "BACKGROUND_REMOVAL_UNAVAILABLE"
-    | "UPSCALING_UNAVAILABLE";
+    | "UPSCALING_UNAVAILABLE"
+    | "INVALID_MODE"
+    | "INVALID_MASK"
+    | "EMPTY_MASK"
+    | "RETOUCH_UNAVAILABLE";
 
 /** An error whose message is safe to show to users. Internal details belong in logs, never here. */
 export class AppError extends Error {

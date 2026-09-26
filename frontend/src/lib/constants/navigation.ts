@@ -25,7 +25,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
  * exists: Resize has no page of its own, so it opens the editor (where the resize panel lives), and
  * Rotate & Flip opens the crop tool, whose controls rotate, flip and straighten.
  */
-export type ToolKey = "removeBackground" | "upscaler" | "crop" | "resize" | "rotateFlip" | "editor";
+export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "crop" | "resize" | "rotateFlip" | "editor";
 export type ToolGroupKey = "ai" | "image" | "editor";
 
 export interface NavTool {
@@ -46,6 +46,7 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
         items: [
             { key: "removeBackground", href: ROUTES.removeBackground },
             { key: "upscaler", href: ROUTES.upscale },
+            { key: "retouch", href: ROUTES.retouch },
         ],
     },
     {
@@ -60,7 +61,7 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
 ];
 
 /** Every route the Tools menu covers — the trigger reads as current on any of them. */
-export const TOOL_ROUTES: readonly AppRoute[] = [ROUTES.removeBackground, ROUTES.upscale, ROUTES.crop, ROUTES.editor];
+export const TOOL_ROUTES: readonly AppRoute[] = [ROUTES.removeBackground, ROUTES.upscale, ROUTES.retouch, ROUTES.crop, ROUTES.editor];
 
 /** In-page sections of the home page. There is no About section or page, so there is no About link. */
 export const SECTION_LINKS = [

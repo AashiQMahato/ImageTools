@@ -17,7 +17,7 @@ import { getProcessorHealth } from "@/lib/api/processorsApi";
 import { upscaleImage } from "@/lib/api/upscaleApi";
 import { cn } from "@/lib/utils/cn";
 import { downloadFile } from "@/lib/utils/download";
-import { useImageStore } from "@/store/useImageStore";
+import { useImageStore, usePublishOutput, useToolImage } from "@/store/useImageStore";
 import type { ImageFile, UpscaleFactor } from "@/types/image";
 import { type AppErrorInfo, errorMessage, useT } from "@/i18n";
 
@@ -30,7 +30,8 @@ export function UpscalerPage() {
     const t = useT();
     const copy = t.studio;
     const up = t.pages.upscale;
-    const original = useImageStore((state) => state.original);
+    const tool = useToolImage();
+    const original = tool.image;
     const scale = useImageStore((state) => state.selectedScale);
     const setScale = useImageStore((state) => state.setSelectedScale);
     // The scale the current result was made at — the picker may have moved on since.
@@ -68,6 +69,11 @@ export function UpscalerPage() {
 
     const [tab, setTab] = useState<Tab>("upscale");
     const { open: exportOpen, setOpen: setExportOpen, wrap: exportWrap, trigger: exportTrigger } = usePopover();
+
+    // The upscaled image becomes the working image for every other tool (and survives a reload).
+    const result = job.status === "success" ? job.result : null;
+    const output = useMemo(() => (result ? { blob: result.blob, name: result.fileName, dimensions: result.dimensions } : null), [result]);
+    usePublishOutput(tool, output, "upscaler");
 
     const status = job.status;
     const busy = status === "uploading" || status === "processing";
@@ -154,7 +160,7 @@ export function UpscalerPage() {
                         {original ? (
                             <>
                                 <section>
-                                    <ScaleCards disabledScales={tooLarge} availableScales={serverScales} />
+                                    <ScaleCards disabledScales={tooLarge} availableScales={serverScales} dimensions={original.dimensions} />
                                     <p className="mt-2 text-xs text-tertiary">{up.configNote}</p>
                                 </section>
                                 <section>

@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
 import { formatDimensions } from "@/features/image-processing/format";
 import { useImageStore } from "@/store/useImageStore";
-import type { UpscaleFactor } from "@/types/image";
+import type { ImageDimensions, UpscaleFactor } from "@/types/image";
 import { useT } from "@/i18n";
 import { SCALES, targetSize } from "./scale";
 
@@ -11,17 +11,18 @@ interface ScaleCardsProps {
     disabledScales: readonly UpscaleFactor[];
     /** Scales this server reports it can run, from /health/processors. */
     availableScales?: readonly UpscaleFactor[];
+    /** The image being upscaled (the tool's own, not the shared one, which may already be a result). */
+    dimensions: ImageDimensions | null;
 }
 
 /**
  * Scale choice as a radio group of tiles rather than a segmented control: each option carries its own
  * output size and, when it can't be used, the reason — neither of which fits in a segment.
  */
-export function ScaleCards({ disabledScales, availableScales }: ScaleCardsProps) {
+export function ScaleCards({ disabledScales, availableScales, dimensions }: ScaleCardsProps) {
     const t = useT();
     const scale = useImageStore((state) => state.selectedScale);
     const setScale = useImageStore((state) => state.setSelectedScale);
-    const original = useImageStore((state) => state.original);
     const groupRef = useRef<HTMLDivElement>(null);
 
     const reasonFor = (option: UpscaleFactor) => {
@@ -52,7 +53,7 @@ export function ScaleCards({ disabledScales, availableScales }: ScaleCardsProps)
             <div ref={groupRef} role="radiogroup" aria-labelledby="scale-label" onKeyDown={onKeyDown} className="mt-2 grid grid-cols-2 gap-2.5">
                 {SCALES.map((option) => {
                     const reason = reasonFor(option);
-                    const output = original ? targetSize(original.dimensions, option) : null;
+                    const output = dimensions ? targetSize(dimensions, option) : null;
                     return (
                         <button
                             key={option}

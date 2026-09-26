@@ -13,6 +13,7 @@ export interface DraftImage {
     file: File;
     width: number;
     height: number;
+    editedBy?: string;
 }
 
 function openDb(): Promise<IDBDatabase> {

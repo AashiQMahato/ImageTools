@@ -60,6 +60,7 @@ export const en = {
         toolItems: {
             removeBackground: { title: "Background Remover", description: "Remove backgrounds in seconds" },
             upscaler: { title: "AI Upscaler", description: "Enlarge images 2× or 4× with AI" },
+            retouch: { title: "AI Retouch", description: "Paint over what you want fixed" },
             crop: { title: "Crop", description: "Crop to any aspect ratio" },
             resize: { title: "Resize", description: "Set exact dimensions in the editor" },
             rotateFlip: { title: "Rotate & Flip", description: "Rotate, flip and straighten" },
@@ -467,6 +468,10 @@ export const en = {
         PROCESSING_FAILED: "Processing failed. Please try again.",
         BACKGROUND_REMOVAL_UNAVAILABLE: "Background removal is temporarily unavailable. Please try again.",
         UPSCALING_UNAVAILABLE: "Upscaling is unavailable on this server.",
+        INVALID_MODE: "Choose what you'd like to fix, then try again.",
+        INVALID_MASK: "The selection couldn't be read. Please paint the area again.",
+        EMPTY_MASK: "Select an area to retouch first.",
+        RETOUCH_UNAVAILABLE: "Retouching is temporarily unavailable. Please try again in a moment.",
         RATE_LIMITED: "You've processed a lot of images in a short time. Please wait a few minutes and try again.",
         NETWORK: "Couldn't reach the server. Check your connection and try again.",
         GENERIC: "Something went wrong. Please try again.",
@@ -558,9 +563,8 @@ export const en = {
         breadcrumb: "You are here",
         toolsNav: "Tools",
         switchTool: "Switch tool",
-        help: "Help",
-        shortcutsTitle: "Keyboard shortcuts",
         newImage: "New image",
+        clearImage: "Clear image",
         privateTitle: "Private by design",
         privateNote: "Images are processed for your request only and never stored.",
         backHome: "Back to home",
@@ -573,6 +577,8 @@ export const en = {
         removingBackground: "Removing background…",
         processing: "Processing…",
         cancelled: "Stopped. Start again whenever you're ready.",
+        alreadyRemoved: "This is your edited image. Remove its background again only if you want to.",
+        readyToRemove: "Ready — press Remove background to start.",
         tabs: { upscale: "Upscale", export: "Export", crop: "Crop" },
         export: "Export",
         exportTitle: "Ready to export?",
@@ -590,12 +596,16 @@ export const en = {
         upscaling: (scale: number) => `Upscaling ${scale}×…`,
         intros: {
             removeBackground: {
-                hint: "The background is removed automatically — then change it, refine the edges and export.",
-                steps: ["Upload a JPG, PNG or WebP image.", "The AI removes the background in seconds.", "Pick a new background, refine the edges, then download."],
+                hint: "Press Remove background — then change it, refine the edges and export.",
+                steps: ["Upload a JPG, PNG or WebP image.", "Press Remove background — the AI does it in seconds.", "Pick a new background, refine the edges, then download."],
             },
             upscaler: {
                 hint: "Enlarge 2× or 4× with AI and compare the detail side by side.",
                 steps: ["Upload the image you want to enlarge.", "Choose 2× or 4× and start upscaling.", "Compare with the original, then download."],
+            },
+            retouch: {
+                hint: "Paint over what you want fixed, choose what to do, and let AI retouch it.",
+                steps: ["Upload a JPG, PNG or WebP image.", "Paint over the area and choose what to fix.", "Compare, keep the result, then download."],
             },
             crop: {
                 hint: "Frame, straighten, rotate and flip — right here in your browser.",
@@ -617,17 +627,6 @@ export const en = {
         redo: "Redo",
         resetAll: "Reset all changes",
         export: "Export",
-        shortcuts: [
-            ["⌘Z", "Undo"],
-            ["⇧⌘Z", "Redo"],
-            ["V", "Move the subject"],
-            ["B", "Brush"],
-            ["E / R", "Erase / Restore"],
-            ["[ / ]", "Brush smaller / larger"],
-            ["+ / −", "Zoom in / out"],
-            ["0", "Fit to screen"],
-            ["Space + drag", "Pan"],
-        ] as [string, string][],
         removedSuccess: "Background removed successfully!",
         undone: "Undid the last change.",
         redone: "Redid the change.",
@@ -754,6 +753,102 @@ export const en = {
         jpgNeedsBackground: "JPG has no transparency — choose a background to use it.",
         pngNote: "PNG keeps the transparent background.",
         pngOpaqueNote: "PNG is lossless — the largest file, the best quality.",
+    },
+
+    retouch: {
+        controlsLabel: "Retouch controls",
+        tabs: { retouch: "Retouch", export: "Export" },
+
+        // modes
+        modeTitle: "What do you want to fix?",
+        modes: {
+            remove: { label: "Remove object", hint: "People, wires, signs or clutter" },
+            heal: { label: "Repair", hint: "Blemishes, scratches and dust" },
+            smooth: { label: "Smooth skin", hint: "Even out skin, keep its texture" },
+            enhance: { label: "Enhance detail", hint: "Crisper texture and fine detail" },
+            relight: { label: "Relight", hint: "Lift shadows, soften highlights" },
+        },
+        strength: "Strength",
+        texture: "Keep texture",
+        strengthHints: { smooth: "Stays natural at every level.", enhance: "Only the area you paint is sharpened.", relight: "Brightens gently — no harsh jumps." },
+
+        // selection
+        selectTitle: "Select area",
+        selectHint: "Paint over what you want fixed. Your photo is never changed until you keep a result.",
+        tools: "Selection tools",
+        paint: "Paint",
+        erase: "Erase",
+        move: "Move",
+        paintTool: "Paint selection",
+        eraseTool: "Erase selection",
+        moveTool: "Move around",
+        brushSize: "Brush size",
+        softness: "Softness",
+        opacity: "Opacity",
+        clearSelection: "Clear selection",
+        selectionSize: (percent: string) => `${percent} of the image selected`,
+
+        // actions
+        undo: "Undo",
+        redo: "Redo",
+        reset: "Reset",
+        resetAll: "Reset to original",
+        retouch: "Retouch",
+        retouchImage: "Retouch Image",
+        preparing: "Preparing…",
+        compare: "Compare",
+        hideCompare: "Back to editing",
+        accept: "Keep result",
+        discard: "Discard",
+        download: "Download",
+        downloadImage: "Download Image",
+        downloaded: "Downloaded",
+        settings: "Settings",
+        closeSettings: "Done",
+
+        // processing
+        stages: ["Analyzing selected area", "Understanding surrounding pixels", "Reconstructing image", "Applying retouch", "Finalizing result"],
+        uploading: (percent: number) => `Sending · ${percent}%`,
+
+        // comparison
+        compareLabel: "Comparison",
+        compareModes: { slider: "Slider", split: "Side by side", toggle: "Toggle" },
+        before: "Before",
+        after: "After",
+        original: "Original",
+        showing: "Showing",
+        resultTitle: "Your retouch is ready",
+        resultHint: "Compare it with the original, then keep it or discard it and try again.",
+
+        // canvas
+        canvasLabel: "Image canvas",
+        imageAlt: (name: string) => `Image being retouched: ${name}`,
+        resultAlt: "Retouched result",
+        zoomIn: "Zoom in",
+        zoomOut: "Zoom out",
+        zoomLevel: (percent: number) => `Zoom ${percent}%`,
+        fit: "Fit",
+
+        // status line
+        notices: {
+            start: "Paint over the area you want to fix.",
+            selected: "Area selected — press Retouch when you're ready.",
+            emptySelection: "Select an area to retouch first.",
+            done: "Retouch complete. Compare, then keep it or discard it.",
+            accepted: "Retouch applied. Paint another area, or download.",
+            discarded: "Result discarded. Your selection is still here.",
+            undone: "Undid the last change.",
+            redone: "Redid the change.",
+            reset: "Back to the original. Undo brings your edits back.",
+            cleared: "Selection cleared.",
+            downloaded: (name: string) => `Downloaded ${name}`,
+        },
+        failed: "We couldn't process this image. Please try again.",
+        timeout: "This took longer than expected. Please try again with a smaller area.",
+
+        exportTitle: "Download your image",
+        exportHint: "Full resolution, exactly as retouched.",
+        exportEmpty: "Retouch an area first — then it's ready to download here.",
     },
 };
 

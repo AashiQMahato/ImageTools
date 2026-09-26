@@ -83,7 +83,7 @@ export function RefinePanel({ brush, onBrushChange, maxSize, strokeCount, canUnd
     );
 }
 
-function Range({ label, value, min, max, onChange, format, hint }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; format: (value: number) => string; hint?: string }) {
+export function Range({ label, value, min, max, onChange, format, hint }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; format: (value: number) => string; hint?: string }) {
     const id = useId();
     return (
         <div>

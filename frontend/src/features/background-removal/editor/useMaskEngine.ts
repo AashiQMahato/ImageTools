@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BrushMode, Stroke } from "./document";
 
-interface Rect {
+export interface Rect {
     x: number;
     y: number;
     width: number;
@@ -45,7 +45,7 @@ async function decode(url: string, orientation?: ImageOrientation): Promise<Imag
 }
 
 /** A round brush tip: solid in the middle, feathered over `softness` of its radius. */
-function brushTip(size: number, softness: number) {
+export function brushTip(size: number, softness: number) {
     const diameter = Math.max(1, Math.ceil(size));
     const tip = canvas(diameter, diameter);
     const ctx = context(tip);
@@ -65,14 +65,14 @@ function brushTip(size: number, softness: number) {
     return tip;
 }
 
-const union = (a: Rect | null, b: Rect): Rect => {
+export const union = (a: Rect | null, b: Rect): Rect => {
     if (!a) return b;
     const x = Math.min(a.x, b.x);
     const y = Math.min(a.y, b.y);
     return { x, y, width: Math.max(a.x + a.width, b.x + b.width) - x, height: Math.max(a.y + a.height, b.y + b.height) - y };
 };
 
-function clampRect(rect: Rect, width: number, height: number): Rect | null {
+export function clampRect(rect: Rect, width: number, height: number): Rect | null {
     const x = Math.max(0, Math.floor(rect.x));
     const y = Math.max(0, Math.floor(rect.y));
     const right = Math.min(width, Math.ceil(rect.x + rect.width));
@@ -81,7 +81,7 @@ function clampRect(rect: Rect, width: number, height: number): Rect | null {
 }
 
 /** Stamps the tip along a segment, closely enough spaced that the stroke reads as continuous. */
-function stamp(ctx: CanvasRenderingContext2D, tip: HTMLCanvasElement, x0: number, y0: number, x1: number, y1: number): Rect {
+export function stamp(ctx: CanvasRenderingContext2D, tip: HTMLCanvasElement, x0: number, y0: number, x1: number, y1: number): Rect {
     const radius = tip.width / 2;
     const spacing = Math.max(0.75, tip.width * 0.12);
     const distance = Math.hypot(x1 - x0, y1 - y0);
@@ -93,7 +93,7 @@ function stamp(ctx: CanvasRenderingContext2D, tip: HTMLCanvasElement, x0: number
     return { x: Math.min(x0, x1) - radius - 1, y: Math.min(y0, y1) - radius - 1, width: Math.abs(x1 - x0) + radius * 2 + 2, height: Math.abs(y1 - y0) + radius * 2 + 2 };
 }
 
-const clipTo = (ctx: CanvasRenderingContext2D, rect: Rect) => {
+export const clipTo = (ctx: CanvasRenderingContext2D, rect: Rect) => {
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.width, rect.height);
     ctx.clip();
