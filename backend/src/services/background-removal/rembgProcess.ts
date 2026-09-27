@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { access, constants } from "node:fs/promises";
 import net from "node:net";
 import { env } from "../../config/env.js";
+import { fetchBuffered } from "../../utils/fetchBuffered.js";
 
 export type RembgStatus = "disabled" | "starting" | "ready" | "unavailable";
 
@@ -63,6 +64,8 @@ class RembgProcess {
                     REMBG_MODEL: env.rembg.model,
                     U2NET_HOME: env.rembg.modelsDir,
                     FACE_DETECTOR_MODEL: env.photoGenerator.faceModelPath,
+                    TEXT_DETECTOR_MODEL: env.watermark.textModelPath,
+                    INPAINT_MODEL: env.retouch.lamaModelPath,
                     MAX_IMAGE_SIZE_MB: String(env.maxImageSizeMb),
                     MAX_IMAGE_PIXELS: String(env.maxImagePixels),
                     BACKGROUND_REMOVAL_CONCURRENCY: String(env.rembg.concurrency),
@@ -98,7 +101,7 @@ class RembgProcess {
         const deadline = Date.now() + 10 * 60_000;
         while (this.status === "starting" && Date.now() < deadline) {
             try {
-                const response = await fetch(`${this.endpoint!.url}/health`, {
+                const response = await fetchBuffered(`${this.endpoint!.url}/health`, {
                     headers: { "x-internal-token": this.endpoint!.token },
                     signal: AbortSignal.timeout(3000),
                 });

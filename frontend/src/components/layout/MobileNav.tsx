@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Type } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Segmented } from "@/components/common/Segmented";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils/cn";
 import { DICTIONARIES, LOCALES, useLocale, useT } from "@/i18n";
 import { NavItem } from "./NavItem";
 import { scrollToSection, sectionHref } from "./sections";
+import { ComingSoon } from "./TextToolsMenu";
 import { TOOL_ICONS } from "./toolIcons";
 
 interface MobileNavProps {
@@ -19,14 +20,15 @@ interface MobileNavProps {
 }
 
 /**
- * Phones and tablets: a near-full-width sheet under the bar, with Tools as an accordion rather than
- * a squeezed desktop panel. Stays mounted so it can animate out; `inert` keeps it out of reach.
+ * Phones and tablets: a near-full-width sheet under the bar, with Image Tools and Text Tools as
+ * accordions rather than squeezed desktop panels. Stays mounted so it can animate out; `inert` keeps it out of reach.
  */
 export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) {
     const t = useT();
     const { pathname } = useLocation();
     const { locale, setLocale } = useLocale();
     const [toolsOpen, setToolsOpen] = useState(false);
+    const [textToolsOpen, setTextToolsOpen] = useState(false);
 
     // The page underneath shouldn't scroll while the sheet is up.
     useEffect(() => {
@@ -90,6 +92,31 @@ export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) 
                                         </ul>
                                     </section>
                                 ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        aria-expanded={textToolsOpen}
+                        aria-controls={`${id}-text-tools`}
+                        onClick={() => setTextToolsOpen((value) => !value)}
+                        className="flex min-h-12 w-full cursor-pointer items-center justify-between rounded-lg px-3 text-md font-medium text-primary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover focus-visible:outline-2"
+                    >
+                        {t.nav.textTools}
+                        <Plus className="nav-plus size-5 text-quaternary" aria-hidden />
+                    </button>
+
+                    <div id={`${id}-text-tools`} data-open={textToolsOpen || undefined} inert={!textToolsOpen} className="nav-accordion">
+                        <div>
+                            <div className="flex items-start gap-3 px-3 pt-1 pb-3">
+                                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
+                                    <Type className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
+                                </span>
+                                <div className="min-w-0">
+                                    <ComingSoon />
+                                    <p className="mt-1.5 text-sm text-tertiary">{t.nav.textToolsSoon}</p>
+                                </div>
                             </div>
                         </div>
                     </div>

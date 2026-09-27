@@ -1,5 +1,5 @@
 import { ChevronDown, ImagePlus, LoaderCircle } from "lucide-react";
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/common/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -41,20 +41,29 @@ interface StudioShellProps {
     dirty?: boolean;
     /** Below desktop width the panel stacks under the canvas, unless the tool shows it its own way (a bottom sheet). */
     mobilePanel?: "stack" | "none";
+    /**
+     * A tool that takes several images at once (the compressor) receives every picked, dropped or pasted
+     * file here instead of the shared single image.
+     */
+    onFiles?: (files: File[]) => void;
 }
 
 /**
  * The frame every tool shares: a top bar, the tools on the left, the image in the middle and the
  * tool's controls on the right. An image can be dropped or pasted anywhere on it.
  */
-export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, children, dirty = false, mobilePanel = "stack" }: StudioShellProps) {
+export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, children, dirty = false, mobilePanel = "stack", onFiles }: StudioShellProps) {
     useImmersiveLayout();
     const t = useT();
     const copy = t.studio;
     const original = useImageStore((state) => state.original);
     const clearImage = useImageStore((state) => state.clear);
     const upload = useImageUpload({ navigateTo: null });
-    const dragging = usePageDrop(upload.acceptFile);
+    const multiInput = useRef<HTMLInputElement>(null);
+    const { acceptFile } = upload;
+    const receive = useCallback((files: File[]) => (onFiles ? onFiles(files) : files[0] && void acceptFile(files[0])), [onFiles, acceptFile]);
+    const dragging = usePageDrop(receive);
+    const openPicker = onFiles ? () => multiInput.current?.click() : upload.openPicker;
     const { clearError } = upload;
     const [confirming, setConfirming] = useState(false);
     const requestNewImage = () => (dirty ? setConfirming(true) : clearImage());
@@ -77,9 +86,25 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
         "grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-secondary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-35 pointer-coarse:size-11";
 
     return (
-        <StudioContext.Provider value={{ openPicker: upload.openPicker, uploadError: upload.error, clearImage: requestNewImage }}>
+        <StudioContext.Provider value={{ openPicker, uploadError: upload.error, clearImage: requestNewImage }}>
             <div className="flex min-h-dvh flex-col bg-secondary lg:h-dvh">
                 <input {...upload.inputProps} aria-hidden />
+                {onFiles && (
+                    <input
+                        ref={multiInput}
+                        type="file"
+                        multiple
+                        accept={upload.inputProps.accept}
+                        hidden
+                        tabIndex={-1}
+                        aria-hidden
+                        onChange={(event) => {
+                            const files = Array.from(event.target.files ?? []);
+                            event.target.value = "";
+                            if (files.length) onFiles(files);
+                        }}
+                    />
+                )}
 
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b border-secondary bg-primary px-3 sm:gap-3 sm:px-5">
                     <Link to={ROUTES.home} aria-label={t.common.homeAria} className="flex shrink-0 items-center gap-2 rounded-lg text-md font-semibold tracking-[-0.01em] text-primary outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2">
@@ -158,7 +183,7 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
 }
 
 /** Drag-and-drop and paste for the whole page. Returns whether a file is being dragged over it. */
-function usePageDrop(acceptFile: (file: File) => Promise<boolean>) {
+function usePageDrop(receive: (files: File[]) => void) {
     const [dragging, setDragging] = useState(false);
     useEffect(() => {
         let depth = 0;
@@ -181,14 +206,14 @@ function usePageDrop(acceptFile: (file: File) => Promise<boolean>) {
             event.preventDefault();
             depth = 0;
             setDragging(false);
-            const file = event.dataTransfer?.files[0];
-            if (file) void acceptFile(file);
+            const files = Array.from(event.dataTransfer?.files ?? []);
+            if (files.length) receive(files);
         };
         const onPaste = (event: ClipboardEvent) => {
-            const file = Array.from(event.clipboardData?.files ?? []).find((item) => item.type.startsWith("image/"));
-            if (!file) return;
+            const files = Array.from(event.clipboardData?.files ?? []).filter((item) => item.type.startsWith("image/"));
+            if (!files.length) return;
             event.preventDefault();
-            void acceptFile(file);
+            receive(files);
         };
         window.addEventListener("dragenter", onEnter);
         window.addEventListener("dragleave", onLeave);
@@ -202,7 +227,7 @@ function usePageDrop(acceptFile: (file: File) => Promise<boolean>) {
             window.removeEventListener("drop", onDrop);
             window.removeEventListener("paste", onPaste);
         };
-    }, [acceptFile]);
+    }, [receive]);
     return dragging;
 }
 

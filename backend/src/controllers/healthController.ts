@@ -10,7 +10,7 @@ import { upscaling } from "../services/upscaling/upscaleService.js";
 export const getHealth: RequestHandler = (_req, res) => {
     res.json({
         success: true,
-        message: "Image Tools API is running",
+        message: "Studio Tools API is running",
         services: {
             api: true,
             backgroundRemoval: backgroundRemoval.isAvailable(),

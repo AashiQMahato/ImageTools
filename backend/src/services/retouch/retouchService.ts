@@ -5,6 +5,7 @@ import { AppError } from "../../utils/AppError.js";
 import { ConcurrencyLimiter } from "../../utils/concurrency.js";
 import { encodeLike } from "../image-processing/encode.js";
 import { iopaintProvider } from "./providers/iopaintProvider.js";
+import { lamaProvider } from "./providers/lamaProvider.js";
 import { localRetouchProvider } from "./providers/localProvider.js";
 import { dilate, gaussianBlur } from "./providers/pixels.js";
 
@@ -21,11 +22,19 @@ interface Rect {
 }
 
 /** Swap providers here; controllers only ever call this service. */
-function providerFor(mode: RetouchMode): RetouchProvider {
-    const ai = iopaintProvider;
-    if (env.retouch.provider === "local" || !ai.supports(mode)) return localRetouchProvider;
-    if (env.retouch.provider === "iopaint") return ai;
-    return ai.isAvailable() ? ai : localRetouchProvider;
+export type ProviderPreference = "auto" | "local" | "lama" | "iopaint";
+
+/**
+ * Filling modes (remove, repair) use AI inpainting when there is one: an IOPaint server if configured,
+ * else LaMa in the local image service if its model is installed, else the built-in engine. Everything
+ * else is the built-in engine's job. A preference pins the choice.
+ */
+function providerFor(mode: RetouchMode, preference: ProviderPreference = env.retouch.provider): RetouchProvider {
+    if (preference === "local" || !lamaProvider.supports(mode)) return localRetouchProvider;
+    if (preference === "iopaint") return iopaintProvider;
+    if (preference === "lama") return lamaProvider;
+    if (iopaintProvider.isAvailable()) return iopaintProvider;
+    return lamaProvider.isAvailable() ? lamaProvider : localRetouchProvider;
 }
 
 const limiter = new ConcurrencyLimiter(env.retouch.concurrency, env.maxQueuedJobs);
@@ -96,8 +105,8 @@ const resizeRaw = (data: Buffer, width: number, height: number, channels: 1 | 3,
  * context, scaled down if it's larger than a provider should handle, retouched, and blended back
  * through the (feathered) selection — so every unselected pixel leaves exactly as it arrived.
  */
-async function retouch(input: ImageInput, maskFile: Buffer, options: RetouchOptions, context: ProcessingContext): Promise<ImageOutput> {
-    const provider = providerFor(options.mode);
+async function retouch(input: ImageInput, maskFile: Buffer, options: RetouchOptions, context: ProcessingContext, preference?: ProviderPreference): Promise<ImageOutput> {
+    const provider = providerFor(options.mode, preference);
     if (!provider.isAvailable()) throw new AppError("Retouching is temporarily unavailable. Please try again in a moment.", 503, "RETOUCH_UNAVAILABLE");
 
     const { width, height } = input;
@@ -160,6 +169,9 @@ export const retouching = {
     /** Which engine handles each mode, for the health endpoint. */
     engines: () => Object.fromEntries(RETOUCH_MODES.map((mode) => [mode, providerFor(mode).name])) as Record<RetouchMode, string>,
     stats: () => limiter.stats,
-    retouch: (input: ImageInput, mask: Buffer, options: RetouchOptions, context: ProcessingContext): Promise<ImageOutput> =>
-        limiter.run(() => retouch(input, mask, options, context), context.signal),
+    /** Which engine a mode would use (for health reports and callers with their own preference). */
+    providerName: (mode: RetouchMode, preference?: ProviderPreference) => providerFor(mode, preference).name,
+    /** `preference` overrides RETOUCH_PROVIDER for this call (e.g. the watermark remover's own setting). */
+    retouch: (input: ImageInput, mask: Buffer, options: RetouchOptions, context: ProcessingContext, preference?: ProviderPreference): Promise<ImageOutput> =>
+        limiter.run(() => retouch(input, mask, options, context, preference), context.signal),
 };

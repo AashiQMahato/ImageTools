@@ -1,6 +1,6 @@
 # Third-party notices
 
-Image Tools runs two open-source image-processing engines **locally, on the server**. Nothing here is sent to a third-party service. This file records what is used, where it comes from, and its licence. It is not legal advice — review it before you package or deploy the product commercially.
+Studio Tools runs open-source image-processing engines **locally, on the server**. Nothing here is sent to a third-party service. This file records what is used, where it comes from, and its licence. It is not legal advice — review it before you package or deploy the product commercially.
 
 ## Background removal — rembg
 
@@ -64,6 +64,16 @@ Upscayl does not publish a separate licence for each bundled weight file. Confir
 The YuNet weights are downloaded by `scripts/setup-ml.sh` from the OpenCV model zoo (checksum-verified) into `backend/python/.models/` (not committed).
 
 **Check before distributing:** pillow-heif's binary wheels bundle libheif and libde265 (LGPL-3.0) and, for encoding, x265 (GPL-2.0). Running them on your own server is different from shipping them to others; if you package or redistribute the backend, review those licences. HEVC (the codec inside HEIC) is also covered by patents in some countries.
+
+## Watermark remover and Retouch — text detection and inpainting
+
+| | |
+| --- | --- |
+| Text detection | [PP-OCRv3](https://github.com/opencv/opencv_zoo/tree/main/models/text_detection_ppocr) detector, `text_detection_en_ppocrv3_2023may.onnx` (Apache-2.0), run by OpenCV |
+| Inpainting | [LaMa](https://github.com/advimman/lama) (Apache-2.0), ONNX export [`Carve/LaMa-ONNX`](https://huggingface.co/Carve/LaMa-ONNX) `lama_fp32.onnx` (Apache-2.0), run by ONNX Runtime (MIT) |
+| Used as | Models inside our internal service (`backend/python/rembg_service`) |
+
+Both are downloaded by `scripts/setup-ml.sh` (checksum-verified) into `backend/python/.models/` (not committed). The watermark remover is meant for images the user owns or may edit; the UI says so.
 
 ## Frontend
 

@@ -2,7 +2,7 @@ import { Redo2, SlidersHorizontal, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
-import { type RetouchTool, TOOL_ICONS } from "./modes";
+import { RETOUCH_TOOLS, type RetouchTool, TOOL_ICONS, toolLabels } from "./modes";
 
 interface RetouchToolbarProps {
     tool: RetouchTool;
@@ -15,19 +15,23 @@ interface RetouchToolbarProps {
     onOpenSettings: () => void;
     /** The primary action (Retouch, or Keep while a result waits). */
     action: ReactNode;
+    /** Which tools to offer (retouch: brush, eraser, move). */
+    tools?: readonly RetouchTool[];
+    /** Extra buttons before undo/redo (e.g. the watermark remover's Auto detect). */
+    extra?: ReactNode;
 }
 
 /** Phones and tablets: the tools in one row under the image, thumb-reachable, with the main action at the end. */
-export function RetouchToolbar({ tool, onToolChange, paintable, canUndo, canRedo, onUndo, onRedo, onOpenSettings, action }: RetouchToolbarProps) {
+export function RetouchToolbar({ tool, onToolChange, paintable, canUndo, canRedo, onUndo, onRedo, onOpenSettings, action, tools = RETOUCH_TOOLS, extra }: RetouchToolbarProps) {
     const t = useT();
     const copy = t.retouch;
     const item =
         "flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[0.6875rem] font-medium transition-colors duration-150 outline-focus-ring focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-35 min-h-12";
-    const labels: Record<RetouchTool, string> = { paint: copy.paint, erase: copy.erase, move: copy.move };
+    const labels = toolLabels(t);
 
     return (
         <div role="toolbar" aria-label={copy.tools} className="flex items-center gap-1 rounded-2xl border border-[var(--card-line)] bg-primary p-1 lg:hidden">
-            {(Object.keys(TOOL_ICONS) as RetouchTool[]).map((id) => {
+            {tools.map((id) => {
                 const Icon = TOOL_ICONS[id];
                 const selected = tool === id;
                 return (
@@ -40,10 +44,11 @@ export function RetouchToolbar({ tool, onToolChange, paintable, canUndo, canRedo
                         className={cn(item, selected ? "bg-[var(--brand-soft)] text-[var(--brand)]" : "text-tertiary hover:text-primary")}
                     >
                         <Icon className="size-[1.125rem]" aria-hidden />
-                        <span className="truncate">{labels[id]}</span>
+                        <span className="truncate">{labels[id].short}</span>
                     </button>
                 );
             })}
+            {extra}
             <span aria-hidden className="h-8 w-px shrink-0 bg-[var(--card-line)]" />
             <button type="button" className={cn(item, "text-tertiary hover:text-primary")} onClick={onUndo} disabled={!canUndo} aria-label={copy.undo}>
                 <Undo2 className="size-[1.125rem]" aria-hidden />

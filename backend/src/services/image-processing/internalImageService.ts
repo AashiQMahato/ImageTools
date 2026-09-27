@@ -1,5 +1,6 @@
 import { AppError, type ErrorCode } from "../../utils/AppError.js";
 import { rembgProcess } from "../background-removal/rembgProcess.js";
+import { fetchBuffered } from "../../utils/fetchBuffered.js";
 
 /**
  * Calls the internal Python image service (the one that runs background removal) with an image, using
@@ -14,7 +15,7 @@ export async function postToImageService(path: string, image: Buffer, fileName: 
     form.append("file", new Blob([new Uint8Array(image)]), fileName);
     let response: Response;
     try {
-        response = await fetch(`${connection.url}${path}`, {
+        response = await fetchBuffered(`${connection.url}${path}`, {
             method: "POST",
             body: form,
             headers: { "x-internal-token": connection.token },

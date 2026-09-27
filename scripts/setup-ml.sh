@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets up local image processing for Image Tools:
+# Sets up local image processing for Studio Tools:
 #   1. A Python virtualenv with rembg (background removal) and its model.
 #   2. The official upscayl-ncnn binary ("upscayl-bin") and Upscayl's models (upscaling).
 #
@@ -68,7 +68,7 @@ case "$OS" in
   *) PLATFORM=unsupported ;;
 esac
 
-bold "Image Tools — processing setup"
+bold "Studio Tools — processing setup"
 echo "  Platform: $OS $ARCH"
 echo
 echo "This will:"
@@ -130,6 +130,29 @@ if ! $SKIP_REMBG; then
     mv "$FACE_MODEL.part" "$FACE_MODEL"
   fi
   ok "Face detection model (YuNet) ready"
+
+  # Watermark remover: PP-OCRv3 text detection (Apache-2.0, OpenCV model zoo) and LaMa inpainting
+  # (Apache-2.0, ONNX export, ~200 MB) — both run by the Python service; LaMa also powers Retouch.
+  fetch_model() {
+    local target="$MODELS_HOME/$1" url="$2" sha="$3"
+    if [[ ! -s "$target" ]]; then
+      curl -fsSL "$url" -o "$target.part"
+      if [[ "$(shasum -a 256 "$target.part" | cut -d' ' -f1)" != "$sha" ]]; then
+        rm -f "$target.part"
+        fail "Checksum mismatch for $1; not installed."
+        exit 1
+      fi
+      mv "$target.part" "$target"
+    fi
+  }
+  fetch_model text_detection_en_ppocrv3_2023may.onnx \
+    "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/text_detection_ppocr/text_detection_en_ppocrv3_2023may.onnx" \
+    03f550c6b406fda8bf54bd8327815f6c7e2edd98cea02348c93d879254366587
+  ok "Text detection model (PP-OCRv3) ready"
+  echo "  Downloading LaMa inpainting model (~200 MB, first run only)…"
+  fetch_model lama_fp32.onnx "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx" \
+    1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6
+  ok "Inpainting model (LaMa) ready"
 fi
 
 # ---------------------------------------------------------------- Upscayl

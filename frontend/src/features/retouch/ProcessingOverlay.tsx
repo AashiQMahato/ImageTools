@@ -16,6 +16,8 @@ interface ProcessingOverlayProps {
     uploadProgress: number;
     startedAt: number | null;
     onCancel?: () => void;
+    /** What the work involves, in order; the last one is shown as the result arrives. Defaults to Retouch's. */
+    stages?: readonly string[];
 }
 
 /** When each stage's words appear, in seconds; the last stage is kept for the moment the result arrives. */
@@ -28,7 +30,7 @@ const SWEEP_SECONDS = 1.8;
  * glows softly and a band of light sweeps across it — only across it. Nothing here claims progress it
  * doesn't have: the ring shows the real upload, then spins; the words narrate what the work involves.
  */
-export function ProcessingOverlay({ frame, mask, bounds, status, uploadProgress, startedAt, onCancel }: ProcessingOverlayProps) {
+export function ProcessingOverlay({ frame, mask, bounds, status, uploadProgress, startedAt, onCancel, stages: stageTexts }: ProcessingOverlayProps) {
     const t = useT();
     const copy = t.retouch;
     const reduced = usePrefersReducedMotion();
@@ -44,7 +46,9 @@ export function ProcessingOverlay({ frame, mask, bounds, status, uploadProgress,
         const timer = window.setInterval(tick, 250);
         return () => window.clearInterval(timer);
     }, [startedAt]);
-    const stage = finishing ? copy.stages.length - 1 : STAGE_AT.reduce((last, at, index) => (elapsed >= at ? index : last), 0);
+    const stages = stageTexts ?? copy.stages;
+    // Narration only — each line appears at its time and the last waits for the real result.
+    const stage = finishing ? stages.length - 1 : Math.min(stages.length - 2, STAGE_AT.reduce((last, at, index) => (elapsed >= at ? index : last), 0));
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -146,7 +150,7 @@ export function ProcessingOverlay({ frame, mask, bounds, status, uploadProgress,
                     />
                 </svg>
                 <span key={stage} className="retouch-stage truncate">
-                    {copy.stages[stage]}
+                    {stages[stage]}
                 </span>
                 {uploading ? (
                     <span className="shrink-0 text-white/55 tabular-nums">{Math.round(uploadProgress * 100)}%</span>

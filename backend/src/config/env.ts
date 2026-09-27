@@ -80,13 +80,29 @@ export const env = {
 
     retouch: {
         /** "auto" uses the AI inpainting service when RETOUCH_SERVICE_URL is set, else the built-in engine. */
-        provider: parseChoice(env_.RETOUCH_PROVIDER, ["auto", "local", "iopaint"] as const, "auto"),
+        provider: parseChoice(env_.RETOUCH_PROVIDER, ["auto", "local", "lama", "iopaint"] as const, "auto"),
+        /** LaMa inpainting model (ONNX), downloaded by scripts/setup-ml.sh. */
+        lamaModelPath: resolvePath(env_.INPAINT_MODEL, "python/.models/lama_fp32.onnx"),
         /** Base URL of an IOPaint server (LaMa inpainting), e.g. http://127.0.0.1:8080. */
         serviceUrl: (env_.RETOUCH_SERVICE_URL?.trim() || "").replace(/\/$/, ""),
         timeoutMs: parsePositive(env_.RETOUCH_TIMEOUT_MS, 120_000),
         concurrency: Math.floor(parsePositive(env_.RETOUCH_CONCURRENCY, 2)),
         /** Longest side of the region handed to a provider. Larger selections are processed scaled down, then blended back at full size. */
         maxWorkingSize: Math.floor(parsePositive(env_.RETOUCH_MAX_WORKING_SIZE, 2048)),
+    },
+
+    compression: {
+        concurrency: Math.floor(parsePositive(env_.COMPRESSION_CONCURRENCY, 2)),
+    },
+
+    watermark: {
+        /** PP-OCRv3 text detector (downloaded by scripts/setup-ml.sh), for finding text watermarks. */
+        textModelPath: resolvePath(env_.TEXT_DETECTOR_MODEL, "python/.models/text_detection_en_ppocrv3_2023may.onnx"),
+        /** Which detector finds watermarks. "opencv" is the built-in one (text model + overlay analysis). */
+        detectionProvider: parseChoice(env_.WATERMARK_DETECTION_PROVIDER, ["opencv"] as const, "opencv"),
+        /** Which inpainting engine rebuilds the removed area; "auto" follows RETOUCH_PROVIDER. */
+        removalProvider: parseChoice(env_.WATERMARK_REMOVAL_PROVIDER, ["auto", "local", "lama", "iopaint"] as const, "auto"),
+        timeoutMs: parsePositive(env_.WATERMARK_TIMEOUT_MS, 60_000),
     },
 
     photoGenerator: {

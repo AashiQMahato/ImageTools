@@ -6,6 +6,8 @@ export const ROUTES = {
     editor: "/editor",
     retouch: "/retouch",
     photoGenerator: "/photo-generator",
+    compress: "/compress",
+    watermarkRemover: "/watermark-remover",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

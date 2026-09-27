@@ -1,4 +1,4 @@
-# Image Tools — Frontend
+# Studio Tools — Frontend
 
 React + Vite + TypeScript (strict) SPA styled with Tailwind CSS v4 and Untitled UI.
 

@@ -6,7 +6,7 @@ import { upscaylProvider } from "./services/upscaling/upscaylProvider.js";
 const app = createApp();
 
 const server = app.listen(env.port, () => {
-    console.log(`Image Tools API listening on http://localhost:${env.port}`);
+    console.log(`Studio Tools API listening on http://localhost:${env.port}`);
     // Bring processors up in the background; the API answers immediately and reports readiness via /api/health.
     void rembgProcess.start();
     void upscaylProvider.probe();

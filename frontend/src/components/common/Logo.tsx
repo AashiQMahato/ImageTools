@@ -21,7 +21,7 @@ export function Logo({ className }: { className?: string }) {
             )}
         >
             <LogoMark />
-            Image Tools
+            {t.common.appName}
         </Link>
     );
 }
