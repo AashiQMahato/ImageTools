@@ -1,4 +1,4 @@
-# Image Tools — Backend
+# Studio Tools — Backend
 
 Express 5 + TypeScript (strict) API. It is the only thing the browser talks to; the image-processing engines run behind it and are never exposed.
 

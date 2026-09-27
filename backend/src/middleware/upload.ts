@@ -8,7 +8,8 @@ import { AppError } from "../utils/AppError.js";
  */
 export const uploadImage = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: uploadConfig.maxFileSizeBytes, files: 1, fields: 4, fieldSize: 1024, parts: 6 },
+    // A handful of settings travel with the image (the compressor sends the most).
+    limits: { fileSize: uploadConfig.maxFileSizeBytes, files: 1, fields: 12, fieldSize: 1024, parts: 14 },
     fileFilter: (_req, file, callback) => {
         if (isAcceptableUpload(file.mimetype, file.originalname)) {
             callback(null, true);

@@ -3,6 +3,7 @@ import { env } from "../../config/env.js";
 import type { BackgroundRemovalProvider, ImageInput, ImageOutput, ProcessingContext } from "../../types/image.js";
 import { AppError } from "../../utils/AppError.js";
 import { rembgProcess } from "./rembgProcess.js";
+import { fetchBuffered } from "../../utils/fetchBuffered.js";
 
 const unavailable = () =>
     new AppError("Background removal is temporarily unavailable. Please try again.", 503, "BACKGROUND_REMOVAL_UNAVAILABLE");
@@ -22,7 +23,7 @@ export const rembgProvider: BackgroundRemovalProvider = {
 
         let response: Response;
         try {
-            response = await fetch(`${connection.url}/remove-background`, {
+            response = await fetchBuffered(`${connection.url}/remove-background`, {
                 method: "POST",
                 body: form,
                 headers: { "x-internal-token": connection.token },

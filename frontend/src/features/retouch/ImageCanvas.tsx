@@ -2,7 +2,7 @@ import { Minus, Plus, Scan } from "lucide-react";
 import { type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
-import { type BrushOptions, type RetouchTool, TOOL_ICONS, TOOL_KEYS } from "./modes";
+import { type BrushOptions, RETOUCH_TOOLS, type RetouchTool, TOOL_ICONS, TOOL_KEYS, toolLabels } from "./modes";
 import type { SelectionMask, SelectionStroke } from "./useSelectionMask";
 
 export interface FrameSize {
@@ -31,6 +31,10 @@ interface ImageCanvasProps {
     /** Bottom right, over the canvas: what the image is. */
     info?: ReactNode;
     onStroke: (stroke: SelectionStroke) => void;
+    /** Which tools the canvas toolbar offers (retouch: brush, eraser, move). */
+    tools?: readonly RetouchTool[];
+    /** Extra buttons in the canvas toolbar, after the tools (e.g. Auto detect). */
+    toolbarExtra?: ReactNode;
 }
 
 const MAX_ZOOM = 16;
@@ -38,6 +42,8 @@ const MAX_ZOOM = 16;
 type Gesture =
     | { type: "pan"; startX: number; startY: number; panX: number; panY: number }
     | { type: "brush" }
+    /** A rectangle or lasso being drawn: its outline so far, in image pixels. */
+    | { type: "shape"; kind: "rect" | "lasso"; points: Point[] }
     | { type: "pinch"; distance: number; midX: number; midY: number; zoom: number; panX: number; panY: number };
 
 type Point = { x: number; y: number };
@@ -49,11 +55,13 @@ const isTyping = (target: EventTarget | null) => target instanceof HTMLElement &
  * never flattened — the photo, then the live mask canvas the brush paints into, then any overlay — so
  * painting redraws only the pixels under the brush and the photo itself is never redrawn.
  */
-export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange, brush, paintable, showMask, overlayInteractive = false, overlay, top, info, onStroke }: ImageCanvasProps) {
+export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange, brush, paintable, showMask, overlayInteractive = false, overlay, top, info, onStroke, tools = RETOUCH_TOOLS, toolbarExtra }: ImageCanvasProps) {
     const t = useT();
     const copy = t.retouch;
     const areaRef = useRef<HTMLDivElement>(null);
     const cursorRef = useRef<HTMLDivElement>(null);
+    /** The outline of a rectangle or lasso being drawn — updated directly, never through React state. */
+    const shapeRef = useRef<SVGPathElement>(null);
 
     const [area, setArea] = useState({ width: 0, height: 0, pad: 24 });
     const [zoom, setZoom] = useState(1);
@@ -178,6 +186,17 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
     const toImage = (point: Point): Point => ({ x: (point.x - left) / scale, y: (point.y - topEdge) / scale });
 
     const painting = paintable && (tool === "paint" || tool === "erase") && !spaceHeld;
+    const shaping = paintable && (tool === "rect" || tool === "lasso") && !spaceHeld;
+
+    /** The outline of a shape, as an SVG path in area coordinates. */
+    const drawShape = (points: Point[] | null) => {
+        const path = shapeRef.current;
+        if (!path) return;
+        if (!points || points.length < 2) return void path.setAttribute("d", "");
+        const at = (point: Point) => `${(point.x * scale + left).toFixed(1)},${(point.y * scale + topEdge).toFixed(1)}`;
+        path.setAttribute("d", `M${points.map(at).join("L")}Z`);
+    };
+    const rectCorners = ([a, b]: Point[]): Point[] => (a && b ? [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }] : []);
 
     const moveCursor = (point: Point, visible: boolean) => {
         const cursor = cursorRef.current;
@@ -208,6 +227,11 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
         // Over the comparison slider, a plain drag belongs to the slider.
         if (overlayInteractive && !panRequested) return;
         event.currentTarget.setPointerCapture(event.pointerId);
+        if (!panRequested && shaping && event.button === 0) {
+            const start = toImage(point);
+            gesture.current = { type: "shape", kind: tool === "rect" ? "rect" : "lasso", points: tool === "rect" ? [start, start] : [start] };
+            return;
+        }
         if (!panRequested && painting && event.button === 0) {
             const { x, y } = toImage(point);
             mask.beginStroke({ mode: tool === "erase" ? "erase" : "paint", size: brush.size, softness: brush.softness, opacity: brush.opacity }, x, y);
@@ -227,10 +251,19 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
         moveCursor(point, painting && event.pointerType !== "touch" && current?.type !== "pinch");
 
         if (!current) {
-            event.currentTarget.style.cursor = spaceHeld || (tool === "move" && !overlayInteractive) ? "grab" : painting ? "none" : zoom > 1 && !overlayInteractive ? "grab" : "";
+            event.currentTarget.style.cursor = spaceHeld || (tool === "move" && !overlayInteractive) ? "grab" : painting ? "none" : shaping ? "crosshair" : zoom > 1 && !overlayInteractive ? "grab" : "";
             return;
         }
-        if (current.type === "brush") {
+        if (current.type === "shape") {
+            const here = toImage(point);
+            if (current.kind === "rect") current.points[1] = here;
+            else {
+                const last = current.points[current.points.length - 1]!;
+                // A new corner every few screen pixels keeps the outline smooth but light.
+                if (Math.hypot(here.x - last.x, here.y - last.y) * scale >= 3) current.points.push(here);
+            }
+            drawShape(current.kind === "rect" ? rectCorners(current.points) : current.points);
+        } else if (current.type === "brush") {
             // Every sample the pointer took since the last frame, so fast strokes stay smooth curves.
             const samples = event.nativeEvent.getCoalescedEvents?.() ?? [];
             for (const sample of samples.length ? samples : [event.nativeEvent]) {
@@ -267,6 +300,17 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
             return;
         }
         gesture.current = null;
+        if (current?.type === "shape") {
+            drawShape(null);
+            const outline = current.kind === "rect" ? rectCorners(current.points) : current.points;
+            const xs = outline.map((p) => p.x);
+            const ys = outline.map((p) => p.y);
+            // Too small to mean anything (a click, or a scribble): ignored.
+            const big = (Math.max(...xs) - Math.min(...xs)) * scale >= 4 && (Math.max(...ys) - Math.min(...ys)) * scale >= 4;
+            if (!cancelled && outline.length >= 3 && big) {
+                onStroke({ mode: "paint", shape: "polygon", size: 0, softness: brush.softness * 0.5, opacity: brush.opacity, points: outline.flatMap((p) => [p.x, p.y]) });
+            }
+        }
         if (current?.type === "brush") {
             if (cancelled) mask.cancelStroke();
             else {
@@ -282,11 +326,7 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
     const glass = "material pointer-events-auto flex items-center gap-0.5 rounded-xl p-1";
     const iconButton =
         "grid size-9 cursor-pointer place-items-center rounded-lg text-secondary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:size-11";
-    const tools: { id: RetouchTool; label: string }[] = [
-        { id: "paint", label: copy.paintTool },
-        { id: "erase", label: copy.eraseTool },
-        { id: "move", label: copy.moveTool },
-    ];
+    const labels = toolLabels(t);
 
     return (
         <div className="relative flex min-h-0 flex-1 flex-col">
@@ -321,6 +361,11 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
                     </div>
                 )}
 
+                {/* A rectangle or lasso while it's being drawn. */}
+                <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
+                    <path ref={shapeRef} d="" fill="rgb(139 92 246 / 0.22)" stroke="white" strokeWidth={1.5} strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />
+                </svg>
+
                 {/* Brush cursor: the exact size the stroke will be, with its hard core marked. */}
                 <div
                     ref={cursorRef}
@@ -337,9 +382,10 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
             {/* Compact tools, top left (desktop — phones get the bottom toolbar). */}
             <div className="pointer-events-none absolute top-3 left-3 hidden lg:block">
                 <div role="toolbar" aria-label={copy.tools} aria-orientation="vertical" className={cn(glass, "flex-col")}>
-                    {tools.map(({ id, label }) => {
+                    {tools.map((id) => {
                         const Icon = TOOL_ICONS[id];
                         const selected = tool === id;
+                        const label = labels[id].long;
                         return (
                             <button
                                 key={id}
@@ -355,6 +401,7 @@ export function ImageCanvas({ src, alt, width, height, mask, tool, onToolChange,
                             </button>
                         );
                     })}
+                    {toolbarExtra}
                 </div>
             </div>
 

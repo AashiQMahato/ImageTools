@@ -36,6 +36,38 @@ async function readDimensions(file: File): Promise<ImageDimensions> {
     return dimensions;
 }
 
+export type PreparedImage = { ok: true; file: File; dimensions: ImageDimensions; convertedFrom: string | null } | { ok: false; error: string };
+
+/**
+ * One file, made ready to use: type and size checked (mirroring the API), converted to JPEG on the
+ * server when the browser can't open it (HEIC…), and decoded once to prove it's readable.
+ * `onStatus` hears what's happening (e.g. "HEIC detected — converting to JPEG…"), then null.
+ */
+export async function prepareImageFile(picked: File, t: Dictionary, onStatus?: (status: string | null) => void): Promise<PreparedImage> {
+    const problem = validate(picked, t);
+    if (problem) return { ok: false, error: problem };
+    // Phones save HEIC; nobody should have to convert it themselves. The server turns it into an
+    // upright, full-quality JPEG, and everything carries on as usual.
+    const convertedFrom = conversionFor(picked);
+    let file = picked;
+    if (convertedFrom) {
+        onStatus?.(t.upload.converting(convertedFrom));
+        try {
+            file = await convertToJpeg(picked);
+        } catch (cause) {
+            const code = cause instanceof ApiError ? (cause.code ?? (cause.status === 0 ? "NETWORK" : undefined)) : undefined;
+            return { ok: false, error: code === "NETWORK" || code === "FILE_TOO_LARGE" || code === "RATE_LIMITED" ? t.errors[code]! : t.upload.conversionFailed(convertedFrom) };
+        } finally {
+            onStatus?.(null);
+        }
+    }
+    try {
+        return { ok: true, file, dimensions: await readDimensions(file), convertedFrom };
+    } catch {
+        return { ok: false, error: t.upload.unreadable };
+    }
+}
+
 interface Options {
     /** Where to go after a successful pick. `null` stays on the current page. */
     navigateTo?: AppRoute | null;
@@ -61,37 +93,13 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
 
     const acceptFile = useCallback(
         async (picked: File) => {
-            const problem = validate(picked, t);
-            if (problem) {
-                setError(problem);
-                return false;
-            }
-            // Phones save HEIC; nobody should have to convert it themselves. The server turns it into
-            // an upright, full-quality JPEG, and everything carries on as usual.
-            const convertedFrom = conversionFor(picked);
-            let file = picked;
-            if (convertedFrom) {
-                setError(null);
-                setStatus(t.upload.converting(convertedFrom));
-                try {
-                    file = await convertToJpeg(picked);
-                } catch (cause) {
-                    const code = cause instanceof ApiError ? (cause.code ?? (cause.status === 0 ? "NETWORK" : undefined)) : undefined;
-                    setError(code === "NETWORK" || code === "FILE_TOO_LARGE" || code === "RATE_LIMITED" ? t.errors[code]! : t.upload.conversionFailed(convertedFrom));
-                    return false;
-                } finally {
-                    setStatus(null);
-                }
-            }
-            let dimensions: ImageDimensions;
-            try {
-                dimensions = await readDimensions(file);
-            } catch {
-                setError(t.upload.unreadable);
-                return false;
-            }
-
             setError(null);
+            const prepared = await prepareImageFile(picked, t, setStatus);
+            if (!prepared.ok) {
+                setError(prepared.error);
+                return false;
+            }
+            const { file, dimensions, convertedFrom } = prepared;
             setOriginal({
                 id: crypto.randomUUID(),
                 file,

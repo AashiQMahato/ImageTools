@@ -1,4 +1,4 @@
-import { ArrowRight, Crop, Eraser, SlidersHorizontal, ZoomIn } from "lucide-react";
+import { ArrowRight, Crop, Eraser, Shrink, SlidersHorizontal, Stamp, ZoomIn } from "lucide-react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useInView } from "@/hooks/useInView";
@@ -27,6 +27,16 @@ const TOOLS = [
         icon: SlidersHorizontal,
         href: ROUTES.editor,
     },
+    {
+        key: "compressor",
+        icon: Shrink,
+        href: ROUTES.compress,
+    },
+    {
+        key: "watermarkRemover",
+        icon: Stamp,
+        href: ROUTES.watermarkRemover,
+    },
 ] as const;
 
 export function ToolsSection() {
@@ -41,7 +51,7 @@ export function ToolsSection() {
                     title={t.toolsSection.title}
                     description={t.toolsSection.description}
                 />
-                <div className="mt-12 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-4 lg:gap-6">
+                <div className="mt-12 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-3 lg:gap-6">
                     {TOOLS.map(({ key, icon: Icon, href }, index) => {
                         const { title, description } = t.toolsSection.items[key];
                         return (

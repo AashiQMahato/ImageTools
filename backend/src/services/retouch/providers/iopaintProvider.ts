@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { env } from "../../../config/env.js";
 import type { ProcessingContext, RawImage, RawMask, RetouchMode, RetouchOptions, RetouchProvider } from "../../../types/image.js";
 import { AppError } from "../../../utils/AppError.js";
+import { fetchBuffered } from "../../../utils/fetchBuffered.js";
 
 const failed = () => new AppError("We couldn't process this image. Please try again.", 502, "PROCESSING_FAILED");
 
@@ -42,7 +43,7 @@ class IopaintProvider implements RetouchProvider {
 
         let body: Buffer;
         try {
-            const response = await fetch(`${env.retouch.serviceUrl}/api/v1/inpaint`, {
+            const response = await fetchBuffered(`${env.retouch.serviceUrl}/api/v1/inpaint`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

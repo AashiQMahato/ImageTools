@@ -25,7 +25,8 @@ export type ErrorCode =
     | "NO_FACE"
     | "MULTIPLE_FACES"
     | "FACE_DETECTION_UNAVAILABLE"
-    | "FILE_EXPIRED";
+    | "FILE_EXPIRED"
+    | "DETECTION_UNAVAILABLE";
 
 /** An error whose message is safe to show to users. Internal details belong in logs, never here. */
 export class AppError extends Error {

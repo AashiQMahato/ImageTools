@@ -1,25 +1,18 @@
 import { ArrowRight } from "lucide-react";
-import type { KeyboardEvent, Ref } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ALL_TOOLS_HREF, type NavToolGroup, TOOL_GROUPS } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
+import type { NavPanelProps } from "./NavDropdown";
 import { TOOL_ICONS } from "./toolIcons";
 
-interface ToolsMegaMenuProps {
-    id: string;
-    open: boolean;
-    panelRef: Ref<HTMLDivElement>;
-    onNavigate: () => void;
-    onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
-}
 
 /**
  * The Tools panel: AI tools and the editor on the left, image tools on the right, a way to the full
  * overview underneath. It hangs from the centre of the navigation, and its top padding is a bridge —
  * the pointer can travel from the trigger into the panel without ever leaving it.
  */
-export function ToolsMegaMenu({ id, open, panelRef, onNavigate, onKeyDown }: ToolsMegaMenuProps) {
+export function ToolsMegaMenu({ id, open, panelRef, onNavigate, onKeyDown }: NavPanelProps) {
     const t = useT();
     const [ai, image, editor] = TOOL_GROUPS as [NavToolGroup, NavToolGroup, NavToolGroup];
 

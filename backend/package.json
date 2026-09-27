@@ -2,7 +2,7 @@
   "name": "image-tools-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Image Tools API — Express + TypeScript",
+  "description": "Studio Tools API — Express + TypeScript",
   "type": "module",
   "main": "dist/server.js",
   "engines": {

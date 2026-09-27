@@ -20,7 +20,22 @@ export function createApp() {
             origin: env.frontendOrigins,
             methods: ["GET", "POST"],
             // Let a cross-origin frontend read result metadata and the suggested file name.
-            exposedHeaders: ["Content-Disposition", "X-Image-Width", "X-Image-Height", "X-Original-Width", "X-Original-Height"],
+            exposedHeaders: [
+                "Content-Disposition",
+                "X-Image-Width",
+                "X-Image-Height",
+                "X-Original-Width",
+                "X-Original-Height",
+                "X-Original-Size",
+                "X-Compressed-Size",
+                "X-Output-Format",
+                "X-Quality",
+                "X-Resized",
+                "X-Target-Met",
+                "X-Flattened",
+                "X-Already-Optimal",
+                "X-Quality-Warning",
+            ],
         }),
     );
     app.use(morgan(isProduction ? "combined" : "dev"));

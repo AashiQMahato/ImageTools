@@ -1,5 +1,5 @@
 """
-Internal image service for Image Tools: background removal, format conversion and face detection.
+Internal image service for Studio Tools: background removal, format conversion and face detection.
 
 - Loads one rembg session at startup and reuses it for every request.
 - Converts formats the Node side can't decode (HEIC/HEIF, BMP…) to JPEG, orientation applied.
@@ -63,6 +63,24 @@ CONVERTIBLE_FORMATS = ALLOWED_FORMATS | {"HEIF", "AVIF", "TIFF", "BMP", "GIF", "
 FACE_MODEL = os.environ.get("FACE_DETECTOR_MODEL") or os.path.join(os.environ.get("U2NET_HOME", ""), "face_detection_yunet_2023mar.onnx")
 # Faces are found on a copy no larger than this; coordinates are reported at full size.
 FACE_DETECT_MAX_SIDE = 1280
+# PP-OCRv3 text detector (downloaded by scripts/setup-ml.sh), used to find text watermarks.
+TEXT_MODEL = os.environ.get("TEXT_DETECTOR_MODEL") or os.path.join(os.environ.get("U2NET_HOME", ""), "text_detection_en_ppocrv3_2023may.onnx")
+# Watermark text is often small and faint; it needs more pixels than faces do.
+WATERMARK_DETECT_MAX_SIDE = 1920
+# How much brighter than its surroundings a stroke must be to count as an overlaid mark (0–1).
+MARK_MIN_STRENGTH = 0.17
+# Logo-only candidates (no text found in them) never score above this.
+LOGO_MAX_CONFIDENCE = 0.5
+# LaMa inpainting (ONNX, downloaded by scripts/setup-ml.sh). Works at a fixed 512 × 512.
+INPAINT_MODEL = os.environ.get("INPAINT_MODEL") or os.path.join(os.environ.get("U2NET_HOME", ""), "lama_fp32.onnx")
+INPAINT_SIDE = 512
+# Regions larger than this are filled tile by tile (stride < tile, so tiles overlap).
+INPAINT_TILE = 768
+INPAINT_STRIDE = 512
+# A tile needs surroundings to rebuild from: above this share of hole, the region is done in one pass.
+INPAINT_MAX_TILE_HOLE = 0.35
+# Marks closer together than this (in pixels) are filled in one crop.
+INPAINT_GROUP = 1024
 
 # Pillow refuses images above this many pixels (decompression-bomb protection).
 Image.MAX_IMAGE_PIXELS = MAX_PIXELS
@@ -328,3 +346,388 @@ async def detect(file: UploadFile = File(...), x_internal_token: str | None = He
     except Exception:  # noqa: BLE001
         log.exception("face detection failed")
         return error(500, "PROCESSING_FAILED", "Face detection failed.")
+
+
+# ---------------------------------------------------------------- watermark detection
+
+
+def _location_prior(x: float, y: float, w: float, h: float, width: int, height: int) -> float:
+    """Watermarks sit in corners, along the bottom, or across the centre; other text sits anywhere."""
+    cx, cy = (x + w / 2) / width, (y + h / 2) / height
+    near_left, near_right = x / width < 0.22, (x + w) / width > 0.78
+    near_top, near_bottom = y / height < 0.22, (y + h) / height > 0.78
+    corner = (near_left or near_right) and (near_top or near_bottom)
+    centre = abs(cx - 0.5) < 0.15 and abs(cy - 0.5) < 0.15
+    bottom_band = (y + h) / height > 0.85
+    return 1.0 if corner or centre or bottom_band else 0.75
+
+
+def _text_regions(image, scale: float) -> list[dict]:
+    import cv2
+    import numpy as np
+
+    if not os.path.isfile(TEXT_MODEL):
+        return []
+    height, width = image.shape[:2]
+    # The model wants sides that are multiples of 32.
+    size = (max(32, round(width / 32) * 32), max(32, round(height / 32) * 32))
+    model = cv2.dnn_TextDetectionModel_DB(TEXT_MODEL)
+    model.setBinaryThreshold(0.3)
+    model.setPolygonThreshold(0.5)
+    model.setMaxCandidates(200)
+    model.setUnclipRatio(2.0)
+    model.setInputParams(1.0 / 255.0, size, (122.67891434, 116.66876762, 104.00698793), True)
+    polygons, scores = model.detect(image)
+    regions = []
+    for polygon, score in zip(polygons, scores):
+        points = np.asarray(polygon, dtype=np.float32).reshape(-1, 2)
+        (_, _), (rw, rh), angle = cv2.minAreaRect(points)
+        # minAreaRect reports the angle of whichever side it picked; normalise to the text's own slant.
+        if rw < rh:
+            angle += 90
+        angle = ((angle + 90) % 180) - 90
+        x, y = points.min(axis=0)
+        x2, y2 = points.max(axis=0)
+        regions.append(
+            {
+                "type": "text",
+                "score": float(score),
+                "polygon": (points / scale).round(1).tolist(),
+                "box": {"x": float(x / scale), "y": float(y / scale), "width": float((x2 - x) / scale), "height": float((y2 - y) / scale)},
+                "angle": float(angle),
+                "lineHeight": float(min(rw, rh) / scale),
+                "elongation": float(max(rw, rh) / max(1.0, min(rw, rh))),
+            }
+        )
+    return regions
+
+
+def _join_lines(regions: list[dict]) -> list[dict]:
+    """Pieces of one line of text (a "©" and the words after it) become one region."""
+    import numpy as np
+
+    regions = sorted(regions, key=lambda region: region["box"]["x"])
+    joined: list[dict] = []
+    for region in regions:
+        box = region["box"]
+        mate = next(
+            (
+                other
+                for other in joined
+                if abs(other["angle"] - region["angle"]) < 8
+                and abs((other["box"]["y"] + other["box"]["height"] / 2) - (box["y"] + box["height"] / 2)) < max(other["box"]["height"], box["height"]) * 0.5
+                and box["x"] - (other["box"]["x"] + other["box"]["width"]) < max(other["lineHeight"], region["lineHeight"]) * 1.2
+                and box["x"] + box["width"] > other["box"]["x"]
+            ),
+            None,
+        )
+        if mate is None:
+            joined.append(dict(region))
+            continue
+        points = np.asarray(mate["polygon"] + region["polygon"], dtype=np.float32)
+        x, y = points.min(axis=0)
+        x2, y2 = points.max(axis=0)
+        mate["box"] = {"x": float(x), "y": float(y), "width": float(x2 - x), "height": float(y2 - y)}
+        if abs(mate["angle"]) < 5:
+            mate["polygon"] = [[float(x), float(y)], [float(x2), float(y)], [float(x2), float(y2)], [float(x), float(y2)]]
+        else:
+            import cv2
+
+            mate["polygon"] = cv2.boxPoints(cv2.minAreaRect(points)).round(1).tolist()
+        mate["score"] = max(mate["score"], region["score"])
+        mate["elongation"] = max(mate.get("elongation", 1.0), float((x2 - x) / max(1.0, y2 - y)))
+    return joined
+
+
+def _overlay_regions(image, scale: float) -> list[dict]:
+    """
+    Semi-transparent overlays (logos, marks): thin, bright, low-saturation strokes laid over the photo.
+    A top-hat filter keeps small bright structures and drops large bright objects, and the low
+    saturation keeps white/grey marks while dropping bright coloured details.
+    """
+    import cv2
+    import numpy as np
+
+    height, width = image.shape[:2]
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    value, saturation = hsv[..., 2], hsv[..., 1]
+    k = max(9, (min(width, height) // 40) | 1)
+    tophat = cv2.morphologyEx(value, cv2.MORPH_TOPHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    strokes = ((tophat > 22) & (saturation < 70)).astype(np.uint8) * 255
+    merged = cv2.morphologyEx(strokes, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (k, k)))
+    count, _, stats, _ = cv2.connectedComponentsWithStats(merged, connectivity=8)
+    area_total = width * height
+    regions = []
+    for index in range(1, count):
+        x, y, w, h, area = stats[index]
+        if not (0.002 * area_total <= w * h <= 0.25 * area_total) or w >= width * 0.95 or h >= height * 0.95:
+            continue
+        # Without text to go on, only marks where watermarks are put count — bright strokes elsewhere are
+        # far more often part of the picture (feathers, reflections, lace).
+        if _location_prior(x, y, w, h, width, height) < 1.0:
+            continue
+        density = float(np.count_nonzero(strokes[y : y + h, x : x + w])) / float(w * h)
+        # Marks are drawn with strokes: neither empty nor solid.
+        if not 0.04 <= density <= 0.55:
+            continue
+        strength = float(np.mean(tophat[y : y + h, x : x + w][strokes[y : y + h, x : x + w] > 0])) / 255.0
+        # Overlaid marks stand clearly out from what's under them (measured: marks ~0.22+, bright
+        # details of the photo itself ~0.12).
+        if strength < MARK_MIN_STRENGTH:
+            continue
+        regions.append(
+            {
+                "type": "logo",
+                # Without a trained logo model this signal is a hint, not proof (bright lines in a photo can
+                # look the same), so it stays a low-confidence suggestion that isn't pre-selected.
+                "score": min(LOGO_MAX_CONFIDENCE, 0.3 + strength),
+                "polygon": [[x / scale, y / scale], [(x + w) / scale, y / scale], [(x + w) / scale, (y + h) / scale], [x / scale, (y + h) / scale]],
+                "box": {"x": x / scale, "y": y / scale, "width": w / scale, "height": h / scale},
+                "angle": 0.0,
+            }
+        )
+    regions.sort(key=lambda region: region["score"], reverse=True)
+    return regions[:2]
+
+
+def _overlap(a: dict, b: dict) -> float:
+    ax, ay, aw, ah = a["box"]["x"], a["box"]["y"], a["box"]["width"], a["box"]["height"]
+    bx, by, bw, bh = b["box"]["x"], b["box"]["y"], b["box"]["width"], b["box"]["height"]
+    ix = max(0.0, min(ax + aw, bx + bw) - max(ax, bx))
+    iy = max(0.0, min(ay + ah, by + bh) - max(ay, by))
+    smaller = min(aw * ah, bw * bh) or 1.0
+    return ix * iy / smaller
+
+
+def detect_watermarks(data: bytes) -> dict:
+    import cv2
+    import numpy as np
+
+    pixels = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+    if pixels is None:
+        raise ValueError("decode")
+    height, width = pixels.shape[:2]
+    if width * height > MAX_PIXELS:
+        raise ValueError("size")
+    scale = min(1.0, WATERMARK_DETECT_MAX_SIDE / max(width, height))
+    small = cv2.resize(pixels, (max(1, round(width * scale)), max(1, round(height * scale))), interpolation=cv2.INTER_AREA) if scale < 1 else pixels
+
+    texts = _join_lines(_text_regions(small, scale))
+    # Tiled watermarks repeat the same text at the same size: three or more lines of similar height.
+    heights = [region["lineHeight"] for region in texts]
+    for region in texts:
+        similar = sum(1 for other in heights if abs(other - region["lineHeight"]) <= region["lineHeight"] * 0.2)
+        if similar >= 3:
+            region["type"] = "pattern"
+    # A mark around detected text (a logo with a word in it) becomes one region covering both.
+    overlays = []
+    for overlay in _overlay_regions(small, scale):
+        text = next((text for text in texts if _overlap(overlay, text) > 0.3), None)
+        if text is None:
+            overlays.append(overlay)
+            continue
+        a, b = text["box"], overlay["box"]
+        x, y = min(a["x"], b["x"]), min(a["y"], b["y"])
+        x2, y2 = max(a["x"] + a["width"], b["x"] + b["width"]), max(a["y"] + a["height"], b["y"] + b["height"])
+        text["box"] = {"x": x, "y": y, "width": x2 - x, "height": y2 - y}
+        text["polygon"] = [[x, y], [x2, y], [x2, y2], [x, y2]]
+        text["angle"] = 0.0
+        text["type"] = "logo"
+        text["lineHeight"] = float("inf")
+
+    detections = []
+    for region in texts + overlays:
+        box = region["box"]
+        confidence = region["score"] * _location_prior(box["x"], box["y"], box["width"], box["height"], width, height)
+        # Words are long and thin; a squarish "text" box is more often a textured part of the photo.
+        if region["type"] in ("text", "pattern") and region.get("elongation", 3.0) < 1.8:
+            confidence *= 0.6
+        # Watermark text runs across the picture; near-vertical "text" is rarely one.
+        if region["type"] == "text" and abs(region.get("angle", 0.0)) > 60:
+            confidence *= 0.8
+        if region["type"] == "pattern":
+            confidence = min(1.0, confidence + 0.1)
+        if abs(region.get("angle", 0.0)) > 12:
+            confidence = min(1.0, confidence + 0.05)
+        if confidence < 0.4:
+            continue
+        detections.append(
+            {
+                "type": region["type"],
+                "confidence": round(float(confidence), 3),
+                "box": {key: round(float(value), 1) for key, value in box.items()},
+                "polygon": region["polygon"],
+                "angle": round(float(region.get("angle", 0.0)), 1),
+            }
+        )
+    detections.sort(key=lambda item: item["confidence"], reverse=True)
+    return {"width": width, "height": height, "detections": detections[:12], "textModel": os.path.isfile(TEXT_MODEL)}
+
+
+@app.post("/detect-watermarks")
+async def detect_watermark_regions(file: UploadFile = File(...), x_internal_token: str | None = Header(default=None)):
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    data = await file.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        return error(413, "FILE_TOO_LARGE", "The image is too large.")
+    try:
+        return await run_in_threadpool(detect_watermarks, data)
+    except ValueError:
+        return error(422, "INVALID_IMAGE", "The file could not be read as an image.")
+    except Exception:  # noqa: BLE001
+        log.exception("watermark detection failed")
+        return error(500, "PROCESSING_FAILED", "Watermark detection failed.")
+
+
+# ---------------------------------------------------------------- inpainting (LaMa)
+
+lama: dict[str, object] = {"session": None}
+lama_lock = threading.Lock()
+# One inpainting at a time: it's the heaviest thing this service runs.
+lama_slots = threading.BoundedSemaphore(1)
+
+
+def lama_session():
+    with lama_lock:
+        if lama["session"] is None:
+            import onnxruntime as ort
+
+            lama["session"] = ort.InferenceSession(INPAINT_MODEL, providers=PROVIDERS)
+        return lama["session"]
+
+
+def _lama(pixels, holes):
+    """One LaMa pass on a region (any size): padded to a square, run at 512 × 512, brought back."""
+    import numpy as np
+
+    height, width = holes.shape
+    side = max(width, height)
+    square = np.pad(pixels, ((0, side - height), (0, side - width), (0, 0)), mode="edge")
+    square_mask = np.pad(holes.astype(np.uint8) * 255, ((0, side - height), (0, side - width)), mode="constant")
+    small = np.asarray(Image.fromarray(square).resize((INPAINT_SIDE, INPAINT_SIDE), Image.Resampling.LANCZOS), dtype=np.float32) / 255.0
+    small_mask = (np.asarray(Image.fromarray(square_mask).resize((INPAINT_SIDE, INPAINT_SIDE), Image.Resampling.BILINEAR)) > 16).astype(np.float32)
+    session = lama_session()
+    inputs = session.get_inputs()
+    result = session.run(None, {inputs[0].name: small.transpose(2, 0, 1)[None], inputs[1].name: small_mask[None, None]})[0][0]
+    filled = Image.fromarray(np.clip(result.transpose(1, 2, 0), 0, 255).astype(np.uint8)).resize((side, side), Image.Resampling.BICUBIC)
+    return np.asarray(filled)[:height, :width]
+
+
+def _tiles(holes) -> list[tuple[slice, slice]]:
+    """Overlapping windows covering every hole, each with some surroundings."""
+    import numpy as np
+
+    height, width = holes.shape
+    ys, xs = np.nonzero(holes)
+    if not ys.size:
+        return []
+
+    def starts(low: int, high: int, limit: int) -> list[int]:
+        first = max(0, min(low - INPAINT_TILE // 4, limit - INPAINT_TILE))
+        positions = list(range(first, max(first, high - INPAINT_TILE // 4) + 1, INPAINT_STRIDE)) or [first]
+        return sorted({min(max(0, position), max(0, limit - INPAINT_TILE)) for position in positions})
+
+    windows = []
+    for top in starts(int(ys.min()), int(ys.max()), height):
+        for left in starts(int(xs.min()), int(xs.max()), width):
+            window = (slice(top, top + INPAINT_TILE), slice(left, left + INPAINT_TILE))
+            if holes[window].any():
+                windows.append(window)
+    return windows
+
+
+def _fill(pixels, holes) -> None:
+    """
+    Fills the holes of one region in place. A region that fits a tile goes through in one pass. A
+    bigger one with thin, spread-out holes (lines of text) goes tile by tile close to full resolution,
+    so it isn't shrunk to 512 px and blurred on the way back up — unless a tile would be mostly hole
+    (nothing around it to rebuild from), in which case the region goes through in one pass instead.
+    """
+    height, width = holes.shape
+    windows = _tiles(holes) if max(width, height) > INPAINT_TILE else []
+    if not windows or any(holes[window].mean() > INPAINT_MAX_TILE_HOLE for window in windows):
+        filled = _lama(pixels, holes)
+        pixels[holes] = filled[holes]
+        return
+    for window in windows:
+        # Each tile sees what earlier tiles already rebuilt, so neighbours continue each other.
+        hole = holes[window]
+        filled = _lama(pixels[window], hole)
+        pixels[window][hole] = filled[hole]
+
+
+def _groups(holes) -> list[tuple[int, int, int, int]]:
+    """
+    The marks, gathered into as few compact groups as possible: nearby marks share a group while the
+    group stays within INPAINT_GROUP pixels. Each group becomes one crop — far fewer model runs than
+    one big box around everything, and each run sees its area close to full resolution.
+    """
+    import cv2
+    import numpy as np
+
+    count, _, stats, _ = cv2.connectedComponentsWithStats(holes.astype(np.uint8), connectivity=8)
+    boxes = sorted(((int(x), int(y), int(x + w), int(y + h)) for x, y, w, h, _ in stats[1:count]), key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
+    groups: list[list[int]] = []
+    for x0, y0, x1, y1 in boxes:
+        for group in groups:
+            ux0, uy0, ux1, uy1 = min(group[0], x0), min(group[1], y0), max(group[2], x1), max(group[3], y1)
+            if max(ux1 - ux0, uy1 - uy0) <= INPAINT_GROUP:
+                group[:] = [ux0, uy0, ux1, uy1]
+                break
+        else:
+            groups.append([x0, y0, x1, y1])
+    return [tuple(group) for group in groups]  # type: ignore[misc]
+
+
+def inpaint(image_data: bytes, mask_data: bytes) -> bytes:
+    """
+    Rebuilds the white area of the mask from its surroundings with LaMa, group by group, each with a
+    margin of context around it. Only masked pixels are ever replaced.
+    """
+    import numpy as np
+
+    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+    mask = Image.open(io.BytesIO(mask_data)).convert("L").resize(image.size)
+    pixels = np.array(image)
+    holes = np.asarray(mask) > 16
+    height, width = holes.shape
+    for x0, y0, x1, y1 in _groups(holes):
+        margin = max(48, (max(x1 - x0, y1 - y0)) // 3)
+        window = (slice(max(0, y0 - margin), min(height, y1 + margin)), slice(max(0, x0 - margin), min(width, x1 + margin)))
+        if max(x1 - x0, y1 - y0) <= INPAINT_GROUP:
+            # A compact group: one pass sees all of it, with its surroundings.
+            hole = holes[window]
+            filled = _lama(pixels[window], hole)
+            pixels[window][hole] = filled[hole]
+        else:
+            # One mark larger than a group (e.g. across the whole picture): tiles, where they can work.
+            _fill(pixels[window], holes[window])
+    buffer = io.BytesIO()
+    Image.fromarray(pixels).save(buffer, format="PNG", compress_level=1)
+    return buffer.getvalue()
+
+
+@app.post("/inpaint")
+async def inpaint_region(file: UploadFile = File(...), mask: UploadFile = File(...), x_internal_token: str | None = Header(default=None)):
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    if not os.path.isfile(INPAINT_MODEL):
+        return error(503, "RETOUCH_UNAVAILABLE", "Inpainting isn't set up on this server.")
+    image_data = await file.read(MAX_BYTES + 1)
+    mask_data = await mask.read(MAX_BYTES + 1)
+    if len(image_data) > MAX_BYTES or len(mask_data) > MAX_BYTES:
+        return error(413, "FILE_TOO_LARGE", "The image is too large.")
+    await run_in_threadpool(lama_slots.acquire)
+    started = time.perf_counter()
+    try:
+        png = await run_in_threadpool(inpaint, image_data, mask_data)
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        return error(422, "INVALID_IMAGE", "The file could not be read as an image.")
+    except Exception:  # noqa: BLE001
+        log.exception("inpainting failed")
+        return error(500, "PROCESSING_FAILED", "Inpainting failed.")
+    finally:
+        lama_slots.release()
+    log.info("inpainted in %.2fs", time.perf_counter() - started)
+    return Response(content=png, media_type="image/png")

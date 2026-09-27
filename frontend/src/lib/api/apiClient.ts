@@ -61,6 +61,8 @@ export interface BinaryResult {
     fileName: string | null;
     width: number;
     height: number;
+    /** Any other response header (e.g. X-Compressed-Size). */
+    header: (name: string) => string | null;
 }
 
 export interface UploadOptions {
@@ -108,6 +110,7 @@ export function postFormForBlob(path: string, form: FormData, { signal, onUpload
                     fileName: /filename="([^"]+)"/.exec(disposition)?.[1] ?? null,
                     width: Number(xhr.getResponseHeader("X-Image-Width")) || 0,
                     height: Number(xhr.getResponseHeader("X-Image-Height")) || 0,
+                    header: (name) => xhr.getResponseHeader(name),
                 });
             } else {
                 reject(await errorFrom(xhr));

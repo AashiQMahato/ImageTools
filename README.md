@@ -1,4 +1,4 @@
-# Image Tools
+# Studio Tools
 
 An AI-powered image utility platform: background removal, upscaling, cropping, resizing, rotation/flip, before/after comparison, preview and download.
 
@@ -123,7 +123,7 @@ Licences of the processing engines and models: [THIRD_PARTY_NOTICES.md](THIRD_PA
 
 | Method | Path                     | Status                                                |
 | ------ | ------------------------ | ----------------------------------------------------- |
-| GET    | `/api/health`            | `200 { "success": true, "message": "Image Tools API is running" }` |
+| GET    | `/api/health`            | `200 { "success": true, "message": "Studio Tools API is running" }` |
 | GET    | `/api/health/processors` | Engine availability, model, GPU, queue |
 | POST   | `/api/remove-background` | multipart `file` → transparent PNG |
 | POST   | `/api/upscale`           | multipart `file` + `scale` (2 or 4) → upscaled image |

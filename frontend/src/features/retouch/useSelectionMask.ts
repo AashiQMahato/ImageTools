@@ -7,14 +7,16 @@ export type SelectionMode = "paint" | "erase";
 /** One brush stroke, in image pixels, so it means the same thing at any zoom or mask resolution. */
 export interface SelectionStroke {
     mode: SelectionMode;
-    /** Diameter. */
+    /** Diameter — or, for a shape, how far to grow it past its outline. */
     size: number;
     /** 0 = hard edge, 1 = fully feathered. */
     softness: number;
     /** 0–1, for the whole stroke — overlapping dabs within it don't build up past it. */
     opacity: number;
-    /** Flat [x0, y0, x1, y1, …]. */
+    /** Flat [x0, y0, x1, y1, …]: the brush's path, or a shape's outline. */
     points: number[];
+    /** A filled outline (rectangle, lasso, detected region) rather than a brush path. */
+    shape?: "polygon";
 }
 
 /** What the selection covers, from a quick low-resolution look. Bounds are fractions of the image. */
@@ -75,6 +77,44 @@ function blend(surfaces: Surfaces, mode: SelectionMode, opacity: number, rect: R
     context.restore();
 }
 
+/**
+ * A filled outline straight into the mask: grown by `size` (a round-joined outline stroke) and feathered
+ * by `softness`, added or erased at the stroke's opacity.
+ */
+function fillShape(mask: HTMLCanvasElement, { points, size, softness, opacity, mode }: SelectionStroke, width: number, height: number): Rect | null {
+    if (points.length < 6) return null;
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    for (let i = 0; i < points.length; i += 2) {
+        left = Math.min(left, points[i]!);
+        right = Math.max(right, points[i]!);
+        top = Math.min(top, points[i + 1]!);
+        bottom = Math.max(bottom, points[i + 1]!);
+    }
+    const feather = softness * Math.max(2, Math.min(right - left, bottom - top) * 0.08);
+    const reach = size + feather * 2 + 2;
+    const context = ctx(mask);
+    context.save();
+    context.globalAlpha = opacity;
+    context.globalCompositeOperation = mode === "erase" ? "destination-out" : "source-over";
+    if (feather > 0.5) context.filter = `blur(${feather.toFixed(1)}px)`;
+    context.fillStyle = context.strokeStyle = TINT;
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(points[0]!, points[1]!);
+    for (let i = 2; i < points.length; i += 2) context.lineTo(points[i]!, points[i + 1]!);
+    context.closePath();
+    context.fill();
+    if (size > 0) {
+        context.lineWidth = size * 2;
+        context.stroke();
+    }
+    context.restore();
+    return clampRect({ x: left - reach, y: top - reach, width: right - left + reach * 2, height: bottom - top + reach * 2 }, width, height);
+}
+
 const sameList = (a: readonly SelectionStroke[], b: readonly SelectionStroke[]) => a.length === b.length && a.every((stroke, index) => stroke === b[index]);
 const startsWith = (list: readonly SelectionStroke[], prefix: readonly SelectionStroke[]) => prefix.length <= list.length && prefix.every((stroke, index) => stroke === list[index]);
 
@@ -104,6 +144,7 @@ export function useSelectionMask(imageWidth: number, imageHeight: number) {
     /** Applies a whole, finished stroke (used when rebuilding for undo/redo). */
     const applyStroke = useCallback(
         (stroke: SelectionStroke): Rect | null => {
+            if (stroke.shape === "polygon") return fillShape(surfaces.mask, toMask(stroke), width, height);
             const { size, softness, opacity, mode, points } = toMask(stroke);
             const tip = tintedTip(size, softness);
             const dabs = ctx(surfaces.dabs);
