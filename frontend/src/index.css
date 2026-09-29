@@ -1450,3 +1450,50 @@
         }
     }
 }
+
+/* ------------------------------------------------------------------ document tools */
+
+/* A page being worked on: a line passes over it, top to bottom. */
+.doc-scan {
+    top: 12%;
+    animation: doc-scan 1.6s var(--ease-out) infinite;
+}
+@keyframes doc-scan {
+    0% {
+        top: 12%;
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    100% {
+        top: 85%;
+        opacity: 0;
+    }
+}
+/* No measurable progress yet: a short bar travels, rather than a number being invented. */
+.doc-indeterminate {
+    animation: doc-indeterminate 1.3s ease-in-out infinite;
+}
+@keyframes doc-indeterminate {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(300%);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .doc-scan {
+        animation: none;
+        top: 48%;
+    }
+    .doc-indeterminate {
+        animation: none;
+        width: 100%;
+        opacity: 0.5;
+    }
+}

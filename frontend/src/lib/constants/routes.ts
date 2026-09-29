@@ -9,6 +9,13 @@ export const ROUTES = {
     compress: "/compress",
     watermarkRemover: "/watermark-remover",
     ocr: "/ocr",
+    documents: "/documents",
+    pdfMerge: "/pdf/merge",
+    pdfSplit: "/pdf/split",
+    pdfOrganize: "/pdf/organize",
+    pdfRotate: "/pdf/rotate",
+    pdfToImages: "/pdf/to-images",
+    imagesToPdf: "/pdf/images-to-pdf",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

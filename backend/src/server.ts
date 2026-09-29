@@ -3,6 +3,11 @@ import { env } from "./config/env.js";
 import { rembgProcess } from "./services/background-removal/rembgProcess.js";
 import { ocrProcess } from "./services/ocr/providers/paddleProvider.js";
 import { upscaylProvider } from "./services/upscaling/upscaylProvider.js";
+import { resetWorkspaces } from "./services/files/workspace.js";
+import { deleteAllJobs } from "./services/jobs/jobService.js";
+
+// Documents from a previous run are never left behind.
+await resetWorkspaces();
 
 const app = createApp();
 
@@ -32,6 +37,7 @@ function shutdown(signal: string) {
     console.log(`${signal} received, shutting down...`);
     rembgProcess.stop();
     ocrProcess.stop();
+    void deleteAllJobs();
     server.close(() => process.exit(0));
     // Don't hang on keep-alive connections.
     setTimeout(() => process.exit(0), 3000).unref();

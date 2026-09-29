@@ -1,4 +1,5 @@
 import "dotenv/config";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -89,6 +90,24 @@ export const env = {
         concurrency: Math.floor(parsePositive(env_.RETOUCH_CONCURRENCY, 2)),
         /** Longest side of the region handed to a provider. Larger selections are processed scaled down, then blended back at full size. */
         maxWorkingSize: Math.floor(parsePositive(env_.RETOUCH_MAX_WORKING_SIZE, 2048)),
+    },
+
+    documents: {
+        /** Where uploads and results live while a job runs: outside anything served, wiped on start and after each job. */
+        tempDir: resolvePath(env_.DOCUMENTS_TEMP_DIR, path.join(os.tmpdir(), "studio-tools-documents")),
+        maxPdfMb: parsePositive(env_.DOCUMENTS_MAX_PDF_MB, 100),
+        maxImageMb: parsePositive(env_.DOCUMENTS_MAX_IMAGE_MB, 25),
+        /** All files in one request together. */
+        maxTotalMb: parsePositive(env_.DOCUMENTS_MAX_TOTAL_MB, 250),
+        /** Files in one request (PDFs to merge, images to combine). */
+        maxFiles: Math.floor(parsePositive(env_.DOCUMENTS_MAX_FILES, 50)),
+        /** Pages any one document may have, and pages one job may produce. */
+        maxPages: Math.floor(parsePositive(env_.DOCUMENTS_MAX_PAGES, 2000)),
+        /** Finished results are downloadable for this long, then deleted. */
+        resultTtlMinutes: parsePositive(env_.DOCUMENTS_RESULT_TTL_MINUTES, 30),
+        concurrency: Math.floor(parsePositive(env_.DOCUMENTS_CONCURRENCY, 2)),
+        /** Largest page image rendered (pixels), whatever the resolution asked for. */
+        maxRenderPixels: parsePositive(env_.DOCUMENTS_MAX_RENDER_PIXELS, 60_000_000),
     },
 
     ocr: {

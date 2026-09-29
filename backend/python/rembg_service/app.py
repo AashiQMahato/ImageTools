@@ -731,3 +731,58 @@ async def inpaint_region(file: UploadFile = File(...), mask: UploadFile = File(.
         lama_slots.release()
     log.info("inpainted in %.2fs", time.perf_counter() - started)
     return Response(content=png, media_type="image/png")
+
+
+# ---------------------------------------------------------------- PDF pages
+
+# PDF files are read only from the Node API's documents workspace — a path anywhere else is refused.
+DOCUMENTS_ROOT = os.path.realpath(os.environ.get("DOCUMENTS_TEMP_DIR", "") or "/nonexistent")
+# PDFium isn't thread-safe: one page at a time.
+pdf_lock = threading.Lock()
+
+
+def render_pdf_page(path: str, page: int, scale: float, max_pixels: int) -> bytes:
+    import pypdfium2 as pdfium
+
+    with pdf_lock:
+        document = pdfium.PdfDocument(path)
+        try:
+            if page < 0 or page >= len(document):
+                raise ValueError("page")
+            pdf_page = document[page]
+            width, height = pdf_page.get_size()
+            # Never more pixels than allowed, whatever resolution was asked for.
+            scale = min(scale, (max_pixels / max(1.0, width * height)) ** 0.5)
+            bitmap = pdf_page.render(scale=scale, fill_color=(255, 255, 255, 255), may_draw_forms=True)
+            image = bitmap.to_pil()
+            pdf_page.close()
+        finally:
+            document.close()
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG", compress_level=1)
+    return buffer.getvalue()
+
+
+@app.post("/pdf/render")
+async def pdf_render(
+    path: str = Form(...),
+    page: int = Form(...),
+    scale: float = Form(...),
+    max_pixels: int = Form(...),
+    x_internal_token: str | None = Header(default=None),
+):
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    real = os.path.realpath(path)
+    if not real.startswith(DOCUMENTS_ROOT + os.sep) or not os.path.isfile(real):
+        return error(400, "INVALID_REQUEST", "Invalid document.")
+    if not (0 < scale <= 12) or max_pixels <= 0:
+        return error(400, "INVALID_REQUEST", "Invalid resolution.")
+    try:
+        png = await run_in_threadpool(render_pdf_page, real, page, scale, max_pixels)
+    except ValueError:
+        return error(400, "INVALID_REQUEST", "Invalid page.")
+    except Exception:  # noqa: BLE001 — damaged or unsupported PDF; details stay in the log
+        log.exception("pdf render failed")
+        return error(422, "INVALID_PDF", "The PDF could not be read.")
+    return Response(content=png, media_type="image/png")

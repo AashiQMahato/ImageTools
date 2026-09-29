@@ -36,6 +36,15 @@ On macOS, port 5000 is taken by AirPlay Receiver — disable it or set `PORT=505
 | POST | `/api/photo-generator/adjust` | JSON `{ workId, crop }` | the photo re-rendered from a manual crop, with its checks |
 | POST | `/api/photo-generator/sheet` | JSON `{ photoId, copies }` | an A4 sheet of copies at the photo's DPI |
 | POST | `/api/ocr` | multipart `file`, `language` = `auto` \| `en` \| `ne` \| `mixed`, optional `region` (JSON: `{"type":"rect","box":{…}}` or `{"type":"polygon","points":[[x,y],…]}`, image pixels), `preserveLayout` | `application/x-ndjson`: a `stage` event per step, then `{ type: "result", data }` (blocks, lines, words, boxes, confidence, estimated formatting) or `{ type: "error" }` |
+| POST | `/api/pdf/merge` | multipart `files` (2+ PDFs, in order) | `202` + a job (see below) → one merged PDF |
+| POST | `/api/pdf/split` | multipart `files` (1 PDF), `mode` = `every` \| `ranges`, `ranges` (e.g. `1-3, 5, 8-`) | job → one PDF per page or range |
+| POST | `/api/pdf/organize` | multipart `files` (1 PDF), `plan` (JSON `[{ "page": 3, "rotate": 90 }, …]` — reorder, delete, duplicate, rotate, extract) | job → the rearranged PDF |
+| POST | `/api/pdf/to-images` | multipart `files` (1 PDF), `format` = `jpg` \| `png` \| `webp`, `dpi`, `quality`, optional `pages` | job → one image per page |
+| POST | `/api/pdf/from-images` | multipart `files` (images, in order), `size`, `orientation`, `margin` (mm), `fit`, `quality`, `maxDpi`, `rotations` (JSON) | job → one PDF |
+| GET | `/api/jobs/:id` | — | status (`queued` → `processing` → `completed` \| `failed`), progress `{ step, done, total }`, result files (ids, names, sizes), safe error |
+| GET | `/api/jobs/:id/files/:fileId` | `?inline=1` to view | a result file |
+| GET | `/api/jobs/:id/archive` | — | every result file as a ZIP, streamed |
+| DELETE | `/api/jobs/:id` | — | cancels the job and deletes its files now |
 | GET | `/api/photo-generator/files/:id` | `?download=1` to save | a generated file; kept in memory only, deleted after `PHOTO_FILE_TTL_MINUTES` |
 
 Successful responses include `Content-Disposition` (e.g. `photo-no-background.png`, `photo-upscaled-2x.jpg`), `X-Image-Width/Height` and `X-Original-Width/Height`. Errors are JSON: `{ "success": false, "message": "…", "code": "…" }` with codes such as `FILE_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `INVALID_IMAGE`, `IMAGE_TOO_LARGE`, `INVALID_SCALE`, `SERVER_BUSY`, `PROCESSING_TIMEOUT`, `BACKGROUND_REMOVAL_UNAVAILABLE`, `UPSCALING_UNAVAILABLE`, `RATE_LIMITED`.
@@ -69,6 +78,9 @@ src/
 │   ├── background-removal/   rembgProcess (lifecycle), rembgProvider, service (+ limiter)
 │   ├── upscaling/            upscaylProvider (probe, spawn, encode), service (+ limiter)
 │   ├── ocr/                  providers (PaddleOCR, Tesseract), preprocessing, layout, formatting, reconstruction
+│   ├── pdf/                  merge/split/organize, images → PDF, PDF → images (PDFium render), page ranges
+│   ├── jobs/                 background jobs: progress, results, expiry and deletion
+│   ├── files/                private per-job workspaces in the documents temp folder
 │   └── image-processing/     imageValidation.service
 └── utils/           AppError, ConcurrencyLimiter, withTempDir, http helpers
 python/rembg_service/  internal FastAPI service (see its README)

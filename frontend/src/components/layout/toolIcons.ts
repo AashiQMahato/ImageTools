@@ -1,4 +1,4 @@
-import { Crop, Eraser, IdCard, type LucideIcon, RotateCw, Scaling, ScanText, Shrink, SlidersHorizontal, Stamp, WandSparkles, ZoomIn } from "lucide-react";
+import { Combine, Crop, Eraser, FileImage, Images, LayoutGrid, RotateCwSquare, Split, IdCard, type LucideIcon, RotateCw, Scaling, ScanText, Shrink, SlidersHorizontal, Stamp, WandSparkles, ZoomIn } from "lucide-react";
 import type { ToolKey } from "@/lib/constants/navigation";
 
 /** The same mark for a tool everywhere it appears — these match the hero chips and the tool pages. */
@@ -14,4 +14,10 @@ export const TOOL_ICONS: Record<ToolKey, LucideIcon> = {
     rotateFlip: RotateCw,
     editor: SlidersHorizontal,
     ocr: ScanText,
+    pdfMerge: Combine,
+    pdfSplit: Split,
+    pdfOrganize: LayoutGrid,
+    pdfRotate: RotateCwSquare,
+    pdfToImages: FileImage,
+    imagesToPdf: Images,
 };
