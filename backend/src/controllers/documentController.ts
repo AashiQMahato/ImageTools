@@ -7,6 +7,13 @@ import { deleteJob, describeJob, type JobContext, jobFile, jobFiles, startJob } 
 import { type ImagesToPdfOptions, imagesToPdf } from "../services/pdf/imagesToPdfService.js";
 import { mergePdfs, organizePdf, parsePlan, splitPdf } from "../services/pdf/organizeService.js";
 import { pdfToImages } from "../services/pdf/renderService.js";
+import { type CompressPreset, compressPdf, PRESETS } from "../services/pdf/compressService.js";
+import { hexColour } from "../services/pdf/stamp.js";
+import { type NumberPosition, numberPages, type Position, watermarkPdf } from "../services/pdf/stampService.js";
+import { pdfToText } from "../services/pdf/textService.js";
+import { annotatePdf, parseAnnotations } from "../services/pdf/annotateService.js";
+import { protectPdf, unlockPdf } from "../services/pdf/protectService.js";
+import { pdfToWord } from "../services/pdf/wordService.js";
 import { AppError } from "../utils/AppError.js";
 
 const bad = (message: string) => new AppError(message, 400, "INVALID_REQUEST");
@@ -94,6 +101,106 @@ export const fromImagesHandler = jobHandler("from-images", (req, { files }) => {
     if (!Array.isArray(rotations) || rotations.some((turn) => ![0, 90, 180, 270].includes(turn))) throw bad("One of the options isn't valid.");
     const inputs = files.map((file, index) => ({ ...file, rotate: ((rotations as number[])[index] ?? 0) as 0 | 90 | 180 | 270 }));
     return (context) => imagesToPdf(inputs, options, context);
+});
+
+export const compressHandler = jobHandler("compress", (req, { files }) => {
+    const preset = choice(field(req, "preset"), ["maximum", "recommended", "high", "custom"] as const, "recommended") as CompressPreset;
+    const settings = preset === "custom" ? { quality: number(field(req, "quality"), 20, 100, 70), maxSide: number(field(req, "maxSide"), 512, 6000, 1800) } : PRESETS[preset];
+    return (context) => compressPdf(files[0]!, { quality: Math.round(settings.quality), maxSide: Math.round(settings.maxSide) }, context);
+});
+
+/** Short text: no control characters, not empty, not too long. */
+function label(value: string | undefined, max: number, missing: string) {
+    const text = [...(value ?? "")].map((char) => (char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127 ? " " : char)).join("").trim();
+    if (!text) throw bad(missing);
+    if (text.length > max) throw bad(`Please keep it under ${max} characters.`);
+    return text;
+}
+
+const POSITIONS = ["top-left", "top", "top-right", "left", "center", "right", "bottom-left", "bottom", "bottom-right"] as const;
+
+export const watermarkHandler = jobHandler("watermark", (req, { files, image }) => {
+    const kind = choice(field(req, "kind"), ["text", "image"] as const, "text");
+    const options = {
+        kind,
+        text: kind === "text" ? label(field(req, "text"), 120, "Type the watermark text.") : "",
+        fontSize: number(field(req, "fontSize"), 6, 300, 48),
+        color: hexColour(field(req, "color") ?? "#c0392b"),
+        opacity: number(field(req, "opacity"), 0.05, 1, 0.3),
+        rotation: number(field(req, "rotation"), -180, 180, -45),
+        position: choice(field(req, "position"), [...POSITIONS, "tile"] as const, "center") as Position | "tile",
+        imageScale: number(field(req, "imageScale"), 0.05, 1, 0.4),
+        pages: field(req, "pages")?.trim() || null,
+    };
+    if (kind === "image" && !image) throw new AppError("Choose an image for the watermark.", 400, "FILE_REQUIRED");
+    return (context) => watermarkPdf(files[0]!, options, kind === "image" ? image : null, context);
+});
+
+export const pageNumbersHandler = jobHandler("page-numbers", (req, { files }) => {
+    const template = label(field(req, "template"), 40, "Choose how the numbers read.");
+    if (!template.includes("{n}")) throw bad("The format needs the page number.");
+    const options = {
+        position: choice(field(req, "position"), ["top-left", "top", "top-right", "bottom-left", "bottom", "bottom-right"] as const, "bottom") as NumberPosition,
+        template,
+        fontSize: number(field(req, "fontSize"), 6, 48, 11),
+        margin: number(field(req, "margin"), 12, 144, 30),
+        start: Math.round(number(field(req, "start"), 0, 100_000, 1)),
+        color: hexColour(field(req, "color") ?? "#1a1a1a"),
+        pages: field(req, "pages")?.trim() || null,
+    };
+    return (context) => numberPages(files[0]!, options, context);
+});
+
+export const toTextHandler = jobHandler("to-text", (req, { files }) => {
+    const options = {
+        mode: choice(field(req, "mode"), ["auto", "text", "ocr"] as const, "auto"),
+        language: choice(field(req, "language"), ["auto", "en", "ne", "mixed"] as const, "auto"),
+    };
+    return (context) => pdfToText(files[0]!, options, context);
+});
+
+/** A password as typed: 1–256 characters, nothing else checked (any characters are allowed). */
+function password(value: string | undefined, required: boolean) {
+    const text = value ?? "";
+    if (required && !text) throw bad("Enter a password.");
+    if (text.length > 256) throw bad("That password is too long.");
+    return text;
+}
+
+export const protectHandler = jobHandler("protect", (req, { files }) => {
+    const options = {
+        password: password(field(req, "password"), true),
+        ownerPassword: field(req, "ownerPassword") ? password(field(req, "ownerPassword"), true) : null,
+        allowPrint: field(req, "allowPrint") === "true",
+        allowCopy: field(req, "allowCopy") === "true",
+        allowEdit: field(req, "allowEdit") === "true",
+    };
+    return (context) => protectPdf(files[0]!, options, context);
+});
+
+export const unlockHandler = jobHandler("unlock", (req, { files }) => {
+    const secret = password(field(req, "password"), false);
+    return (context) => unlockPdf(files[0]!, secret, context);
+});
+
+export const annotateHandler = jobHandler("annotate", (req, { files, images }) => {
+    const annotations = parseAnnotations(field(req, "annotations"));
+    let deletePages: unknown = [];
+    try {
+        deletePages = JSON.parse(field(req, "deletePages") ?? "[]");
+    } catch {
+        throw bad("One of the options isn't valid.");
+    }
+    if (!Array.isArray(deletePages) || !deletePages.every((page) => Number.isInteger(page) && page > 0)) throw bad("One of the options isn't valid.");
+    // Images are matched to annotations by the key they were uploaded under (their file name, minus the extension).
+    const pictures = new Map(images.map((image) => [image.name.replace(/\.[^.]*$/, ""), image.path]));
+    const purpose = field(req, "purpose") === "sign" ? "sign" : "edit";
+    return (context) => annotatePdf(files[0]!, annotations, deletePages as number[], pictures, context, purpose);
+});
+
+export const toWordHandler = jobHandler("to-word", (req, { files }) => {
+    const language = choice(field(req, "language"), ["auto", "en", "ne", "mixed"] as const, "auto");
+    return (context) => pdfToWord(files[0]!, { language }, context);
 });
 
 // ------------------------------------------------------------------ jobs

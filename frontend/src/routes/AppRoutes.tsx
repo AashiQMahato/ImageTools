@@ -21,6 +21,20 @@ const SplitPage = lazy(() => import("@/pages/Pdf/SplitPage").then((module) => ({
 const OrganizePage = lazy(() => import("@/pages/Pdf/OrganizePage").then((module) => ({ default: module.OrganizePage })));
 const RotatePage = lazy(() => import("@/pages/Pdf/OrganizePage").then((module) => ({ default: module.RotatePage })));
 const ToImagesPage = lazy(() => import("@/pages/Pdf/ToImagesPage").then((module) => ({ default: module.ToImagesPage })));
+const CompressPdfPage = lazy(() => import("@/pages/Pdf/CompressPage").then((module) => ({ default: module.CompressPage })));
+const WatermarkPage = lazy(() => import("@/pages/Pdf/WatermarkPage").then((module) => ({ default: module.WatermarkPage })));
+const PageNumbersPage = lazy(() => import("@/pages/Pdf/PageNumbersPage").then((module) => ({ default: module.PageNumbersPage })));
+const ToWordPage = lazy(() => import("@/pages/Pdf/ToWordPage").then((module) => ({ default: module.ToWordPage })));
+const ViewerPage = lazy(() => import("@/pages/Pdf/ViewerPage").then((module) => ({ default: module.ViewerPage })));
+const PdfEditorPage = lazy(() => import("@/pages/Pdf/EditorPage").then((module) => ({ default: module.EditorPage })));
+const SignPage = lazy(() => import("@/pages/Pdf/SignPage").then((module) => ({ default: module.SignPage })));
+const ProtectPage = lazy(() => import("@/pages/Pdf/ProtectPage").then((module) => ({ default: module.ProtectPage })));
+const UnlockPage = lazy(() => import("@/pages/Pdf/UnlockPage").then((module) => ({ default: module.UnlockPage })));
+const ToTextPage = lazy(() => import("@/pages/Pdf/ToTextPage").then((module) => ({ default: module.ToTextPage })));
+const TextEditorPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextEditorPage })));
+const TextCleanerPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextCleanerPage })));
+const CaseConverterPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.CaseConverterPage })));
+const WordCounterPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.WordCounterPage })));
 const ImagesToPdfPage = lazy(() => import("@/pages/Pdf/ImagesToPdfPage").then((module) => ({ default: module.ImagesToPdfPage })));
 
 const later = (page: ReactNode) => <Suspense fallback={null}>{page}</Suspense>;
@@ -43,6 +57,20 @@ export function AppRoutes() {
                 <Route path={ROUTES.pdfRotate} element={later(<RotatePage />)} />
                 <Route path={ROUTES.pdfToImages} element={later(<ToImagesPage />)} />
                 <Route path={ROUTES.imagesToPdf} element={later(<ImagesToPdfPage />)} />
+                <Route path={ROUTES.pdfCompress} element={later(<CompressPdfPage />)} />
+                <Route path={ROUTES.pdfWatermark} element={later(<WatermarkPage />)} />
+                <Route path={ROUTES.pdfPageNumbers} element={later(<PageNumbersPage />)} />
+                <Route path={ROUTES.pdfToText} element={later(<ToTextPage />)} />
+                <Route path={ROUTES.pdfToWord} element={later(<ToWordPage />)} />
+                <Route path={ROUTES.pdfViewer} element={later(<ViewerPage />)} />
+                <Route path={ROUTES.pdfEditor} element={later(<PdfEditorPage />)} />
+                <Route path={ROUTES.pdfSign} element={later(<SignPage />)} />
+                <Route path={ROUTES.pdfProtect} element={later(<ProtectPage />)} />
+                <Route path={ROUTES.pdfUnlock} element={later(<UnlockPage />)} />
+                <Route path={ROUTES.textEditor} element={later(<TextEditorPage />)} />
+                <Route path={ROUTES.textCleaner} element={later(<TextCleanerPage />)} />
+                <Route path={ROUTES.caseConverter} element={later(<CaseConverterPage />)} />
+                <Route path={ROUTES.wordCounter} element={later(<WordCounterPage />)} />
                 <Route path={ROUTES.compress} element={<CompressorPage />} />
                 <Route path={ROUTES.crop} element={<CropperPage />} />
                 <Route path={ROUTES.editor} element={<EditorPage />} />

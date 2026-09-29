@@ -93,6 +93,8 @@ Optional fallback: [Tesseract](https://github.com/tesseract-ocr/tesseract) (Apac
 | Editing | [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — merge, split, organize, rotate, images → PDF |
 | Rendering | [pypdfium2](https://github.com/pypdfium2-team/pypdfium2) (Apache-2.0 / BSD-3-Clause) with [PDFium](https://pdfium.googlesource.com/pdfium/) (BSD-3-Clause), inside our internal service (`backend/python/rembg_service`) |
 | Archives | [fflate](https://github.com/101arrowz/fflate) (MIT) — ZIP downloads, streamed |
+| Compression | [pikepdf](https://github.com/pikepdf/pikepdf) (MPL-2.0) with [qpdf](https://github.com/qpdf/qpdf) (Apache-2.0), inside our internal service |
+| Nepali stamps | [Noto Sans Devanagari](https://github.com/notofonts/devanagari) (SIL Open Font License 1.1; licence in `backend/assets/fonts/OFL.txt`), shaped by HarfBuzz/Pango through sharp (LGPL-3.0 libvips, dynamically linked) |
 | Previews | PDF.js (Apache-2.0), in the browser |
 
 ## Frontend

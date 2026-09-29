@@ -21,6 +21,8 @@ interface DocumentToolLayoutProps {
     doneTitle?: string;
     /** Shown above the result's file list (e.g. a preview). */
     result?: ReactNode;
+    /** Replaces the standard result (file list) entirely — for results you work with, like extracted text. */
+    resultView?: ReactNode;
     onStartOver: () => void;
     /** The tool's settings (right panel). */
     options?: ReactNode;
@@ -38,7 +40,7 @@ interface DocumentToolLayoutProps {
  * The frame every document tool shares: drop zone → workspace with options → progress → result,
  * with failures reported in words (never raw server errors) and the work kept for another try.
  */
-export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, job, runningTitle, doneTitle, result, onStartOver, options, toolbar, action, secondary, notice, children }: DocumentToolLayoutProps) {
+export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, job, runningTitle, doneTitle, result, resultView, onStartOver, options, toolbar, action, secondary, notice, children }: DocumentToolLayoutProps) {
     const t = useT();
     const running = job.phase === "uploading" || job.phase === "processing" || job.phase === "finalizing";
     const done = job.phase === "completed" && job.job;
@@ -69,9 +71,11 @@ export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, 
                     </div>
                 ) : done ? (
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 sm:px-6">
-                        <JobResult job={job.job!} title={doneTitle} onStartOver={onStartOver}>
-                            {result}
-                        </JobResult>
+                        {resultView ?? (
+                            <JobResult job={job.job!} title={doneTitle} onStartOver={onStartOver}>
+                                {result}
+                            </JobResult>
+                        )}
                     </div>
                 ) : (
                     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5">{children}</div>

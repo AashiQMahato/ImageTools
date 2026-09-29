@@ -16,6 +16,20 @@ export const ROUTES = {
     pdfRotate: "/pdf/rotate",
     pdfToImages: "/pdf/to-images",
     imagesToPdf: "/pdf/images-to-pdf",
+    pdfCompress: "/pdf/compress",
+    pdfWatermark: "/pdf/watermark",
+    pdfPageNumbers: "/pdf/page-numbers",
+    pdfToText: "/pdf/to-text",
+    pdfToWord: "/pdf/to-word",
+    pdfViewer: "/pdf/viewer",
+    pdfEditor: "/pdf/editor",
+    pdfSign: "/pdf/sign",
+    pdfProtect: "/pdf/protect",
+    pdfUnlock: "/pdf/unlock",
+    textEditor: "/text/editor",
+    textCleaner: "/text/cleaner",
+    caseConverter: "/text/case-converter",
+    wordCounter: "/text/word-counter",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

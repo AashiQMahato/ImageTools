@@ -29,6 +29,9 @@ import { Fitted } from "@/components/studio/StudioParts";
 import type { OcrDocument } from "@/lib/api/ocrApi";
 import { loadDraftOcr, saveDraftOcr } from "@/lib/draft";
 import { cn } from "@/lib/utils/cn";
+import { openInTextEditor } from "@/features/text/textDocument";
+import { ROUTES } from "@/lib/constants/routes";
+import { useNavigate } from "react-router-dom";
 import { downloadFile } from "@/lib/utils/download";
 import { ImageStoreContext, useSectionImageStore, useTextImageStore, useToolImage } from "@/store/useImageStore";
 import type { ImageFile } from "@/types/image";
@@ -340,6 +343,7 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
 
     // ------------------------------------------------------------------ export
     const [exporting, setExporting] = useState<ExportKind | null>(null);
+    const navigate = useNavigate();
     const [scope, setScope] = useState<"page" | "all">("page");
     const everyPage = scope === "all" && source.pdf !== null;
     const name = safeName(everyPage ? source.pdf!.name : image.name);
@@ -390,6 +394,12 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
         setExporting(kind);
         try {
             switch (kind) {
+                case "editor": {
+                    // The text, as edited, into the full text editor (every page, when exporting all pages).
+                    openInTextEditor({ type: "doc", content: pages.flatMap((page) => page.doc.toJSON().content ?? []) });
+                    navigate(ROUTES.textEditor);
+                    return;
+                }
                 case "copy":
                     try {
                         await navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([text], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]);

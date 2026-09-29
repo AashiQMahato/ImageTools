@@ -28,6 +28,8 @@ interface PageGridProps {
     badge?: (item: PageItem, index: number) => ReactNode;
     /** Dim pages that won't be in the result. */
     dimmed?: (item: PageItem) => boolean;
+    /** Drawn over each page (a preview of what will be added), in a box exactly over the page. */
+    overlay?: (item: PageItem, index: number, size: { width: number; height: number }) => ReactNode;
     label: string;
 }
 
@@ -35,7 +37,7 @@ interface PageGridProps {
  * Every page as a thumbnail, drawn as it scrolls into view. Click (or Space) selects, Shift-click
  * selects a run, and with `onReorder` pages can be dragged into a new order.
  */
-export function PageGrid({ document, sizes, items, selected = null, onSelectedChange, onReorder, actions, badge, dimmed, label }: PageGridProps) {
+export function PageGrid({ document, sizes, items, selected = null, onSelectedChange, onReorder, actions, badge, dimmed, overlay, label }: PageGridProps) {
     const t = useT();
     const copy = t.documents.pages;
     const anchor = useRef<string | null>(null);
@@ -94,6 +96,11 @@ export function PageGrid({ document, sizes, items, selected = null, onSelectedCh
                         >
                             <PageFrame size={size} rotate={item.rotate}>
                                 <PageThumbnail document={document} page={item.page} rotate={item.rotate} size={size} width={160} label="" />
+                                {overlay && (
+                                    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden [container-type:inline-size]">
+                                        {overlay(item, index, item.rotate % 180 ? { width: size.height, height: size.width } : size)}
+                                    </div>
+                                )}
                             </PageFrame>
                             <span className="flex items-center justify-center gap-1 text-xs text-secondary tabular-nums">
                                 {onReorder && (
@@ -136,7 +143,7 @@ function PageFrame({ size, rotate, children }: { size: { width: number; height: 
     const aspect = rotate % 180 ? size.height / size.width : size.width / size.height;
     return (
         <div className="grid aspect-[3/4] place-items-center">
-            <div style={aspect >= FRAME ? { width: "100%" } : { height: "100%", aspectRatio: `${aspect}` }} className="grid place-items-center">
+            <div style={aspect >= FRAME ? { width: "100%" } : { height: "100%", aspectRatio: `${aspect}` }} className="relative grid place-items-center">
                 {children}
             </div>
         </div>

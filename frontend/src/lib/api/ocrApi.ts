@@ -30,6 +30,8 @@ export interface DocLine {
     words: DocWord[];
     /** Where the line clearly differs from its block (also estimated). */
     style?: Partial<Pick<BlockStyle, "color" | "fontWeight">>;
+    /** Runs in their own style, where a line mixes them (read from a PDF's text, not estimated). */
+    spans?: { text: string; bold: boolean; italic: boolean; color: string | null }[];
 }
 
 /** Formatting estimated from the pixels — never the original's exact font data. `inferred`: how sure, per property (0–1). */

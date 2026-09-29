@@ -1,4 +1,4 @@
-import { Combine, Crop, Eraser, FileImage, Images, LayoutGrid, RotateCwSquare, Split, IdCard, type LucideIcon, RotateCw, Scaling, ScanText, Shrink, SlidersHorizontal, Stamp, WandSparkles, ZoomIn } from "lucide-react";
+import { BookOpen, FilePen, FileText, LockKeyhole, LockKeyholeOpen, Signature, BrushCleaning, CaseSensitive, Combine, Crop, Droplets, FilePenLine, Sigma, Eraser, FileArchive, FileImage, FileType, Hash, Images, LayoutGrid, RotateCwSquare, Split, IdCard, type LucideIcon, RotateCw, Scaling, ScanText, Shrink, SlidersHorizontal, Stamp, WandSparkles, ZoomIn } from "lucide-react";
 import type { ToolKey } from "@/lib/constants/navigation";
 
 /** The same mark for a tool everywhere it appears — these match the hero chips and the tool pages. */
@@ -20,4 +20,18 @@ export const TOOL_ICONS: Record<ToolKey, LucideIcon> = {
     pdfRotate: RotateCwSquare,
     pdfToImages: FileImage,
     imagesToPdf: Images,
+    pdfCompress: FileArchive,
+    pdfWatermark: Droplets,
+    pdfPageNumbers: Hash,
+    pdfToText: FileType,
+    pdfToWord: FileText,
+    pdfViewer: BookOpen,
+    pdfEditor: FilePen,
+    pdfSign: Signature,
+    pdfProtect: LockKeyhole,
+    pdfUnlock: LockKeyholeOpen,
+    textEditor: FilePenLine,
+    textCleaner: BrushCleaning,
+    caseConverter: CaseSensitive,
+    wordCounter: Sigma,
 };

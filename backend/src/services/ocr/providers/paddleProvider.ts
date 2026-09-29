@@ -97,6 +97,22 @@ export const paddleProvider: OcrProvider = {
         const regions: LayoutRegion[] = body.regions.map((region) => ({ label: region.label, score: region.score, box: toBox(region.box) }));
         return { width: body.width, height: body.height, language: body.language, lines, regions };
     },
+    async detectLayout(image, signal) {
+        const connection = await ocrProcess.ensureReady();
+        if (!connection) throw unavailable();
+        const form = new FormData();
+        form.append("file", new Blob([new Uint8Array(image)]), "page.png");
+        let response: Response;
+        try {
+            response = await fetchBuffered(`${connection.url}/layout`, { method: "POST", body: form, headers: { "x-internal-token": connection.token }, signal: AbortSignal.any([signal, AbortSignal.timeout(env.ocr.timeoutMs)]) });
+        } catch {
+            if (signal.aborted) throw new AppError("The request was cancelled.", 499, "REQUEST_CANCELLED");
+            throw unavailable();
+        }
+        if (!response.ok) throw unavailable();
+        const body = (await response.json()) as { regions: { label: string; score: number; box: number[] }[] };
+        return body.regions.map((region) => ({ label: region.label, score: region.score, box: toBox(region.box) }));
+    },
     async detectOrientation(image, signal) {
         const connection = await ocrProcess.ensureReady();
         if (!connection) throw unavailable();

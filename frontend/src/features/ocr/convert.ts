@@ -117,11 +117,22 @@ interface LineSource {
     text: string;
     words: readonly DocWord[];
     style?: DocLine["style"];
+    spans?: DocLine["spans"];
+}
+
+/** A line whose runs differ in style (a bold label, a red word), each run in its own. */
+function spanRuns(spans: NonNullable<DocLine["spans"]>, style: BlockStyle): JSONContent[] {
+    return spans
+        .filter((span) => span.text)
+        .map((span) => ({ type: "text", text: span.text, marks: baseMarks({ ...style, fontWeight: span.bold ? 700 : 400, fontStyle: span.italic ? "italic" : "normal", color: span.color ?? style.color }) }));
 }
 
 /** Lines joined by line breaks, as in the image; a line that looks different from its block keeps its own colour and weight. */
 function lineContent(lines: readonly LineSource[], style: BlockStyle): JSONContent[] {
-    return lines.flatMap((line, index) => [...(index ? [{ type: "hardBreak" }] : []), ...runs(line.text, line.words, baseMarks(line.style ? { ...style, ...line.style } : style))]);
+    return lines.flatMap((line, index) => [
+        ...(index ? [{ type: "hardBreak" }] : []),
+        ...(line.spans?.length && line.spans.map((span) => span.text).join("") === line.text ? spanRuns(line.spans, style) : runs(line.text, line.words, baseMarks(line.style ? { ...style, ...line.style } : style))),
+    ]);
 }
 
 const BULLETS: Record<string, string> = { "•": "disc", "●": "disc", "·": "disc", "○": "circle", "◦": "circle", "▪": "square", "■": "square" };
@@ -153,7 +164,7 @@ function listItems(block: DocBlock): JSONContent[] {
     return block.list!.items.map((item) => {
         const lines = item.text.split("\n").map((text) => {
             const source = block.lines[lineIndex++];
-            return { text, words: source?.words ?? [], style: source?.style };
+            return { text, words: source?.words ?? [], style: source?.style, spans: source?.spans?.map((span) => span.text).join("") === text ? source.spans : undefined };
         });
         return { type: "listItem", content: [{ type: "paragraph", content: lineContent(lines, block.style) }] };
     });

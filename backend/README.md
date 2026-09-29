@@ -41,6 +41,14 @@ On macOS, port 5000 is taken by AirPlay Receiver — disable it or set `PORT=505
 | POST | `/api/pdf/organize` | multipart `files` (1 PDF), `plan` (JSON `[{ "page": 3, "rotate": 90 }, …]` — reorder, delete, duplicate, rotate, extract) | job → the rearranged PDF |
 | POST | `/api/pdf/to-images` | multipart `files` (1 PDF), `format` = `jpg` \| `png` \| `webp`, `dpi`, `quality`, optional `pages` | job → one image per page |
 | POST | `/api/pdf/from-images` | multipart `files` (images, in order), `size`, `orientation`, `margin` (mm), `fit`, `quality`, `maxDpi`, `rotations` (JSON) | job → one PDF |
+| POST | `/api/pdf/compress` | multipart `files` (1 PDF), `preset` = `maximum` \| `recommended` \| `high` \| `custom` (+ `quality`, `maxSide`) | job → the compressed PDF; summary `{ before, after, smaller }` (the original back if nothing was gained) |
+| POST | `/api/pdf/watermark` | multipart `files` (1 PDF), `kind` = `text` \| `image` (+ `image` file), `text`, `fontSize`, `color`, `opacity`, `rotation`, `position` (9 spots or `tile`), `imageScale`, optional `pages` | job → the watermarked PDF |
+| POST | `/api/pdf/page-numbers` | multipart `files` (1 PDF), `template` (e.g. `Page {n} of {total}`), `position`, `fontSize`, `margin`, `start`, optional `pages` | job → the numbered PDF |
+| POST | `/api/pdf/to-text` | multipart `files` (1 PDF), `mode` = `auto` \| `text` \| `ocr`, `language` | job → `.txt` and per-page `.json` (text layer or OCR, with the other reading kept) |
+| POST | `/api/pdf/to-word` | multipart `files` (1 PDF), `language` | job → per-page `.json` documents (headings, paragraphs, lists, tables, styled runs; OCR for scans) with the pictures cropped from each page; the browser builds the `.docx` |
+| POST | `/api/pdf/annotate` | multipart `files` (1 PDF), `annotations` (JSON: text, image, ink, highlight/underline/strike, rect/ellipse, line/arrow — points on the page as displayed), `deletePages` (JSON), `images` (the pictures used, named by their key), `purpose` = `edit` \| `sign` | job → the edited (or signed) PDF; the original content is kept underneath |
+| POST | `/api/pdf/protect` | multipart `files` (1 PDF), `password`, optional `ownerPassword`, `allowPrint`, `allowCopy`, `allowEdit` | job → the PDF encrypted with AES-256 (passwords are never logged or kept) |
+| POST | `/api/pdf/unlock` | multipart `files` (1 PDF), `password` (may be empty for restrictions-only PDFs) | job → the PDF without its password; `422 WRONG_PASSWORD` if it doesn't open it |
 | GET | `/api/jobs/:id` | — | status (`queued` → `processing` → `completed` \| `failed`), progress `{ step, done, total }`, result files (ids, names, sizes), safe error |
 | GET | `/api/jobs/:id/files/:fileId` | `?inline=1` to view | a result file |
 | GET | `/api/jobs/:id/archive` | — | every result file as a ZIP, streamed |

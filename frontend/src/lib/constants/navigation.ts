@@ -26,8 +26,8 @@ export const PRIMARY_NAV: readonly NavItem[] = [
  * Rotate & Flip opens the crop tool, whose controls rotate, flip and straighten.
  */
 export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "photoGenerator" | "watermarkRemover" | "compressor" | "crop" | "resize" | "rotateFlip" | "editor" | "ocr" | DocumentToolKey;
-export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf";
-export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf";
+export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf" | "pdfCompress" | "pdfWatermark" | "pdfPageNumbers" | "pdfToText" | "pdfToWord" | "pdfViewer" | "pdfEditor" | "pdfSign" | "pdfProtect" | "pdfUnlock" | "textEditor" | "textCleaner" | "caseConverter" | "wordCounter";
+export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf" | "pdfConvert" | "pdfEdit";
 
 export interface NavTool {
     key: ToolKey;
@@ -64,9 +64,19 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
     { key: "editor", items: [{ key: "editor", href: ROUTES.editor }] },
 ];
 
-/** The Documents menu: text tools and PDF tools. */
+/** The Documents menu: text tools; organizing PDFs; converting them; editing, signing and securing them. */
 export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
-    { key: "text", items: [{ key: "ocr", href: ROUTES.ocr }] },
+    {
+        key: "text",
+        items: [
+            { key: "textEditor", href: ROUTES.textEditor },
+            { key: "ocr", href: ROUTES.ocr },
+            { key: "pdfToText", href: ROUTES.pdfToText },
+            { key: "textCleaner", href: ROUTES.textCleaner },
+            { key: "caseConverter", href: ROUTES.caseConverter },
+            { key: "wordCounter", href: ROUTES.wordCounter },
+        ],
+    },
     {
         key: "pdf",
         items: [
@@ -74,8 +84,27 @@ export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
             { key: "pdfSplit", href: ROUTES.pdfSplit },
             { key: "pdfOrganize", href: ROUTES.pdfOrganize },
             { key: "pdfRotate", href: ROUTES.pdfRotate },
+            { key: "pdfCompress", href: ROUTES.pdfCompress },
+            { key: "pdfViewer", href: ROUTES.pdfViewer },
+        ],
+    },
+    {
+        key: "pdfConvert",
+        items: [
+            { key: "pdfToWord", href: ROUTES.pdfToWord },
             { key: "pdfToImages", href: ROUTES.pdfToImages },
             { key: "imagesToPdf", href: ROUTES.imagesToPdf },
+        ],
+    },
+    {
+        key: "pdfEdit",
+        items: [
+            { key: "pdfEditor", href: ROUTES.pdfEditor },
+            { key: "pdfSign", href: ROUTES.pdfSign },
+            { key: "pdfWatermark", href: ROUTES.pdfWatermark },
+            { key: "pdfPageNumbers", href: ROUTES.pdfPageNumbers },
+            { key: "pdfProtect", href: ROUTES.pdfProtect },
+            { key: "pdfUnlock", href: ROUTES.pdfUnlock },
         ],
     },
 ];

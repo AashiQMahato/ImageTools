@@ -13,7 +13,12 @@ import {
     ListOrdered,
     type LucideIcon,
     Minus,
+    Link2,
     MoreHorizontal,
+    Plus as PlusIcon,
+    Quote,
+        Table as TableIcon,
+    Code as CodeIcon,
     Plus,
     Redo2,
     RemoveFormatting,
@@ -66,6 +71,10 @@ function useFormatState(editor: Editor) {
                 lineHeight: (block?.attrs.lineHeight as number | null) ?? null,
                 spacing: (block?.attrs.spacing as number | null) ?? null,
                 indent: (block?.attrs.indent as number | undefined) ?? 0,
+                link: current.isActive("link") ? ((current.getAttributes("link").href as string | undefined) ?? "") : null,
+                blockquote: current.isActive("blockquote"),
+                code: current.isActive("code"),
+                inTable: current.isActive("table"),
             };
         },
     });
@@ -152,7 +161,8 @@ function ToolButton({ icon: Icon, label, onClick, pressed, disabled }: { icon: L
 const Divider = () => <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-[var(--card-line)]" />;
 
 /** The formatting bar above the page. On phones it's the essentials plus a Format sheet with the rest. */
-export function OcrToolbar({ editor }: { editor: Editor }) {
+/** `extended`: the full text editor's extras too — links, quotes, code, tables and dividers. */
+export function OcrToolbar({ editor, extended = false }: { editor: Editor; extended?: boolean }) {
     const t = useT();
     const copy = t.ocr.toolbar;
     const state = useFormatState(editor);
@@ -200,6 +210,7 @@ export function OcrToolbar({ editor }: { editor: Editor }) {
                 <AlignControl state={state} onChange={commands.setAlign} />
                 <ToolButton icon={List} label={copy.bulletList} pressed={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} />
                 <ToolButton icon={ListOrdered} label={copy.orderedList} pressed={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
+                {extended && <ExtraControls editor={editor} state={state} />}
                 <MoreControl state={state} commands={commands} editor={editor} />
             </div>
 
@@ -230,6 +241,11 @@ export function OcrToolbar({ editor }: { editor: Editor }) {
                     <ToolButton icon={IndentIncrease} label={copy.indent} onClick={() => commands.indent(1, state.inList)} />
                     <ToolButton icon={RemoveFormatting} label={copy.clear} onClick={() => editor.chain().focus().unsetAllMarks().run()} />
                 </div>
+                {extended && (
+                    <div className="flex flex-wrap items-center gap-1">
+                        <ExtraControls editor={editor} state={state} />
+                    </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                     <SpacingSelects state={state} commands={commands} labelled />
                 </div>
@@ -490,5 +506,126 @@ function MoreControl({ state, commands, editor }: { state: FormatState; commands
                 </div>
             )}
         </ToolPopover>
+    );
+}
+
+/** Accepts "example.com" as https://example.com; only web and mail links. */
+function normaliseUrl(value: string): string | null {
+    const text = value.trim();
+    if (!text) return null;
+    const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`;
+    try {
+        const url = new URL(withScheme);
+        return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function LinkControl({ editor, href }: { editor: Editor; href: string | null }) {
+    const copy = useT().ocr.toolbar;
+    const [value, setValue] = useState("");
+    const [invalid, setInvalid] = useState(false);
+    const id = useId();
+    return (
+        <ToolPopover icon={Link2} label={copy.link} pressed={href !== null}>
+            {(close) => (
+                <form
+                    className="flex w-72 flex-col gap-2 p-1"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        const url = normaliseUrl(value || href || "");
+                        if (!url) return setInvalid(true);
+                        editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+                        setInvalid(false);
+                        close();
+                    }}
+                >
+                    <label htmlFor={id} className="text-xs font-medium text-secondary">
+                        {copy.linkUrl}
+                    </label>
+                    <input
+                        id={id}
+                        autoFocus
+                        defaultValue={href ?? ""}
+                        onChange={(event) => setValue(event.target.value)}
+                        placeholder="https://"
+                        aria-invalid={invalid}
+                        className={cn("h-9 rounded-lg border bg-primary px-2.5 text-sm text-primary outline-focus-ring focus-visible:outline-2", invalid ? "border-error_subtle" : "border-[var(--card-line)]")}
+                    />
+                    {invalid && <p className="text-xs text-error-primary">{copy.linkInvalid}</p>}
+                    <div className="flex justify-end gap-2">
+                        {href !== null && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+                                    close();
+                                }}
+                                className="h-8 cursor-pointer rounded-lg px-2.5 text-sm font-medium text-secondary outline-focus-ring hover:bg-primary_hover focus-visible:outline-2"
+                            >
+                                {copy.removeLink}
+                            </button>
+                        )}
+                        <button type="submit" className="h-8 cursor-pointer rounded-lg bg-brand-solid px-3 text-sm font-semibold text-white outline-focus-ring focus-visible:outline-2">
+                            {copy.apply}
+                        </button>
+                    </div>
+                </form>
+            )}
+        </ToolPopover>
+    );
+}
+
+function MenuItem({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+    return (
+        <button
+            type="button"
+            disabled={disabled}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={onClick}
+            className="flex h-9 w-full cursor-pointer items-center rounded-lg px-2.5 text-left text-sm text-secondary outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+            {label}
+        </button>
+    );
+}
+
+/** Links, quotes, code, and what can be inserted: code blocks, tables, dividers — and table editing when in one. */
+function ExtraControls({ editor, state }: { editor: Editor; state: FormatState }) {
+    const copy = useT().ocr.toolbar;
+    const run = (command: (chain: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>, close: () => void) => {
+        command(editor.chain().focus()).run();
+        close();
+    };
+    return (
+        <>
+            <Divider />
+            <LinkControl editor={editor} href={state.link} />
+            <ToolButton icon={Quote} label={copy.quote} pressed={state.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
+            <ToolButton icon={CodeIcon} label={copy.code} pressed={state.code} onClick={() => editor.chain().focus().toggleCode().run()} />
+            <ToolPopover icon={PlusIcon} label={copy.insert}>
+                {(close) => (
+                    <div className="flex w-48 flex-col p-0.5">
+                        <MenuItem label={copy.codeBlock} onClick={() => run((chain) => chain.toggleCodeBlock(), close)} />
+                        <MenuItem label={copy.insertTable} onClick={() => run((chain) => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }), close)} />
+                        <MenuItem label={copy.divider} onClick={() => run((chain) => chain.setHorizontalRule(), close)} />
+                    </div>
+                )}
+            </ToolPopover>
+            {state.inTable && (
+                <ToolPopover icon={TableIcon} label={copy.table}>
+                    {(close) => (
+                        <div className="flex w-48 flex-col p-0.5">
+                            <MenuItem label={copy.addRow} onClick={() => run((chain) => chain.addRowAfter(), close)} />
+                            <MenuItem label={copy.addColumn} onClick={() => run((chain) => chain.addColumnAfter(), close)} />
+                            <MenuItem label={copy.deleteRow} onClick={() => run((chain) => chain.deleteRow(), close)} />
+                            <MenuItem label={copy.deleteColumn} onClick={() => run((chain) => chain.deleteColumn(), close)} />
+                            <MenuItem label={copy.deleteTable} onClick={() => run((chain) => chain.deleteTable(), close)} />
+                        </div>
+                    )}
+                </ToolPopover>
+            )}
+        </>
     );
 }

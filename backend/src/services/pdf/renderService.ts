@@ -17,15 +17,15 @@ export interface RenderOptions {
     pages: string | null;
 }
 
-const unavailable = () => new AppError("Page rendering is temporarily unavailable. Please try again in a moment.", 503, "RENDERING_UNAVAILABLE");
+export const renderingUnavailable = () => new AppError("Page rendering is temporarily unavailable. Please try again in a moment.", 503, "RENDERING_UNAVAILABLE");
 
 /**
  * One page as a PNG, drawn by PDFium in the internal image service. The service reads the file
  * from the job's workspace (it only accepts paths inside the documents temp root).
  */
-async function renderPage(path: string, page: number, dpi: number, signal: AbortSignal): Promise<Buffer> {
+export async function renderPage(path: string, page: number, dpi: number, signal: AbortSignal): Promise<Buffer> {
     const connection = rembgProcess.connection;
-    if (!connection) throw unavailable();
+    if (!connection) throw renderingUnavailable();
     const form = new FormData();
     form.append("path", path);
     form.append("page", String(page - 1));
@@ -36,12 +36,12 @@ async function renderPage(path: string, page: number, dpi: number, signal: Abort
         response = await fetchBuffered(`${connection.url}/pdf/render`, { method: "POST", body: form, headers: { "x-internal-token": connection.token }, signal: AbortSignal.any([signal, AbortSignal.timeout(120_000)]) });
     } catch {
         if (signal.aborted) throw new AppError("The request was cancelled.", 499, "REQUEST_CANCELLED");
-        throw unavailable();
+        throw renderingUnavailable();
     }
     if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { code?: string } | null;
         if (body?.code === "INVALID_PDF") throw new AppError("We couldn't read this PDF. It may be damaged.", 422, "INVALID_PDF");
-        if (response.status === 503) throw unavailable();
+        if (response.status === 503) throw renderingUnavailable();
         throw new AppError("A page couldn't be rendered. Please try again.", 502, "PROCESSING_FAILED");
     }
     return Buffer.from(await response.arrayBuffer());

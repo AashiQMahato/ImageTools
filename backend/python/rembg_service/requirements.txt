@@ -10,3 +10,5 @@ opencv-python-headless==5.0.0.93
 pillow-heif==1.8.0
 # PDF page rendering (PDFium) for the document tools.
 pypdfium2==5.13.0
+# PDF compression and (later) protection: qpdf, through pikepdf.
+pikepdf==10.15.0

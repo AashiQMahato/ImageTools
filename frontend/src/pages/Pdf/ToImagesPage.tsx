@@ -5,11 +5,11 @@ import { Range } from "@/features/background-removal/editor/RefinePanel";
 import { DocumentToolLayout } from "@/features/documents/DocumentToolLayout";
 import { MAX_PDF_MB, PDF_ACCEPT } from "@/features/documents/limits";
 import { PageGrid, type PageItem } from "@/features/documents/PageGrid";
-import { PageRangeInput } from "@/features/documents/PageRangeInput";
-import { formatPageRanges, parsePageRanges } from "@/features/documents/pageRanges";
 import { PdfFileSummary, SinglePdfWorkspace } from "@/features/documents/SinglePdfWorkspace";
 import { useDocumentJob } from "@/features/documents/useDocumentJob";
 import { useSinglePdf } from "@/features/documents/useSinglePdf";
+import { PageScopeControl } from "@/features/documents/PageScopeControl";
+import { usePageScope } from "@/features/documents/usePageScope";
 import { jobFileUrl } from "@/lib/api/jobsApi";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
@@ -26,24 +26,12 @@ export function ToImagesPage() {
     const [format, setFormat] = useState<Format>("jpg");
     const [dpi, setDpi] = useState<(typeof RESOLUTIONS)[number]>(150);
     const [quality, setQuality] = useState(85);
-    const [scope, setScope] = useState<"all" | "choose">("all");
-    const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [ranges, setRanges] = useState("");
     const count = pdf.ready?.sizes.length ?? 0;
+    const pages = usePageScope(count);
     const first = pdf.ready?.sizes[0];
 
     const items = useMemo<PageItem[]>(() => Array.from({ length: count }, (_, index) => ({ key: String(index + 1), page: index + 1, rotate: 0 })), [count]);
-    // The grid and the typed ranges are two views of one choice.
-    const choose = (next: Set<string>) => {
-        setSelected(next);
-        setRanges(formatPageRanges([...next].map(Number)));
-    };
-    const type = (value: string) => {
-        setRanges(value);
-        const parsed = parsePageRanges(value, count);
-        if (parsed.ok) setSelected(new Set(parsed.pages.map(String)));
-    };
-    const chosen = scope === "all" ? count : parsePageRanges(ranges, count).ok ? selected.size : 0;
+    const chosen = pages.count;
 
     const convert = () => {
         if (!pdf.file) return;
@@ -51,16 +39,14 @@ export function ToImagesPage() {
         form.append("format", format);
         form.append("dpi", String(dpi));
         form.append("quality", String(quality));
-        if (scope === "choose") form.append("pages", ranges);
+        if (pages.param) form.append("pages", pages.param);
         form.append("files", pdf.file, pdf.file.name);
         void job.run("/pdf/to-images", form);
     };
     const startOver = () => {
         job.reset();
         pdf.clear();
-        setSelected(new Set());
-        setRanges("");
-        setScope("all");
+        pages.reset();
     };
     const result = job.job;
 
@@ -90,11 +76,7 @@ export function ToImagesPage() {
             options={
                 <>
                     <PdfFileSummary name={pdf.file?.name ?? ""} pages={count || null} />
-                    <section className="flex flex-col gap-3">
-                        <h3 className="text-sm font-semibold text-primary">{copy.pages}</h3>
-                        <Segmented label={copy.pages} value={scope} onChange={setScope} options={(["all", "choose"] as const).map((value) => ({ value, label: copy.scopes[value] }))} />
-                        {scope === "choose" && count > 0 && <PageRangeInput value={ranges} onChange={type} count={count} label={copy.rangesLabel} hint={copy.chooseHint} />}
-                    </section>
+                    <PageScopeControl scope={pages} pageCount={count} label={copy.pages} rangesLabel={copy.rangesLabel} />
                     <section className="flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-primary">{copy.format}</h3>
                         <Segmented label={copy.format} value={format} onChange={setFormat} options={(["jpg", "png", "webp"] as const).map((value) => ({ value, label: value.toUpperCase() }))} />
@@ -135,9 +117,7 @@ export function ToImagesPage() {
                         sizes={sizes}
                         items={items}
                         label={copy.gridLabel}
-                        selected={scope === "choose" ? selected : null}
-                        onSelectedChange={choose}
-                        dimmed={(item) => scope === "choose" && !selected.has(item.key)}
+                        {...pages.grid}
                     />
                 )}
             </SinglePdfWorkspace>
