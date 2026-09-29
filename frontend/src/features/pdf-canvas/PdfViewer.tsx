@@ -9,9 +9,11 @@ import { PdfPage, type PageText } from "./PdfPage";
 import { documentText, findMatches, type Match, matchRects, searchPattern } from "./search";
 import { usePageScroller } from "./usePageScroller";
 import { useZoom } from "./useZoom";
-import { PageNav, Toolbar, ToolbarButton, ToolbarDivider, ZoomControl } from "./ViewerControls";
+import { MobileBar, PageNav, PanelButton, Toolbar, ToolbarButton, ToolbarDivider, ZoomControl } from "./ViewerControls";
 
 interface PdfViewerProps {
+    /** Phones and tablets: opens the details panel (a sheet). */
+    onDetails?: () => void;
     file: File;
     document: PDFDocumentProxy;
     sizes: { width: number; height: number }[];
@@ -24,7 +26,7 @@ const isTyping = (target: EventTarget | null) => target instanceof HTMLElement &
  * zoom (fit width, fit page, or a percentage — also ⌘/Ctrl + scroll or pinch), going to a page,
  * finding text, turning the view, full screen, printing and downloading. All in the browser.
  */
-export function PdfViewer({ file, document, sizes }: PdfViewerProps) {
+export function PdfViewer({ file, document, sizes, onDetails }: PdfViewerProps) {
     const t = useT();
     const copy = t.documents.viewer;
     const root = useRef<HTMLDivElement>(null);
@@ -178,12 +180,14 @@ export function PdfViewer({ file, document, sizes }: PdfViewerProps) {
     return (
         <div ref={root} className={cn("flex min-h-0 flex-1 flex-col gap-2", fullscreen && "bg-secondary p-2")}>
             <Toolbar label={copy.toolbar}>
-                <ToolbarButton icon={PanelLeft} label={copy.thumbnails} pressed={thumbnails} onClick={() => setThumbnails((value) => !value)} />
-                <ToolbarDivider />
-                <PageNav current={current} count={count} onGo={(page) => goTo(page)} />
-                <ToolbarDivider />
-                <ZoomControl zoom={zoom} />
-                <ToolbarDivider />
+                <ToolbarButton icon={PanelLeft} label={copy.thumbnails} pressed={thumbnails} onClick={() => setThumbnails((value) => !value)} className="hidden sm:grid" />
+                <div className="hidden items-center gap-0.5 lg:flex">
+                    <ToolbarDivider />
+                    <PageNav current={current} count={count} onGo={(page) => goTo(page)} />
+                    <ToolbarDivider />
+                    <ZoomControl zoom={zoom} />
+                    <ToolbarDivider />
+                </div>
                 <ToolbarButton icon={RotateCcw} label={copy.rotateLeft} onClick={() => turn(-90)} shortcut="Shift+R" className="hidden sm:grid" />
                 <ToolbarButton icon={RotateCw} label={copy.rotateRight} onClick={() => turn(90)} shortcut="R" />
                 <ToolbarButton icon={Search} label={copy.search} pressed={searching} onClick={() => (searching ? setSearching(false) : openSearch())} shortcut="Control+F" />
@@ -223,7 +227,7 @@ export function PdfViewer({ file, document, sizes }: PdfViewerProps) {
                 </div>
             )}
 
-            <div className="flex min-h-[70dvh] flex-1 gap-2 lg:min-h-0">
+            <div className="flex h-[62dvh] flex-none gap-2 lg:h-auto lg:min-h-0 lg:flex-1">
                 {thumbnails && (
                     <nav aria-label={copy.thumbnails} className="hidden w-36 shrink-0 overflow-y-auto overscroll-contain rounded-xl border border-[var(--card-line)] bg-secondary p-2 sm:block">
                         <ol className="flex flex-col gap-3">
@@ -257,6 +261,11 @@ export function PdfViewer({ file, document, sizes }: PdfViewerProps) {
                     </div>
                 </div>
             </div>
+            <MobileBar label={copy.pagesBar}>
+                <PageNav current={current} count={count} onGo={(page) => goTo(page)} />
+                <ZoomControl zoom={zoom} compact />
+                {onDetails && <PanelButton label={copy.details} onClick={onDetails} />}
+            </MobileBar>
         </div>
     );
 }

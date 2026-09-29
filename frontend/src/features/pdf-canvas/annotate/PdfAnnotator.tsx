@@ -70,10 +70,12 @@ export function AnnotatorToolbar({ annotator, mode, zoom, current, count, onGo, 
                     onClick={() => (tool === "image" ? onImage() : tool === "signature" ? onSignature() : annotator.setTool(tool))}
                 />
             ))}
-            <ToolbarDivider />
-            <ZoomControl zoom={zoom} />
-            <span className="ml-auto hidden md:block" />
-            <div className="hidden md:flex">
+            <div className="hidden items-center gap-0.5 lg:flex">
+                <ToolbarDivider />
+                <ZoomControl zoom={zoom} />
+            </div>
+            <span className="ml-auto hidden lg:block" />
+            <div className="hidden lg:flex">
                 <PageNav current={current} count={count} onGo={onGo} />
             </div>
         </Toolbar>
@@ -98,7 +100,7 @@ export function AnnotatorPages({ annotator, document, sizes, scale, area, regist
     const today = new Intl.DateTimeFormat(t.meta.lang === "ne" ? "ne-NP" : "en-GB", { dateStyle: "medium" }).format(new Date());
     const markup = MARKUP.includes(annotator.tool);
     return (
-        <div ref={area} tabIndex={-1} className="relative h-[72dvh] overflow-auto overscroll-contain rounded-xl bg-secondary outline-none lg:h-full">
+        <div ref={area} tabIndex={-1} className="relative h-[58dvh] overflow-auto overscroll-contain rounded-xl bg-secondary outline-none lg:h-full">
             <div className="mx-auto flex w-max min-w-full flex-col items-center gap-5 p-4">
                 {sizes.map((size, index) => {
                     const page = index + 1;

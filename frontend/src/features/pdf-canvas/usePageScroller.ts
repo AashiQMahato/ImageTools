@@ -21,6 +21,8 @@ export function usePageScroller(element: HTMLElement | null, count: number) {
             if (node.offsetTop <= line) found = page;
             else break;
         }
+        // At the very end, the last page is the one being read, even if it's too short to reach the line.
+        if (element.scrollTop > 0 && element.scrollTop + element.clientHeight >= element.scrollHeight - 2) found = count;
         const node = pages.current.get(found);
         anchor.current = { page: found, fraction: node ? Math.min(1, Math.max(0, (element.scrollTop - node.offsetTop) / Math.max(1, node.offsetHeight))) : 0 };
         setCurrent(found);

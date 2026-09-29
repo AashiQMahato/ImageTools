@@ -63,6 +63,13 @@ export function deleteJob(id: string) {
 export const jobFileUrl = (jobId: string, fileId: string, inline = false) => `${API_BASE_URL}/api/jobs/${encodeURIComponent(jobId)}/files/${encodeURIComponent(fileId)}${inline ? "?inline=1" : ""}`;
 export const jobArchiveUrl = (jobId: string) => `${API_BASE_URL}/api/jobs/${encodeURIComponent(jobId)}/archive`;
 
+/** Every result file as one ZIP (to save under a name of your choice). */
+export async function fetchJobArchive(jobId: string, signal?: AbortSignal): Promise<Blob> {
+    const response = await fetch(jobArchiveUrl(jobId), { signal });
+    if (!response.ok) throw await failure(response);
+    return response.blob();
+}
+
 /** A result file's contents (for previews). */
 export async function fetchJobFile(jobId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
     const response = await fetch(jobFileUrl(jobId, fileId, true), { signal });

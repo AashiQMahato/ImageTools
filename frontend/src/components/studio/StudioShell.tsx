@@ -8,6 +8,7 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import { studioToolGroups, type ToolKey } from "@/lib/constants/navigation";
 import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
+import { useHandoff } from "@/store/useHandoff";
 import { useSectionImageStore } from "@/store/useImageStore";
 import { useImmersiveLayout } from "@/store/useLayoutStore";
 import { useT } from "@/i18n";
@@ -68,6 +69,13 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
     const { acceptFile } = upload;
     const receive = useCallback((files: File[]) => (onFiles ? onFiles(files) : files[0] && void acceptFile(files[0])), [onFiles, acceptFile]);
     const dragging = usePageDrop(receive);
+    // A result carried on from another tool opens here as if it had been dropped in.
+    useEffect(() => {
+        const handoff = useHandoff.getState().take();
+        if (handoff?.files.length) receive(handoff.files);
+        // Once, when the tool opens.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const openPicker = onFiles ? () => multiInput.current?.click() : upload.openPicker;
     const { clearError } = upload;
     const [confirming, setConfirming] = useState(false);
