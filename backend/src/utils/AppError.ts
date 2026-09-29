@@ -29,7 +29,14 @@ export type ErrorCode =
     | "DETECTION_UNAVAILABLE"
     | "OCR_UNAVAILABLE"
     | "NO_TEXT"
-    | "INVALID_REGION";
+    | "INVALID_REGION"
+    | "INVALID_PDF"
+    | "PDF_ENCRYPTED"
+    | "INVALID_PAGES"
+    | "TOO_MANY_FILES"
+    | "TOO_MANY_PAGES"
+    | "RENDERING_UNAVAILABLE"
+    | "JOB_EXPIRED";
 
 /** An error whose message is safe to show to users. Internal details belong in logs, never here. */
 export class AppError extends Error {

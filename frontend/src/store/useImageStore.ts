@@ -39,12 +39,13 @@ function retire(url: string) {
     else URL.revokeObjectURL(url);
 }
 
-function persist(image: ImageFile | null, section: DraftSection) {
+function persist(image: ImageFile | null, section: DraftSection | null) {
+    if (!section) return;
     if (image) void saveDraftImage({ id: image.id, file: image.file, width: image.dimensions.width, height: image.dimensions.height, editedBy: image.editedBy }, section);
     else void clearDraftImage(section);
 }
 
-const createImageStore = (section: DraftSection) =>
+const createImageStore = (section: DraftSection | null) =>
     create<ImageState>()((set, get) => ({
         original: null,
         session: crypto.randomUUID(),
@@ -74,6 +75,8 @@ const createImageStore = (section: DraftSection) =>
 export const useImageStore = createImageStore("image");
 /** The text tools' image, kept apart — opening one in either section never replaces the other's. */
 export const useTextImageStore = createImageStore("text");
+/** For tools that manage their own files (the document tools): never holds, shows or saves an image. */
+export const useNoImageStore = createImageStore(null);
 
 type ImageStore = typeof useImageStore;
 /** Which section's image the studio below works with (image tools unless a text tool says otherwise). */

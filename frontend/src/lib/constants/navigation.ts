@@ -25,8 +25,9 @@ export const PRIMARY_NAV: readonly NavItem[] = [
  * exists: Resize has no page of its own, so it opens the editor (where the resize panel lives), and
  * Rotate & Flip opens the crop tool, whose controls rotate, flip and straighten.
  */
-export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "photoGenerator" | "watermarkRemover" | "compressor" | "crop" | "resize" | "rotateFlip" | "editor" | "ocr";
-export type ToolGroupKey = "ai" | "image" | "editor" | "text";
+export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "photoGenerator" | "watermarkRemover" | "compressor" | "crop" | "resize" | "rotateFlip" | "editor" | "ocr" | DocumentToolKey;
+export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf";
+export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf";
 
 export interface NavTool {
     key: ToolKey;
@@ -63,9 +64,22 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
     { key: "editor", items: [{ key: "editor", href: ROUTES.editor }] },
 ];
 
-/** The Text Tools menu. */
-export const TEXT_TOOL_GROUP: NavToolGroup = { key: "text", items: [{ key: "ocr", href: ROUTES.ocr }] };
-export const TEXT_TOOL_ROUTES: readonly AppRoute[] = [ROUTES.ocr];
+/** The Documents menu: text tools and PDF tools. */
+export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
+    { key: "text", items: [{ key: "ocr", href: ROUTES.ocr }] },
+    {
+        key: "pdf",
+        items: [
+            { key: "pdfMerge", href: ROUTES.pdfMerge },
+            { key: "pdfSplit", href: ROUTES.pdfSplit },
+            { key: "pdfOrganize", href: ROUTES.pdfOrganize },
+            { key: "pdfRotate", href: ROUTES.pdfRotate },
+            { key: "pdfToImages", href: ROUTES.pdfToImages },
+            { key: "imagesToPdf", href: ROUTES.imagesToPdf },
+        ],
+    },
+];
+export const DOCUMENT_ROUTES: readonly AppRoute[] = [ROUTES.documents, ...DOCUMENT_GROUPS.flatMap((group) => group.items.map((item) => item.href))];
 
 /** Every route the Tools menu covers — the trigger reads as current on any of them. */
 export const TOOL_ROUTES: readonly AppRoute[] = [ROUTES.removeBackground, ROUTES.upscale, ROUTES.retouch, ROUTES.photoGenerator, ROUTES.watermarkRemover, ROUTES.crop, ROUTES.compress, ROUTES.editor];
@@ -85,4 +99,4 @@ export type SectionKey = (typeof SECTION_LINKS)[number]["key"];
 const IMAGE_STUDIO_GROUPS: readonly NavToolGroup[] = TOOL_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.alias) })).filter((group) => group.items.length > 0);
 
 /** Image tools and text tools are separate sections: inside one, the studio lists only that section's tools. */
-export const studioToolGroups = (tool: ToolKey): readonly NavToolGroup[] => (TEXT_TOOL_GROUP.items.some((item) => item.key === tool) ? [TEXT_TOOL_GROUP] : IMAGE_STUDIO_GROUPS);
+export const studioToolGroups = (tool: ToolKey): readonly NavToolGroup[] => (DOCUMENT_GROUPS.some((group) => group.items.some((item) => item.key === tool)) ? DOCUMENT_GROUPS : IMAGE_STUDIO_GROUPS);

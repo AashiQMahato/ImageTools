@@ -86,6 +86,15 @@ Both are downloaded by `scripts/setup-ml.sh` (checksum-verified) into `backend/p
 
 Optional fallback: [Tesseract](https://github.com/tesseract-ocr/tesseract) (Apache-2.0), used only if installed on the machine. PDFs are opened in the browser with [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) — only rendered pages are sent to be read. The editor uses [Tiptap](https://tiptap.dev) (MIT) and [docx](https://github.com/dolanmiu/docx) (MIT); text is set in Inter and Noto Sans/Serif (Devanagari) — SIL Open Font Licence, served by Google Fonts.
 
+## Document tools — PDF processing
+
+| | |
+| --- | --- |
+| Editing | [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — merge, split, organize, rotate, images → PDF |
+| Rendering | [pypdfium2](https://github.com/pypdfium2-team/pypdfium2) (Apache-2.0 / BSD-3-Clause) with [PDFium](https://pdfium.googlesource.com/pdfium/) (BSD-3-Clause), inside our internal service (`backend/python/rembg_service`) |
+| Archives | [fflate](https://github.com/101arrowz/fflate) (MIT) — ZIP downloads, streamed |
+| Previews | PDF.js (Apache-2.0), in the browser |
+
 ## Frontend
 
 UI built with [Untitled UI React](https://www.untitledui.com/react) (MIT), [React Aria Components](https://react-spectrum.adobe.com/react-aria/) (Apache-2.0), [Lucide](https://lucide.dev) (ISC) and Tailwind CSS (MIT). Landing-page photography is CC0 — see `frontend/src/assets/images/landing/CREDITS.md`.

@@ -1,4 +1,4 @@
-import { ArrowRight, Crop, Eraser, ScanText, Shrink, SlidersHorizontal, Stamp, ZoomIn } from "lucide-react";
+import { ArrowRight, Crop, Eraser, FileStack, ScanText, Shrink, SlidersHorizontal, Stamp, ZoomIn } from "lucide-react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useInView } from "@/hooks/useInView";
@@ -41,6 +41,11 @@ const TOOLS = [
         key: "ocr",
         icon: ScanText,
         href: ROUTES.ocr,
+    },
+    {
+        key: "documents",
+        icon: FileStack,
+        href: ROUTES.documents,
     },
 ] as const;
 

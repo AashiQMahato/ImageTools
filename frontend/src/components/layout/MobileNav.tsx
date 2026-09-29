@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Segmented } from "@/components/common/Segmented";
 import { UploadButton } from "@/components/common/UploadButton";
 import { ROUTES } from "@/lib/constants/routes";
-import { SECTION_LINKS, type SectionKey, TEXT_TOOL_GROUP, TOOL_GROUPS } from "@/lib/constants/navigation";
+import { SECTION_LINKS, type SectionKey, DOCUMENT_GROUPS, type NavToolGroup, TOOL_GROUPS } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { DICTIONARIES, LOCALES, useLocale, useT } from "@/i18n";
 import { NavItem } from "./NavItem";
@@ -24,10 +24,9 @@ interface MobileNavProps {
  */
 export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) {
     const t = useT();
-    const { pathname } = useLocation();
     const { locale, setLocale } = useLocale();
     const [toolsOpen, setToolsOpen] = useState(false);
-    const [textToolsOpen, setTextToolsOpen] = useState(false);
+    const [documentsOpen, setDocumentsOpen] = useState(false);
 
     // The page underneath shouldn't scroll while the sheet is up.
     useEffect(() => {
@@ -59,79 +58,24 @@ export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) 
 
                     <div id={`${id}-tools`} data-open={toolsOpen || undefined} inert={!toolsOpen} className="nav-accordion">
                         <div>
-                            <div className="flex flex-col gap-3 px-1 pt-1 pb-3">
-                                {TOOL_GROUPS.map((group) => (
-                                    <section key={group.key} aria-labelledby={`${id}-group-${group.key}`}>
-                                        <h2 id={`${id}-group-${group.key}`} className="px-2 pb-1 text-label text-quaternary">
-                                            {t.nav.groups[group.key]}
-                                        </h2>
-                                        <ul>
-                                            {group.items.map((item) => {
-                                                const Icon = TOOL_ICONS[item.key];
-                                                const current = !item.alias && pathname === item.href;
-                                                return (
-                                                    <li key={item.key}>
-                                                        <Link
-                                                            to={item.href}
-                                                            onClick={onClose}
-                                                            aria-current={current ? "page" : undefined}
-                                                            className={cn(
-                                                                "flex min-h-11 items-center gap-3 rounded-lg px-2 text-[0.9375rem] font-medium transition-colors duration-150 outline-focus-ring focus-visible:outline-2",
-                                                                current ? "bg-primary_hover text-primary" : "text-secondary hover:bg-primary_hover hover:text-primary",
-                                                            )}
-                                                        >
-                                                            <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
-                                                                <Icon className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
-                                                            </span>
-                                                            {t.nav.toolItems[item.key].title}
-                                                        </Link>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    </section>
-                                ))}
-                            </div>
+                            <MobileGroups groups={TOOL_GROUPS} idPrefix={id} onClose={onClose} />
                         </div>
                     </div>
 
                     <button
                         type="button"
-                        aria-expanded={textToolsOpen}
-                        aria-controls={`${id}-text-tools`}
-                        onClick={() => setTextToolsOpen((value) => !value)}
+                        aria-expanded={documentsOpen}
+                        aria-controls={`${id}-documents-menu`}
+                        onClick={() => setDocumentsOpen((value) => !value)}
                         className="flex min-h-12 w-full cursor-pointer items-center justify-between rounded-lg px-3 text-md font-medium text-primary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover focus-visible:outline-2"
                     >
-                        {t.nav.textTools}
+                        {t.nav.documents}
                         <Plus className="nav-plus size-5 text-quaternary" aria-hidden />
                     </button>
 
-                    <div id={`${id}-text-tools`} data-open={textToolsOpen || undefined} inert={!textToolsOpen} className="nav-accordion">
+                    <div id={`${id}-documents-menu`} data-open={documentsOpen || undefined} inert={!documentsOpen} className="nav-accordion">
                         <div>
-                            <ul className="px-1 pt-1 pb-3">
-                                {TEXT_TOOL_GROUP.items.map((item) => {
-                                    const Icon = TOOL_ICONS[item.key];
-                                    const current = pathname === item.href;
-                                    return (
-                                        <li key={item.key}>
-                                            <Link
-                                                to={item.href}
-                                                onClick={onClose}
-                                                aria-current={current ? "page" : undefined}
-                                                className={cn(
-                                                    "flex min-h-11 items-center gap-3 rounded-lg px-2 text-[0.9375rem] font-medium transition-colors duration-150 outline-focus-ring focus-visible:outline-2",
-                                                    current ? "bg-primary_hover text-primary" : "text-secondary hover:bg-primary_hover hover:text-primary",
-                                                )}
-                                            >
-                                                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
-                                                    <Icon className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
-                                                </span>
-                                                {t.nav.toolItems[item.key].title}
-                                            </Link>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
+                            <MobileGroups groups={DOCUMENT_GROUPS} idPrefix={`${id}-documents`} onClose={onClose} />
                         </div>
                     </div>
 
@@ -173,5 +117,46 @@ export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) 
                 </nav>
             </div>
         </>
+    );
+}
+
+/** A menu's tools under their group headings. */
+function MobileGroups({ groups, idPrefix, onClose }: { groups: readonly NavToolGroup[]; idPrefix: string; onClose: () => void }) {
+    const t = useT();
+    const { pathname } = useLocation();
+    return (
+        <div className="flex flex-col gap-3 px-1 pt-1 pb-3">
+            {groups.map((group) => (
+                <section key={group.key} aria-labelledby={`${idPrefix}-group-${group.key}`}>
+                    <h2 id={`${idPrefix}-group-${group.key}`} className="px-2 pb-1 text-label text-quaternary">
+                        {t.nav.groups[group.key]}
+                    </h2>
+                    <ul>
+                        {group.items.map((item) => {
+                            const Icon = TOOL_ICONS[item.key];
+                            const current = !item.alias && pathname === item.href;
+                            return (
+                                <li key={item.key}>
+                                    <Link
+                                        to={item.href}
+                                        onClick={onClose}
+                                        aria-current={current ? "page" : undefined}
+                                        className={cn(
+                                            "flex min-h-11 items-center gap-3 rounded-lg px-2 text-[0.9375rem] font-medium transition-colors duration-150 outline-focus-ring focus-visible:outline-2",
+                                            current ? "bg-primary_hover text-primary" : "text-secondary hover:bg-primary_hover hover:text-primary",
+                                        )}
+                                    >
+                                        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
+                                            <Icon className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
+                                        </span>
+                                        {t.nav.toolItems[item.key].title}
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            ))}
+        </div>
     );
 }

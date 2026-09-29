@@ -26,6 +26,7 @@ const service = new PythonService({
         INPAINT_MODEL: env.retouch.lamaModelPath,
         MAX_IMAGE_SIZE_MB: String(env.maxImageSizeMb),
         MAX_IMAGE_PIXELS: String(env.maxImagePixels),
+        DOCUMENTS_TEMP_DIR: env.documents.tempDir,
         BACKGROUND_REMOVAL_CONCURRENCY: String(env.rembg.concurrency),
         REMBG_DECONTAMINATE: String(env.rembg.decontaminate),
         REMBG_ALPHA_MATTING: String(env.rembg.alphaMatting),

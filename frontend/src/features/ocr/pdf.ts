@@ -1,4 +1,5 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { pdfjs } from "@/lib/pdf/pdfjs";
 import type { ImageFile } from "@/types/image";
 
 /** A PDF opened in the OCR editor. It stays on this device: only rendered pages are sent to be read. */
@@ -24,13 +25,6 @@ export class PdfError extends Error {
 }
 
 export const isPdf = (file: File) => file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-
-/** pdf.js is large: loaded only when a PDF is actually opened, with its worker alongside. */
-async function pdfjs() {
-    const [library, worker] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url")]);
-    library.GlobalWorkerOptions.workerSrc = worker.default;
-    return library;
-}
 
 /** Open documents, by source id — each file is parsed once, however many pages are viewed. */
 const open = new Map<string, Promise<PDFDocumentProxy>>();

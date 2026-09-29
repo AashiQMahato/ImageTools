@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { removeBackgroundHandler } from "../controllers/backgroundRemovalController.js";
 import { compressHandler } from "../controllers/compressionController.js";
+import { deleteJobHandler, fromImagesHandler, getJobHandler, jobArchiveHandler, jobFileHandler, mergeHandler, organizeHandler, splitHandler, toImagesHandler } from "../controllers/documentController.js";
 import { getHealth, getProcessorHealth } from "../controllers/healthController.js";
 import { ocrHandler } from "../controllers/ocrController.js";
 import { adjustCropHandler, convertHandler, fileHandler, presetsHandler, processHandler, sheetHandler } from "../controllers/photoGeneratorController.js";
@@ -8,6 +9,7 @@ import { upscaleHandler } from "../controllers/upscaleController.js";
 import { retouchHandler } from "../controllers/retouchController.js";
 import { detectWatermarkHandler, removeWatermarkHandler } from "../controllers/watermarkController.js";
 import { processingRateLimiter } from "../middleware/rateLimiter.js";
+import { documentUpload } from "../middleware/documentUpload.js";
 import { uploadImage, uploadPhoto, uploadRetouch } from "../middleware/upload.js";
 
 export const apiRouter = Router();
@@ -29,3 +31,14 @@ apiRouter.post("/compress", processingRateLimiter, uploadImage, compressHandler)
 apiRouter.post("/watermark/detect", processingRateLimiter, uploadImage, detectWatermarkHandler);
 apiRouter.post("/watermark/remove", processingRateLimiter, uploadRetouch, removeWatermarkHandler);
 apiRouter.post("/ocr", processingRateLimiter, uploadPhoto, ocrHandler);
+
+// Document tools: each request starts a job (202) that the client follows at /jobs/:id.
+apiRouter.post("/pdf/merge", processingRateLimiter, documentUpload("pdf", { min: 2 }), mergeHandler);
+apiRouter.post("/pdf/split", processingRateLimiter, documentUpload("pdf", { max: 1 }), splitHandler);
+apiRouter.post("/pdf/organize", processingRateLimiter, documentUpload("pdf", { max: 1 }), organizeHandler);
+apiRouter.post("/pdf/to-images", processingRateLimiter, documentUpload("pdf", { max: 1 }), toImagesHandler);
+apiRouter.post("/pdf/from-images", processingRateLimiter, documentUpload("image"), fromImagesHandler);
+apiRouter.get("/jobs/:id", getJobHandler);
+apiRouter.delete("/jobs/:id", deleteJobHandler);
+apiRouter.get("/jobs/:id/files/:fileId", jobFileHandler);
+apiRouter.get("/jobs/:id/archive", jobArchiveHandler);

@@ -8,3 +8,5 @@ python-multipart==0.0.32
 # Face detection (YuNet via OpenCV) and HEIC/HEIF decoding for the photo generator.
 opencv-python-headless==5.0.0.93
 pillow-heif==1.8.0
+# PDF page rendering (PDFium) for the document tools.
+pypdfium2==5.13.0
