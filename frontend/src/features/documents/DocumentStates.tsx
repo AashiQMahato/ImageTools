@@ -33,7 +33,7 @@ export function JobProgress({ state, title, onCancel }: { state: DocumentJobStat
                 ? (copy.steps[progress.step as keyof typeof copy.steps] as (done: number, total: number) => string)(Math.min(progress.total, progress.done + 1), progress.total)
                 : progress?.step === "queued"
                   ? copy.queued
-                  : copy.processing;
+                  : (progress && copy.plain[progress.step as keyof typeof copy.plain]) || copy.processing;
     const current = STEPS.indexOf(state.phase as (typeof STEPS)[number]);
 
     return (

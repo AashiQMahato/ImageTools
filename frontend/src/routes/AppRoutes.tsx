@@ -21,6 +21,10 @@ const SplitPage = lazy(() => import("@/pages/Pdf/SplitPage").then((module) => ({
 const OrganizePage = lazy(() => import("@/pages/Pdf/OrganizePage").then((module) => ({ default: module.OrganizePage })));
 const RotatePage = lazy(() => import("@/pages/Pdf/OrganizePage").then((module) => ({ default: module.RotatePage })));
 const ToImagesPage = lazy(() => import("@/pages/Pdf/ToImagesPage").then((module) => ({ default: module.ToImagesPage })));
+const CompressPdfPage = lazy(() => import("@/pages/Pdf/CompressPage").then((module) => ({ default: module.CompressPage })));
+const WatermarkPage = lazy(() => import("@/pages/Pdf/WatermarkPage").then((module) => ({ default: module.WatermarkPage })));
+const PageNumbersPage = lazy(() => import("@/pages/Pdf/PageNumbersPage").then((module) => ({ default: module.PageNumbersPage })));
+const ToTextPage = lazy(() => import("@/pages/Pdf/ToTextPage").then((module) => ({ default: module.ToTextPage })));
 const ImagesToPdfPage = lazy(() => import("@/pages/Pdf/ImagesToPdfPage").then((module) => ({ default: module.ImagesToPdfPage })));
 
 const later = (page: ReactNode) => <Suspense fallback={null}>{page}</Suspense>;
@@ -43,6 +47,10 @@ export function AppRoutes() {
                 <Route path={ROUTES.pdfRotate} element={later(<RotatePage />)} />
                 <Route path={ROUTES.pdfToImages} element={later(<ToImagesPage />)} />
                 <Route path={ROUTES.imagesToPdf} element={later(<ImagesToPdfPage />)} />
+                <Route path={ROUTES.pdfCompress} element={later(<CompressPdfPage />)} />
+                <Route path={ROUTES.pdfWatermark} element={later(<WatermarkPage />)} />
+                <Route path={ROUTES.pdfPageNumbers} element={later(<PageNumbersPage />)} />
+                <Route path={ROUTES.pdfToText} element={later(<ToTextPage />)} />
                 <Route path={ROUTES.compress} element={<CompressorPage />} />
                 <Route path={ROUTES.crop} element={<CropperPage />} />
                 <Route path={ROUTES.editor} element={<EditorPage />} />
