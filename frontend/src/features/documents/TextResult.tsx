@@ -1,4 +1,4 @@
-import { Copy, FileDown, FilePenLine, FileText, Printer, RotateCcw } from "lucide-react";
+import { Copy, FileDown, FilePenLine, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { openInTextEditor } from "@/features/text/textDocument";
@@ -8,7 +8,10 @@ import { fetchJobFile, type Job } from "@/lib/api/jobsApi";
 import { ROUTES } from "@/lib/constants/routes";
 import { downloadFile } from "@/lib/utils/download";
 import { useT } from "@/i18n";
+import { ExportDialog, type ExportFormat } from "./ExportDialog";
 import { textToDocx, textToPdf } from "./textExport";
+
+type TextFormat = "txt" | "docx" | "pdf";
 
 type Method = "text" | "ocr" | "none";
 
@@ -35,7 +38,13 @@ export function TextResult({ job, name, onStartOver }: { job: Job; name: string;
     const [chosen, setChosen] = useState<Record<number, Method>>({});
     const [edits, setEdits] = useState<Record<string, string>>({});
     const [notice, setNotice] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
     const navigate = useNavigate();
+    const formats: ExportFormat<TextFormat>[] = [
+        { value: "txt", label: t.ocr.export.txt, extension: "txt" },
+        { value: "docx", label: t.ocr.export.docx, extension: "docx" },
+        { value: "pdf", label: t.ocr.export.pdf, extension: "pdf", prints: true, hint: t.ocr.export.pdfHint },
+    ];
 
     useEffect(() => {
         const file = job.files.find((candidate) => candidate.mimeType.startsWith("application/json"));
@@ -79,14 +88,8 @@ export function TextResult({ job, name, onStartOver }: { job: Job; name: string;
                     <Button size="md" color="secondary" iconLeading={Copy} onPress={() => void navigator.clipboard.writeText(all).then(() => setNotice(t.ocr.export.copied), () => setNotice(t.ocr.export.copyFailed))}>
                         {copy.copy}
                     </Button>
-                    <Button size="md" color="secondary" iconLeading={FileText} onPress={() => save(new Blob([all.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), `${name}.txt`)}>
-                        TXT
-                    </Button>
-                    <Button size="md" color="secondary" iconLeading={FileDown} onPress={() => void textToDocx(texts, name).then((blob) => save(blob, `${name}.docx`))}>
-                        Word
-                    </Button>
-                    <Button size="md" color="secondary" iconLeading={Printer} onPress={() => void textToPdf(texts, name, lang)}>
-                        PDF
+                    <Button size="md" color="primary" iconLeading={FileDown} onPress={() => setExporting(true)}>
+                        {t.documents.exportDialog.export}
                     </Button>
                 </div>
             </div>
@@ -95,6 +98,20 @@ export function TextResult({ job, name, onStartOver }: { job: Job; name: string;
                     {notice}
                 </p>
             )}
+            <ExportDialog
+                open={exporting}
+                onClose={() => setExporting(false)}
+                title={t.documents.exportDialog.title}
+                formats={formats}
+                name={name}
+                pageCount={pages.length}
+                onExport={async ({ format, fileName, baseName, pages: chosen }) => {
+                    const selected = chosen ? texts.filter((_, index) => chosen.includes(index + 1)) : texts;
+                    if (format === "txt") save(new Blob([selected.join("\n\n").replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), fileName);
+                    else if (format === "docx") save(await textToDocx(selected, baseName), fileName);
+                    else await textToPdf(selected, baseName, lang);
+                }}
+            />
             <ol className="flex flex-col gap-4">
                 {pages.map((page) => {
                     const { method, text } = current(page);

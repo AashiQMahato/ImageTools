@@ -18,7 +18,10 @@ import { cleanDocument, type CleanCounts, type CleanRule } from "./cleaner";
 import { lineDiff } from "./diff";
 import { textStats } from "./stats";
 import { textToContent, useTextDocument } from "./textDocument";
+import { ExportDialog } from "@/features/documents/ExportDialog";
 import { CasePanel, CleanPanel, ExportList, StatsPanel, type TextExport } from "./TextPanels";
+
+const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 import { useTextEditor } from "./useTextEditor";
 import "@/features/ocr/ocr.css";
 
@@ -133,7 +136,8 @@ function TextStudio({ tool, initialTab, content }: { tool: ToolKey; initialTab: 
         window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
         setNotice({ tone: "success", text: t.documents.result.downloadFile(fileName) });
     };
-    const runExport = async (kind: TextExport) => {
+    const [exportAs, setExportAs] = useState<Exclude<TextExport, "copy"> | null>(null);
+    const runExport = async (kind: TextExport, fileName = `${name}.${kind}`, title = name) => {
         const plain = plainText(editor.state.doc);
         if (!plain.trim()) return setNotice({ tone: "error", text: copy.export.empty });
         setBusy(kind);
@@ -147,12 +151,12 @@ function TextStudio({ tool, initialTab, content }: { tool: ToolKey; initialTab: 
                     await navigator.clipboard.writeText(plain);
                 }
                 setNotice({ tone: "success", text: t.ocr.export.copied });
-            } else if (kind === "txt") save(new Blob([plain.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), `${name}.txt`);
+            } else if (kind === "txt") save(new Blob([plain.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), fileName);
             else if (kind === "docx") {
                 const { exportDocx } = await import("@/features/ocr/exportDocx");
-                save(await exportDocx(editor.state.doc, name), `${name}.docx`);
-            } else if (kind === "pdf") await printDocument({ pages: [{ html, layout: null, colours: { background: "#ffffff", ink: "#1a1a1a" } }], title: name, lang });
-            else save(new Blob([`<!doctype html>\n<html lang="${lang}">\n<head><meta charset="utf-8"><title>${name}</title></head>\n<body>\n${html}\n</body>\n</html>\n`], { type: "text/html;charset=utf-8" }), `${name}.html`);
+                save(await exportDocx(editor.state.doc, title), fileName);
+            } else if (kind === "pdf") await printDocument({ pages: [{ html, layout: null, colours: { background: "#ffffff", ink: "#1a1a1a" } }], title, lang });
+            else save(new Blob([`<!doctype html>\n<html lang="${lang}">\n<head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>\n<body>\n${html}\n</body>\n</html>\n`], { type: "text/html;charset=utf-8" }), fileName);
         } catch {
             setNotice({ tone: "error", text: kind === "copy" ? t.ocr.export.copyFailed : t.ocr.export.failed });
         } finally {
@@ -205,7 +209,7 @@ function TextStudio({ tool, initialTab, content }: { tool: ToolKey; initialTab: 
                         {tab === "clean" && <CleanPanel rules={rules} onRules={(next) => (setRules(next), setPreview(null))} counts={preview?.counts ?? null} previewing={Boolean(preview)} onPreview={runPreview} onApply={applyClean} onCancel={() => setPreview(null)} />}
                         {tab === "case" && <CasePanel sample={(selected || text).slice(0, 140)} target={selected.trim() ? "selection" : "document"} onApply={convert} />}
                         {tab === "stats" && <StatsPanel stats={stats} selection={selectionStats} />}
-                        {tab === "export" && <ExportList busy={busy} onExport={(kind) => void runExport(kind)} />}
+                        {tab === "export" && <ExportList busy={busy} onExport={(kind) => (kind === "copy" ? void runExport(kind) : setExportAs(kind))} />}
                     </PanelBody>
                 </>
             }
@@ -225,6 +229,20 @@ function TextStudio({ tool, initialTab, content }: { tool: ToolKey; initialTab: 
                 )}
             </div>
             {notice && <StudioNotice notice={notice} />}
+            <ExportDialog
+                open={exportAs !== null}
+                onClose={() => setExportAs(null)}
+                title={t.documents.exportDialog.title}
+                formats={[
+                    { value: "txt", label: copy.export.txt, extension: "txt" },
+                    { value: "docx", label: copy.export.docx, extension: "docx" },
+                    { value: "pdf", label: copy.export.pdf, extension: "pdf", prints: true, hint: copy.export.pdfHint },
+                    { value: "html", label: copy.export.html, extension: "html" },
+                ]}
+                initialFormat={exportAs ?? "docx"}
+                name={name}
+                onExport={({ format, fileName, baseName }) => runExport(format, fileName, baseName)}
+            />
         </DocumentStudio>
     );
 }

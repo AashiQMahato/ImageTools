@@ -158,7 +158,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     );
 }
 
-export type ExportKind = "copy" | "txt" | "docx" | "pdf" | "png" | "jpeg" | "editor";
+export type ExportKind = "copy" | "txt" | "docx" | "pdf" | "png" | "jpeg" | "webp" | "editor";
 
 /** Every way out: copy, text, Word, PDF, and the edited text drawn onto the image. */
 export function ExportPanel({ busy, onExport, scope, onScope }: { busy: ExportKind | null; onExport: (kind: ExportKind) => void; scope: "page" | "all" | null; onScope: (scope: "page" | "all") => void }) {

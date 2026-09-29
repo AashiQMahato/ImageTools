@@ -9,7 +9,8 @@ import { FileDown, FilePenLine, Info, RotateCcw } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/base/buttons/button";
-import { fitFontSizes, toEditorContent } from "@/features/ocr/convert";
+import { fitFontSizes, plainText, toEditorContent } from "@/features/ocr/convert";
+import { printDocument } from "@/features/ocr/printPdf";
 import { exportDocx } from "@/features/ocr/exportDocx";
 import { BlockFormat, LowConfidence } from "@/features/ocr/extensions";
 import { openInTextEditor } from "@/features/text/textDocument";
@@ -18,7 +19,10 @@ import type { OcrDocument } from "@/lib/api/ocrApi";
 import { ROUTES } from "@/lib/constants/routes";
 import { downloadFile } from "@/lib/utils/download";
 import { useT } from "@/i18n";
+import { ExportDialog, type ExportFormat } from "./ExportDialog";
 import { Figure, figureNode, withoutFigures } from "./figure";
+
+type WordFormat = "docx" | "pdf" | "txt";
 import "@/features/ocr/ocr.css";
 
 type Method = "text" | "ocr" | "none";
@@ -65,7 +69,7 @@ export function WordResult({ job, name, onStartOver }: { job: Job; name: string;
     const [pages, setPages] = useState<{ page: WordPage; content: JSONContent }[] | null>(null);
     const [failed, setFailed] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const editors = useRef(new Map<number, Editor>());
     const navigate = useNavigate();
 
@@ -86,18 +90,32 @@ export function WordResult({ job, name, onStartOver }: { job: Job; name: string;
 
     const docs = () => (pages ?? []).map(({ page }) => editors.current.get(page.page)).filter((editor): editor is Editor => Boolean(editor));
 
-    const download = async () => {
-        setBusy(true);
-        try {
-            const blob = await exportDocx(docs().map((editor) => editor.state.doc), name);
+    const formats: ExportFormat<WordFormat>[] = [
+        { value: "docx", label: t.ocr.export.docx, extension: "docx" },
+        { value: "pdf", label: t.ocr.export.pdf, extension: "pdf", prints: true, hint: t.ocr.export.pdfHint },
+        { value: "txt", label: t.ocr.export.txt, extension: "txt" },
+    ];
+    /** The pages as edited, in the chosen format — Word keeps the pictures and each page starts a new page. */
+    const exportPages = async (format: WordFormat, fileName: string, baseName: string, chosen: number[] | null) => {
+        const selected = docs().filter((_, index) => !chosen || chosen.includes(index + 1));
+        if (format === "docx") {
+            const blob = await exportDocx(
+                selected.map((editor) => editor.state.doc),
+                baseName,
+            );
             const url = URL.createObjectURL(blob);
-            downloadFile(url, `${name}.docx`);
+            downloadFile(url, fileName);
             window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-            setNotice(t.documents.result.downloadFile(`${name}.docx`));
-        } catch {
-            setNotice(t.errors.GENERIC ?? null);
-        } finally {
-            setBusy(false);
+            setNotice(t.documents.result.downloadFile(fileName));
+        } else if (format === "txt") {
+            const text = selected.map((editor) => plainText(editor.state.doc)).join("\n\n");
+            const url = URL.createObjectURL(new Blob([text.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }));
+            downloadFile(url, fileName);
+            window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+            setNotice(t.documents.result.downloadFile(fileName));
+        } else {
+            const html = selected.map((editor) => editor.getHTML());
+            await printDocument({ pages: html.map((page) => ({ html: page, layout: null, colours: { background: "#ffffff", ink: "#1a1a1a" } })), title: baseName, lang: html.some((page) => /[ऀ-ॿ]/.test(page)) ? "ne" : "en" });
         }
     };
 
@@ -113,7 +131,7 @@ export function WordResult({ job, name, onStartOver }: { job: Job; name: string;
                     <p className="text-sm text-tertiary tabular-nums">{copy.summary(pages.length, textPages, ocrPages, figures)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button size="md" color="primary" iconLeading={FileDown} onPress={() => void download()} isDisabled={busy}>
+                    <Button size="md" color="primary" iconLeading={FileDown} onPress={() => setExporting(true)}>
                         {copy.download}
                     </Button>
                     <Button
@@ -140,6 +158,15 @@ export function WordResult({ job, name, onStartOver }: { job: Job; name: string;
                     {notice}
                 </p>
             )}
+            <ExportDialog
+                open={exporting}
+                onClose={() => setExporting(false)}
+                title={t.documents.exportDialog.title}
+                formats={formats}
+                name={name}
+                pageCount={pages.length}
+                onExport={({ format, fileName, baseName, pages: chosen }) => exportPages(format, fileName, baseName, chosen)}
+            />
             <ol className="flex flex-col gap-6">
                 {pages.map(({ page, content }) => (
                     <li key={page.page} className="flex flex-col gap-2">

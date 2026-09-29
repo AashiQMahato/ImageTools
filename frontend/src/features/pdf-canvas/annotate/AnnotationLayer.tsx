@@ -138,6 +138,8 @@ export function AnnotationLayer({ annotator, page, size, scale, today }: Annotat
                 annotator.setDraft(small ? shape({ x: start.x + 120, y: start.y + (tool === "line" || tool === "arrow" ? 0 : 72) }, false) : shape(point, next.shiftKey));
                 annotator.commitDraft();
                 annotator.setTool("select");
+                // The new shape is selected: its settings are right there to adjust.
+                annotator.select(id);
             },
         );
     };

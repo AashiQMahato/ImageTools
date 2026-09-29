@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { type Notice, PanelBody, PanelIntro, StudioActions, StudioCanvas, StudioDropzone, StudioNotice } from "@/components/studio/StudioParts";
+import { BottomSheet } from "@/components/studio/BottomSheet";
 import { Button } from "@/components/ui/base/buttons/button";
 import type { DocumentToolKey } from "@/lib/constants/navigation";
 import { errorMessage, useT } from "@/i18n";
@@ -34,13 +35,15 @@ interface DocumentToolLayoutProps {
     notice?: Notice | null;
     /** The workspace: files or pages. */
     children: ReactNode;
+    /** Phones and tablets: the options open as a sheet (the tool's own button opens it) instead of stacking under the page. */
+    sheet?: { open: boolean; onClose: () => void; title: string };
 }
 
 /**
  * The frame every document tool shares: drop zone → workspace with options → progress → result,
  * with failures reported in words (never raw server errors) and the work kept for another try.
  */
-export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, job, runningTitle, doneTitle, result, resultView, onStartOver, options, toolbar, action, secondary, notice, children }: DocumentToolLayoutProps) {
+export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, job, runningTitle, doneTitle, result, resultView, onStartOver, options, toolbar, action, secondary, notice, children, sheet }: DocumentToolLayoutProps) {
     const t = useT();
     const running = job.phase === "uploading" || job.phase === "processing" || job.phase === "finalizing";
     const done = job.phase === "completed" && job.job;
@@ -53,6 +56,7 @@ export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, 
             accept={accept}
             onFiles={onFiles}
             dirty={!empty && !done}
+            mobilePanel={sheet && !empty && !running && !done ? "none" : "stack"}
             panelLabel={t.nav.toolItems[tool].title}
             panel={
                 <PanelBody>
@@ -72,7 +76,7 @@ export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, 
                 ) : done ? (
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 sm:px-6">
                         {resultView ?? (
-                            <JobResult job={job.job!} title={doneTitle} onStartOver={onStartOver}>
+                            <JobResult job={job.job!} title={doneTitle} tool={tool} onStartOver={onStartOver}>
                                 {result}
                             </JobResult>
                         )}
@@ -82,6 +86,11 @@ export function DocumentToolLayout({ tool, accept, onFiles, empty, drop, intro, 
                 )}
             </StudioCanvas>
             {shown && !running && <StudioNotice notice={shown} />}
+            {sheet && (
+                <BottomSheet open={sheet.open && !empty && !running && !done} onClose={sheet.onClose} title={sheet.title} closeLabel={t.documents.done}>
+                    {options}
+                </BottomSheet>
+            )}
             {!empty && !running && !done && (
                 <StudioActions>
                     {secondary}

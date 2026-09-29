@@ -16,6 +16,7 @@ import { ImagePane } from "@/features/ocr/ImagePane";
 import { OcrPageView } from "@/features/ocr/OcrPageView";
 import { BatchProgress, OcrShell, OcrSourceProvider, PdfPager, useOcrSource } from "@/features/ocr/OcrSource";
 import { pageId, pageOf, turnImage } from "@/features/ocr/pdf";
+import { ExportDialog } from "@/features/documents/ExportDialog";
 import { EditPanel, type ExportKind, ExportPanel, ReadSettingsPanel } from "@/features/ocr/OcrPanels";
 import { DEFAULT_SETTINGS, type ReadSettings } from "@/features/ocr/settings";
 import { OcrToolbar } from "@/features/ocr/OcrToolbar";
@@ -382,12 +383,13 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
         }
         return { pages, skipped };
     };
-    const runExport = async (kind: ExportKind) => {
-        const image_ = kind === "png" || kind === "jpeg";
+    const [exportAs, setExportAs] = useState<Exclude<ExportKind, "copy" | "editor"> | null>(null);
+    const runExport = async (kind: ExportKind, request?: { fileName: string; baseName: string; quality: number }) => {
+        const image_ = kind === "png" || kind === "jpeg" || kind === "webp";
         const { pages, skipped } = image_ ? { pages: [], skipped: [] } : await collect();
         const text = image_ ? plainText(editor.state.doc) : pages.map((page) => plainText(page.doc)).filter(Boolean).join("\n\n");
         const html = pages.map((page) => page.html).join("");
-        if (!text.trim() && kind !== "png" && kind !== "jpeg") {
+        if (!text.trim() && !image_) {
             setNotice({ tone: "error", text: copy.export.empty });
             return;
         }
@@ -409,12 +411,12 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
                     setNotice({ tone: "success", text: copy.export.copied });
                     break;
                 case "txt":
-                    save(new Blob([text.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), `${name}-text.txt`);
+                    save(new Blob([text.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }), request?.fileName ?? `${name}-text.txt`);
                     break;
                 case "docx": {
                     // Word export is a large library, loaded only when asked for.
                     const { exportDocx } = await import("@/features/ocr/exportDocx");
-                    save(await exportDocx(pages.map((page) => page.doc), name), `${name}-text.docx`);
+                    save(await exportDocx(pages.map((page) => page.doc), request?.baseName ?? name), request?.fileName ?? `${name}-text.docx`);
                     break;
                 }
                 case "pdf": {
@@ -424,16 +426,17 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
                             const { pageWidth, width, height } = page.result.document;
                             return { html: page.html, layout: mode === "layout" ? { width: pageWidth, height: Math.round((pageWidth * height) / width) } : null, colours: pageColours(page.result, mode) };
                         }),
-                        title: `${name}-text`,
+                        title: request?.baseName ?? `${name}-text`,
                         lang: result.language === "en" ? "en" : "ne",
                     });
                     setNotice(null);
                     break;
                 }
                 case "png":
-                case "jpeg": {
-                    const type = kind === "png" ? "image/png" : "image/jpeg";
-                    save(await renderEditedImage({ content: editor.view.dom, doc: editor.state.doc, result, image: image.file, type, ink: pageColours(result, "layout").ink }), `${name}-edited.${kind === "png" ? "png" : "jpg"}`);
+                case "jpeg":
+                case "webp": {
+                    const type = `image/${kind}` as const;
+                    save(await renderEditedImage({ content: editor.view.dom, doc: editor.state.doc, result, image: image.file, type, ink: pageColours(result, "layout").ink, quality: request?.quality ?? 0.92 }), request?.fileName ?? `${name}-edited.${kind === "jpeg" ? "jpg" : kind}`);
                     break;
                 }
             }
@@ -495,7 +498,7 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
                                 result={result}
                             />
                         )}
-                        {tab === "export" && <ExportPanel busy={exporting} onExport={(kind) => void runExport(kind)} scope={source.pdf ? scope : null} onScope={setScope} />}
+                        {tab === "export" && <ExportPanel busy={exporting} onExport={(kind) => (kind === "copy" || kind === "editor" ? void runExport(kind) : setExportAs(kind))} scope={source.pdf ? scope : null} onScope={setScope} />}
                         {tab === "read" && (
                             <>
                                 <ReadSettingsPanel settings={settings} onChange={onSettings} disabled={running} />
@@ -630,6 +633,22 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
                 )}
             </div>
             {shownNotice && <StudioNotice notice={shownNotice} />}
+            <ExportDialog
+                open={exportAs !== null}
+                onClose={() => setExportAs(null)}
+                title={t.documents.exportDialog.title}
+                formats={[
+                    { value: "txt", label: copy.export.txt, extension: "txt" },
+                    { value: "docx", label: copy.export.docx, extension: "docx" },
+                    { value: "pdf", label: copy.export.pdf, extension: "pdf", prints: true, hint: copy.export.pdfHint },
+                    { value: "png", label: "PNG", extension: "png", hint: copy.export.imageHint },
+                    { value: "jpeg", label: "JPG", extension: "jpg", quality: true, hint: copy.export.imageHint },
+                    { value: "webp", label: "WebP", extension: "webp", quality: true, hint: copy.export.imageHint },
+                ]}
+                initialFormat={exportAs ?? "docx"}
+                name={exportAs === "png" || exportAs === "jpeg" || exportAs === "webp" ? `${name}-edited` : `${name}-text`}
+                onExport={({ format, fileName, baseName, quality }) => runExport(format, { fileName, baseName, quality })}
+            />
         </OcrShell>
     );
 }

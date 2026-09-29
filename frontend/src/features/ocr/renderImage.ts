@@ -13,7 +13,7 @@ interface RenderOptions {
     doc: PMNode;
     result: OcrDocument;
     image: Blob;
-    type: "image/png" | "image/jpeg";
+    type: "image/png" | "image/jpeg" | "image/webp";
     /** The colour of text that has none of its own. */
     ink: string;
 }
@@ -23,7 +23,7 @@ interface RenderOptions {
  * colour, then the edited text is laid out by the browser exactly as in Original layout mode, and each
  * word painted where it sits — so fonts, sizes, colours, alignment and Devanagari shaping all carry over.
  */
-export async function renderEditedImage({ content, doc, result, image, type, ink }: RenderOptions): Promise<Blob> {
+export async function renderEditedImage({ content, doc, result, image, type, ink, quality = 0.92 }: RenderOptions & { quality?: number }): Promise<Blob> {
     const bitmap = await createImageBitmap(image);
     const canvas = document.createElement("canvas");
     canvas.width = bitmap.width;
@@ -135,7 +135,7 @@ export async function renderEditedImage({ content, doc, result, image, type, ink
         host.remove();
     }
 
-    return new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("encode"))), type, 0.92));
+    return new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("encode"))), type, quality));
 }
 
 /**

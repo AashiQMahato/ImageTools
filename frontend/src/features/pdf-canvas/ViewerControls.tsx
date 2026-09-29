@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, type LucideIcon, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, type LucideIcon, SlidersHorizontal, ZoomIn, ZoomOut } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
@@ -25,15 +25,38 @@ export function Toolbar({ label, children, className }: { label: string; childre
     );
 }
 
+/**
+ * Phones and tablets: pages and zoom at the bottom, under the thumb, and a button for the panel (which
+ * opens as a sheet). Wide screens have these in the top toolbar and the side panel.
+ */
+export function MobileBar({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div role="toolbar" aria-label={label} className="flex shrink-0 items-center justify-between gap-1 overflow-x-auto rounded-xl border border-[var(--card-line)] bg-primary p-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] [scrollbar-width:none] lg:hidden">
+            {children}
+        </div>
+    );
+}
+
+/** Opens the tool's panel as a sheet (phones and tablets). */
+export function PanelButton({ label, onClick, badge }: { label: string; onClick: () => void; badge?: boolean }) {
+    return (
+        <button type="button" onClick={onClick} aria-label={label} title={label} className="relative flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-secondary outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 sm:px-3 pointer-coarse:h-11">
+            <SlidersHorizontal className="size-4" aria-hidden />
+            <span className="hidden sm:inline">{label}</span>
+            {badge && <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-[var(--brand)]" />}
+        </button>
+    );
+}
+
 /** Zoom out / the zoom (fit or a percentage) / zoom in. */
-export function ZoomControl({ zoom }: { zoom: ReturnType<typeof useZoom> }) {
+export function ZoomControl({ zoom, compact = false }: { zoom: ReturnType<typeof useZoom>; compact?: boolean }) {
     const t = useT();
     const copy = t.documents.viewer;
     const id = useId();
     const value = zoom.mode === "custom" ? "custom" : zoom.mode;
     return (
         <div className="flex shrink-0 items-center">
-            <ToolbarButton icon={ZoomOut} label={copy.zoomOut} onClick={zoom.zoomOut} disabled={!zoom.canZoomOut} shortcut="Control+-" />
+            <ToolbarButton icon={ZoomOut} label={copy.zoomOut} onClick={zoom.zoomOut} disabled={!zoom.canZoomOut} shortcut="Control+-" className={cn(compact && "hidden sm:grid")} />
             <label htmlFor={id} className="sr-only">
                 {copy.zoom}
             </label>
@@ -58,7 +81,7 @@ export function ZoomControl({ zoom }: { zoom: ReturnType<typeof useZoom> }) {
                     </option>
                 ))}
             </select>
-            <ToolbarButton icon={ZoomIn} label={copy.zoomIn} onClick={zoom.zoomIn} disabled={!zoom.canZoomIn} shortcut="Control+=" />
+            <ToolbarButton icon={ZoomIn} label={copy.zoomIn} onClick={zoom.zoomIn} disabled={!zoom.canZoomIn} shortcut="Control+=" className={cn(compact && "hidden sm:grid")} />
         </div>
     );
 }

@@ -1,11 +1,16 @@
-import { Archive, Check, Download, FileImage, FileText, LoaderCircle, RotateCcw, ShieldCheck, X } from "lucide-react";
+import { Archive, Check, Download, FilePen, FileImage, FileText, LoaderCircle, RotateCcw, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/base/buttons/button";
 import { formatBytes } from "@/features/image-processing/format";
-import { type Job, jobArchiveUrl, jobFileUrl } from "@/lib/api/jobsApi";
+import { saveBlob } from "@/features/pdf-canvas/fileActions";
+import { fetchJobArchive, fetchJobFile, type Job, jobArchiveUrl, jobFileUrl } from "@/lib/api/jobsApi";
+import type { ToolKey } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { downloadFile } from "@/lib/utils/download";
 import { useT } from "@/i18n";
+import { ContinueWith } from "./ContinueWith";
+import { jobFiles, jobHandoffKind } from "./handoff";
+import { ExportDialog } from "./ExportDialog";
 import type { DocumentJobState, JobPhase } from "./useDocumentJob";
 
 const STEPS: readonly Exclude<JobPhase, "idle" | "failed">[] = ["uploading", "processing", "finalizing", "completed"];
@@ -67,9 +72,14 @@ export function JobProgress({ state, title, onCancel }: { state: DocumentJobStat
 }
 
 /** Finished: the files, each downloadable, all of them as a ZIP, and a way to start again. */
-export function JobResult({ job, title, onStartOver, children }: { job: Job; title?: string; onStartOver: () => void; children?: ReactNode }) {
+export function JobResult({ job, title, tool, onStartOver, children }: { job: Job; title?: string; tool?: ToolKey; onStartOver: () => void; children?: ReactNode }) {
     const t = useT();
     const copy = t.documents.result;
+    const [savingAs, setSavingAs] = useState(false);
+    const single = job.files.length === 1 ? job.files[0]! : null;
+    const extension = single ? (single.name.match(/\.([a-z0-9]+)$/i)?.[1] ?? "pdf") : "zip";
+    const suggested = single ? single.name.replace(/\.[a-z0-9]+$/i, "") : "documents";
+    const handoff = jobHandoffKind(job);
     const total = job.files.reduce((sum, file) => sum + file.size, 0);
     // How long the server keeps these files, as of when they were ready.
     const [minutes] = useState(() => Math.max(1, Math.round((new Date(job.expiresAt).getTime() - Date.now()) / 60_000)));
@@ -115,6 +125,9 @@ export function JobResult({ job, title, onStartOver, children }: { job: Job; tit
                 <Button size="lg" color="tertiary" iconLeading={RotateCcw} onPress={onStartOver}>
                     {copy.startOver}
                 </Button>
+                <Button size="lg" color="secondary" iconLeading={FilePen} onPress={() => setSavingAs(true)}>
+                    {copy.saveAs}
+                </Button>
                 {job.files.length > 1 ? (
                     <Button size="lg" color="primary" iconLeading={Archive} onPress={() => downloadFile(jobArchiveUrl(job.id), "")}>
                         {copy.downloadAll}
@@ -127,7 +140,16 @@ export function JobResult({ job, title, onStartOver, children }: { job: Job; tit
                     )
                 )}
             </div>
+            {handoff && tool && <ContinueWith kind={handoff} current={tool} files={jobFiles(job)} className="border-t border-[var(--card-line)] pt-5" />}
             <p className="text-center text-xs text-quaternary">{copy.expires(minutes)}</p>
+            <ExportDialog
+                open={savingAs}
+                onClose={() => setSavingAs(false)}
+                title={copy.saveAs}
+                formats={[{ value: extension, label: extension.toUpperCase(), extension }]}
+                name={suggested}
+                onExport={async ({ fileName }) => saveBlob(single ? await fetchJobFile(job.id, single.id) : await fetchJobArchive(job.id), fileName)}
+            />
         </div>
     );
 }

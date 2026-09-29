@@ -9,6 +9,7 @@ import { useSinglePdf } from "@/features/documents/useSinglePdf";
 import { useT } from "@/i18n";
 import { usePageScroller } from "../usePageScroller";
 import { useZoom } from "../useZoom";
+import { MobileBar, PageNav, PanelButton, ZoomControl } from "../ViewerControls";
 import { AnnotatorPages, AnnotatorPanel, type AnnotatorMode, AnnotatorToolbar } from "./PdfAnnotator";
 import { useAnnotatorKeys } from "./useAnnotatorKeys";
 import { type SignatureImage, SignatureDialog } from "./SignatureDialog";
@@ -39,6 +40,7 @@ function Session({ mode, pdf }: { mode: AnnotatorMode; pdf: ReturnType<typeof us
     const [signing, setSigning] = useState(false);
     const [signature, setSignature] = useState<{ key: string; width: number; height: number } | null>(null);
     const [problem, setProblem] = useState<string | null>(null);
+    const [sheet, setSheet] = useState(false);
 
     /** A picture placed in the middle of the page being looked at, at a sensible size, and selected. */
     const place = (key: string, width: number, height: number, target: number, isSignature: boolean) => {
@@ -105,6 +107,7 @@ function Session({ mode, pdf }: { mode: AnnotatorMode; pdf: ReturnType<typeof us
             runningTitle={editorCopy.running}
             doneTitle={copy.done}
             onStartOver={startOver}
+            sheet={{ open: sheet, onClose: () => setSheet(false), title: editorCopy.properties }}
             notice={pdf.problem ? { tone: "error", text: pdf.problem } : problem ? { tone: "error", text: problem } : null}
             toolbar={
                 pdf.ready && (
@@ -156,7 +159,18 @@ function Session({ mode, pdf }: { mode: AnnotatorMode; pdf: ReturnType<typeof us
             action={{ label: editorCopy.save, icon: Save, onPress: save, disabled: !pdf.ready || !annotator.changed }}
         >
             <input ref={picker} type="file" accept={IMAGE_TYPES.join(",")} hidden onChange={(event) => void addImage(event.target.files?.[0]).finally(() => (event.target.value = ""))} />
-            <SinglePdfWorkspace pdf={pdf}>{({ document }) => <AnnotatorPages annotator={annotator} document={document} sizes={sizes} scale={zoom.scale} area={setArea} register={scroller.register} removable={mode === "edit"} />}</SinglePdfWorkspace>
+            <SinglePdfWorkspace pdf={pdf}>
+                {({ document }) => (
+                    <div className="flex h-full flex-col gap-2">
+                        <AnnotatorPages annotator={annotator} document={document} sizes={sizes} scale={zoom.scale} area={setArea} register={scroller.register} removable={mode === "edit"} />
+                        <MobileBar label={t.documents.viewer.pagesBar}>
+                            <PageNav current={scroller.current} count={count} onGo={(page) => scroller.goTo(page)} />
+                            <ZoomControl zoom={zoom} compact />
+                            <PanelButton label={editorCopy.properties} onClick={() => setSheet(true)} badge={Boolean(annotator.selected)} />
+                        </MobileBar>
+                    </div>
+                )}
+            </SinglePdfWorkspace>
             <SignatureDialog open={signing} onClose={() => setSigning(false)} onCreate={addSignature} />
         </DocumentToolLayout>
     );
