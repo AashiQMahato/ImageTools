@@ -56,7 +56,15 @@ function mergeRow(segments: RecognizedLine[]): RecognizedLine {
     const sorted = [...segments].sort((a, b) => a.box.x - b.box.x);
     const words: RecognizedWord[] = sorted.flatMap((segment) => segment.words);
     const confidence = sorted.reduce((sum, segment) => sum + segment.confidence * segment.text.length, 0) / Math.max(1, sorted.reduce((sum, segment) => sum + segment.text.length, 0));
-    return { text: sorted.map((segment) => segment.text.trim()).join(" "), confidence, box: union(sorted.map((segment) => segment.box)), textHeight: median(sorted.map((segment) => segment.textHeight)), words };
+    // Pieces that touch (a word split by the engine, "." after a word) join without a space.
+    const text = sorted.reduce((joined, segment, index) => {
+        const piece = segment.text.trim();
+        if (!index) return piece;
+        const previous = sorted[index - 1]!;
+        const gap = segment.box.x - (previous.box.x + previous.box.width);
+        return joined + (gap < Math.min(segment.box.height, previous.box.height) * 0.25 ? "" : " ") + piece;
+    }, "");
+    return { text, confidence, box: union(sorted.map((segment) => segment.box)), textHeight: median(sorted.map((segment) => segment.textHeight)), words };
 }
 
 /**
@@ -132,14 +140,22 @@ function buildTable(segments: RecognizedLine[]): { rows: string[][]; columns: nu
         if (row && Math.abs(centre - rowCentre) < height * 0.6) row.push(segment);
         else rows.push([segment]);
     }
-    const starts = [...segments].map((segment) => segment.box.x).sort((a, b) => a - b);
-    const columns: number[] = [];
-    for (const start of starts) if (!columns.length || start - columns.at(-1)! > height * 1.5) columns.push(start);
+    // Columns: cells whose horizontal extents overlap share a column (so a centred header joins the
+    // column beneath it, however it's aligned).
+    const spans: { start: number; end: number }[] = [];
+    for (const segment of [...segments].sort((a, b) => a.box.x - b.box.x)) {
+        const start = segment.box.x;
+        const end = segment.box.x + segment.box.width;
+        const last = spans.at(-1);
+        if (last && start <= last.end + height * 0.5) last.end = Math.max(last.end, end);
+        else spans.push({ start, end });
+    }
+    const columns = spans.map((span) => span.start);
     if (columns.length < 2 || rows.length < 2) return null;
     const columnOf = (segment: RecognizedLine) => {
-        let best = 0;
-        for (let index = 0; index < columns.length; index++) if (segment.box.x + height * 0.5 >= columns[index]!) best = index;
-        return best;
+        const centre = segment.box.x + segment.box.width / 2;
+        const index = spans.findIndex((span) => centre >= span.start - height * 0.5 && centre <= span.end + height * 0.5);
+        return index < 0 ? 0 : index;
     };
     const texts = rows.map((row) => {
         const cells = columns.map(() => [] as string[]);
@@ -218,7 +234,9 @@ export function analyzeLayout(recognition: Recognition): LayoutGroup[] {
 
     // Geometry fills in what the model didn't say: noticeably larger short blocks are headings, and
     // small lines hugging the top or bottom edge are running headers and footers.
-    const body = median(groups.filter((group) => group.kind === "paragraph" || group.kind === "list").flatMap((group) => group.lines.map((line) => line.textHeight)));
+    // Body text size: paragraphs and lists — or, on a page that is only a heading and a table, the table.
+    const bodyGroups = groups.filter((group) => group.kind === "paragraph" || group.kind === "list");
+    const body = median((bodyGroups.length > 1 ? bodyGroups : groups.filter((group) => group.kind !== "title" && group.kind !== "heading")).flatMap((group) => group.lines.map((line) => line.textHeight)));
     for (const group of groups) {
         const size = median(group.lines.map((line) => line.textHeight));
         if (group.kind === "paragraph" && group.lines.length <= 2 && body && size >= body * 1.3) group.kind = size >= body * 1.7 ? "title" : "heading";

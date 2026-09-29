@@ -237,6 +237,41 @@ async def detect_orientation(file: UploadFile = File(...), x_internal_token: str
         work_lock.release()
 
 
+def layout_only(data: bytes) -> dict:
+    import cv2
+    import numpy as np
+
+    image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+    if image is None:
+        raise ValueError("decode")
+    height, width = image.shape[:2]
+    if width * height > MAX_PIXELS:
+        raise ValueError("size")
+    return {"width": width, "height": height, "regions": layout(image)}
+
+
+@app.post("/layout")
+async def layout_endpoint(file: UploadFile = File(...), x_internal_token: str | None = Header(default=None)):
+    """Layout regions only (titles, text, tables, figures…) — for pages whose text is already known."""
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    if not state["ready"]:
+        return error(503, "OCR_UNAVAILABLE", "Layout analysis is temporarily unavailable.")
+    data = await file.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        return error(413, "FILE_TOO_LARGE", "The image is too large.")
+    await run_in_threadpool(work_lock.acquire)
+    try:
+        return await run_in_threadpool(layout_only, data)
+    except ValueError:
+        return error(422, "INVALID_IMAGE", "The file could not be read as an image.")
+    except Exception:  # noqa: BLE001
+        log.exception("layout failed")
+        return error(500, "PROCESSING_FAILED", "Layout analysis failed.")
+    finally:
+        work_lock.release()
+
+
 @app.post("/ocr")
 async def ocr(
     file: UploadFile = File(...),

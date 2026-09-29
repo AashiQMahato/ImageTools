@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { removeBackgroundHandler } from "../controllers/backgroundRemovalController.js";
 import { compressHandler } from "../controllers/compressionController.js";
-import { compressHandler as compressPdfHandler, deleteJobHandler, fromImagesHandler, pageNumbersHandler, toTextHandler, watermarkHandler, getJobHandler, jobArchiveHandler, jobFileHandler, mergeHandler, organizeHandler, splitHandler, toImagesHandler } from "../controllers/documentController.js";
+import { annotateHandler, protectHandler, toWordHandler, unlockHandler, compressHandler as compressPdfHandler, deleteJobHandler, fromImagesHandler, pageNumbersHandler, toTextHandler, watermarkHandler, getJobHandler, jobArchiveHandler, jobFileHandler, mergeHandler, organizeHandler, splitHandler, toImagesHandler } from "../controllers/documentController.js";
 import { getHealth, getProcessorHealth } from "../controllers/healthController.js";
 import { ocrHandler } from "../controllers/ocrController.js";
 import { adjustCropHandler, convertHandler, fileHandler, presetsHandler, processHandler, sheetHandler } from "../controllers/photoGeneratorController.js";
@@ -42,6 +42,10 @@ apiRouter.post("/pdf/compress", processingRateLimiter, documentUpload("pdf", { m
 apiRouter.post("/pdf/watermark", processingRateLimiter, documentUpload("pdf", { max: 1, withImage: true }), watermarkHandler);
 apiRouter.post("/pdf/page-numbers", processingRateLimiter, documentUpload("pdf", { max: 1 }), pageNumbersHandler);
 apiRouter.post("/pdf/to-text", processingRateLimiter, documentUpload("pdf", { max: 1 }), toTextHandler);
+apiRouter.post("/pdf/to-word", processingRateLimiter, documentUpload("pdf", { max: 1 }), toWordHandler);
+apiRouter.post("/pdf/protect", processingRateLimiter, documentUpload("pdf", { max: 1 }), protectHandler);
+apiRouter.post("/pdf/unlock", processingRateLimiter, documentUpload("pdf", { max: 1 }), unlockHandler);
+apiRouter.post("/pdf/annotate", processingRateLimiter, documentUpload("pdf", { max: 1, withImages: 40 }), annotateHandler);
 apiRouter.get("/jobs/:id", getJobHandler);
 apiRouter.delete("/jobs/:id", deleteJobHandler);
 apiRouter.get("/jobs/:id/files/:fileId", jobFileHandler);

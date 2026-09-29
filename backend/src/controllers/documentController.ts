@@ -11,6 +11,9 @@ import { type CompressPreset, compressPdf, PRESETS } from "../services/pdf/compr
 import { hexColour } from "../services/pdf/stamp.js";
 import { type NumberPosition, numberPages, type Position, watermarkPdf } from "../services/pdf/stampService.js";
 import { pdfToText } from "../services/pdf/textService.js";
+import { annotatePdf, parseAnnotations } from "../services/pdf/annotateService.js";
+import { protectPdf, unlockPdf } from "../services/pdf/protectService.js";
+import { pdfToWord } from "../services/pdf/wordService.js";
 import { AppError } from "../utils/AppError.js";
 
 const bad = (message: string) => new AppError(message, 400, "INVALID_REQUEST");
@@ -154,6 +157,50 @@ export const toTextHandler = jobHandler("to-text", (req, { files }) => {
         language: choice(field(req, "language"), ["auto", "en", "ne", "mixed"] as const, "auto"),
     };
     return (context) => pdfToText(files[0]!, options, context);
+});
+
+/** A password as typed: 1–256 characters, nothing else checked (any characters are allowed). */
+function password(value: string | undefined, required: boolean) {
+    const text = value ?? "";
+    if (required && !text) throw bad("Enter a password.");
+    if (text.length > 256) throw bad("That password is too long.");
+    return text;
+}
+
+export const protectHandler = jobHandler("protect", (req, { files }) => {
+    const options = {
+        password: password(field(req, "password"), true),
+        ownerPassword: field(req, "ownerPassword") ? password(field(req, "ownerPassword"), true) : null,
+        allowPrint: field(req, "allowPrint") === "true",
+        allowCopy: field(req, "allowCopy") === "true",
+        allowEdit: field(req, "allowEdit") === "true",
+    };
+    return (context) => protectPdf(files[0]!, options, context);
+});
+
+export const unlockHandler = jobHandler("unlock", (req, { files }) => {
+    const secret = password(field(req, "password"), false);
+    return (context) => unlockPdf(files[0]!, secret, context);
+});
+
+export const annotateHandler = jobHandler("annotate", (req, { files, images }) => {
+    const annotations = parseAnnotations(field(req, "annotations"));
+    let deletePages: unknown = [];
+    try {
+        deletePages = JSON.parse(field(req, "deletePages") ?? "[]");
+    } catch {
+        throw bad("One of the options isn't valid.");
+    }
+    if (!Array.isArray(deletePages) || !deletePages.every((page) => Number.isInteger(page) && page > 0)) throw bad("One of the options isn't valid.");
+    // Images are matched to annotations by the key they were uploaded under (their file name, minus the extension).
+    const pictures = new Map(images.map((image) => [image.name.replace(/\.[^.]*$/, ""), image.path]));
+    const purpose = field(req, "purpose") === "sign" ? "sign" : "edit";
+    return (context) => annotatePdf(files[0]!, annotations, deletePages as number[], pictures, context, purpose);
+});
+
+export const toWordHandler = jobHandler("to-word", (req, { files }) => {
+    const language = choice(field(req, "language"), ["auto", "en", "ne", "mixed"] as const, "auto");
+    return (context) => pdfToWord(files[0]!, { language }, context);
 });
 
 // ------------------------------------------------------------------ jobs

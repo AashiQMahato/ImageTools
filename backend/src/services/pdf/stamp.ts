@@ -33,7 +33,7 @@ export function visualPage(page: PDFPage): VisualPage {
 }
 
 /** A point as the reader sees it → the page's own coordinates. */
-function toPdf({ rotation, box }: VisualPage, vx: number, vy: number) {
+export function toPdf({ rotation, box }: VisualPage, vx: number, vy: number) {
     switch (rotation) {
         case 90:
             return { x: box.x + vy, y: box.y + vx };

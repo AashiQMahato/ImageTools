@@ -37,6 +37,8 @@ export interface DocumentUpload {
     files: { path: string; name: string }[];
     /** An accompanying image (a watermark), when the tool takes one. */
     image: { path: string; name: string } | null;
+    /** Images that go with the document (the editor's pictures and signatures), by their client-given key. */
+    images: { path: string; name: string }[];
 }
 
 /**
@@ -44,7 +46,7 @@ export interface DocumentUpload {
  * memory), under names generated here. Checks the type (PDFs by their signature, not their name),
  * size and count; anything refused is deleted before the error is reported.
  */
-export function documentUpload(kind: Kind, { min = 1, max = env.documents.maxFiles, withImage = false } = {}): RequestHandler {
+export function documentUpload(kind: Kind, { min = 1, max = env.documents.maxFiles, withImage = false, withImages = 0 } = {}): RequestHandler {
     const maxBytes = Math.round((kind === "pdf" ? env.documents.maxPdfMb : env.documents.maxImageMb) * 1024 * 1024);
     const maxTotal = env.documents.maxTotalMb * 1024 * 1024;
     const tooMuch = () => new AppError(`These files are too large together. Please keep them under ${env.documents.maxTotalMb} MB in total.`, 413, "FILE_TOO_LARGE");
@@ -56,23 +58,24 @@ export function documentUpload(kind: Kind, { min = 1, max = env.documents.maxFil
             storage: multer.diskStorage({
                 destination: workspace.dir,
                 filename: (_req, file, callback) => {
-                    const extension = kind === "pdf" && file.fieldname !== "image" ? "pdf" : path.extname(file.originalname).toLowerCase().slice(1) || "img";
+                    const extension = kind === "pdf" && file.fieldname === "files" ? "pdf" : path.extname(file.originalname).toLowerCase().slice(1) || "img";
                     callback(null, path.basename(workspace.file(/^[a-z0-9]{1,5}$/.test(extension) ? extension : "img")));
                 },
             }),
-            limits: { fileSize: maxBytes, files: max + (withImage ? 1 : 0), fields: 16, fieldSize: 512 * 1024, parts: max + 18 },
+            limits: { fileSize: maxBytes, files: max + (withImage ? 1 : 0) + withImages, fields: 16, fieldSize: 4 * 1024 * 1024, parts: max + withImages + 18 },
             fileFilter: (_req, file, callback) => {
-                if (accepts(file.fieldname === "image" ? "image" : kind, file)) callback(null, true);
+                if (accepts(file.fieldname === "image" || file.fieldname === "images" ? "image" : kind, file)) callback(null, true);
                 else callback(new AppError(kind === "pdf" ? "This file format isn't supported. Please choose a PDF." : "This file format isn't supported. Please use JPG, PNG, WebP or HEIC images.", 415, "UNSUPPORTED_MEDIA_TYPE"));
             },
-        }).fields([{ name: "files", maxCount: max }, ...(withImage ? [{ name: "image", maxCount: 1 }] : [])]);
+        }).fields([{ name: "files", maxCount: max }, ...(withImage ? [{ name: "image", maxCount: 1 }] : []), ...(withImages ? [{ name: "images", maxCount: withImages }] : [])]);
 
         try {
             await new Promise<void>((resolve, reject) => upload(req, res, (error: unknown) => (error ? reject(error) : resolve())));
             const received = (req.files as Record<string, Express.Multer.File[]> | undefined) ?? {};
             const files = received.files ?? [];
             const extra = received.image?.[0] ?? null;
-            if ([...files, ...(extra ? [extra] : [])].reduce((sum, file) => sum + file.size, 0) > maxTotal) throw tooMuch();
+            const pictures = received.images ?? [];
+            if ([...files, ...(extra ? [extra] : []), ...pictures].reduce((sum, file) => sum + file.size, 0) > maxTotal) throw tooMuch();
             if (files.length < min) {
                 throw new AppError(min > 1 ? `Choose at least ${min} files.` : "Please choose a file.", 400, "FILE_REQUIRED");
             }
@@ -86,7 +89,7 @@ export function documentUpload(kind: Kind, { min = 1, max = env.documents.maxFil
             }
             // Names are only ever used to label results (and are cleaned for that); paths are ours.
             const named = (file: Express.Multer.File) => ({ path: file.path, name: Buffer.from(file.originalname, "latin1").toString("utf8") });
-            res.locals.documents = { workspace, files: files.map(named), image: extra ? named(extra) : null } satisfies DocumentUpload;
+            res.locals.documents = { workspace, files: files.map(named), image: extra ? named(extra) : null, images: pictures.map(named) } satisfies DocumentUpload;
             next();
         } catch (error) {
             await removeWorkspace(workspace.dir);

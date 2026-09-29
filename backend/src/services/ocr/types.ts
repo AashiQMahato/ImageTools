@@ -59,6 +59,8 @@ export interface OcrProvider {
     recognize(image: Buffer, options: OcrOptions, signal: AbortSignal): Promise<Recognition>;
     /** How far the page's content is turned clockwise (0/90/180/270), for engines that can tell. */
     detectOrientation?(image: Buffer, signal: AbortSignal): Promise<number>;
+    /** Layout regions only (titles, text, tables, figures), for pages whose text is already known. */
+    detectLayout?(image: Buffer, signal: AbortSignal): Promise<LayoutRegion[]>;
 }
 
 // ------------------------------------------------------------------ the document the editor works with
@@ -79,6 +81,8 @@ export interface DocLine {
     words: DocWord[];
     /** Where this line clearly differs from its block (a red bold label above plain text), also estimated. */
     style?: Partial<Pick<BlockStyle, "color" | "fontWeight">>;
+    /** Runs within the line that are styled differently (known exactly for a PDF's own text). */
+    spans?: { text: string; bold: boolean; italic: boolean; color: string | null }[];
 }
 
 /**

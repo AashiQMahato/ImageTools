@@ -24,6 +24,12 @@ const ToImagesPage = lazy(() => import("@/pages/Pdf/ToImagesPage").then((module)
 const CompressPdfPage = lazy(() => import("@/pages/Pdf/CompressPage").then((module) => ({ default: module.CompressPage })));
 const WatermarkPage = lazy(() => import("@/pages/Pdf/WatermarkPage").then((module) => ({ default: module.WatermarkPage })));
 const PageNumbersPage = lazy(() => import("@/pages/Pdf/PageNumbersPage").then((module) => ({ default: module.PageNumbersPage })));
+const ToWordPage = lazy(() => import("@/pages/Pdf/ToWordPage").then((module) => ({ default: module.ToWordPage })));
+const ViewerPage = lazy(() => import("@/pages/Pdf/ViewerPage").then((module) => ({ default: module.ViewerPage })));
+const PdfEditorPage = lazy(() => import("@/pages/Pdf/EditorPage").then((module) => ({ default: module.EditorPage })));
+const SignPage = lazy(() => import("@/pages/Pdf/SignPage").then((module) => ({ default: module.SignPage })));
+const ProtectPage = lazy(() => import("@/pages/Pdf/ProtectPage").then((module) => ({ default: module.ProtectPage })));
+const UnlockPage = lazy(() => import("@/pages/Pdf/UnlockPage").then((module) => ({ default: module.UnlockPage })));
 const ToTextPage = lazy(() => import("@/pages/Pdf/ToTextPage").then((module) => ({ default: module.ToTextPage })));
 const TextEditorPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextEditorPage })));
 const TextCleanerPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextCleanerPage })));
@@ -55,6 +61,12 @@ export function AppRoutes() {
                 <Route path={ROUTES.pdfWatermark} element={later(<WatermarkPage />)} />
                 <Route path={ROUTES.pdfPageNumbers} element={later(<PageNumbersPage />)} />
                 <Route path={ROUTES.pdfToText} element={later(<ToTextPage />)} />
+                <Route path={ROUTES.pdfToWord} element={later(<ToWordPage />)} />
+                <Route path={ROUTES.pdfViewer} element={later(<ViewerPage />)} />
+                <Route path={ROUTES.pdfEditor} element={later(<PdfEditorPage />)} />
+                <Route path={ROUTES.pdfSign} element={later(<SignPage />)} />
+                <Route path={ROUTES.pdfProtect} element={later(<ProtectPage />)} />
+                <Route path={ROUTES.pdfUnlock} element={later(<UnlockPage />)} />
                 <Route path={ROUTES.textEditor} element={later(<TextEditorPage />)} />
                 <Route path={ROUTES.textCleaner} element={later(<TextCleanerPage />)} />
                 <Route path={ROUTES.caseConverter} element={later(<CaseConverterPage />)} />

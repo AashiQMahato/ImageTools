@@ -277,3 +277,21 @@
     font-weight: 600;
     background: rgb(0 0 0 / 0.04);
 }
+
+/* A picture from the original page (PDF to Word), in its place among the text. */
+.ocr-page figure.doc-figure {
+    margin: 0.75em 0;
+    text-align: center;
+}
+
+.ocr-page figure.doc-figure img {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 2px;
+}
+
+.ocr-page figure.doc-figure.ProseMirror-selectednode img {
+    outline: 2px solid var(--color-focus-ring, #2563eb);
+    outline-offset: 2px;
+}
