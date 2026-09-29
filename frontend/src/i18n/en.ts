@@ -93,9 +93,11 @@ export const en = {
     },
 
     footer: {
-        tagline: "Simple, focused tools for better images.",
-        blurb: "Remove backgrounds, upscale with AI, crop and edit — with nothing to install and nothing stored.",
-        product: "Product",
+        tagline: "Simple, focused tools for images and documents.",
+        blurb: "Remove backgrounds, upscale with AI and edit photos — and view, edit, sign, convert and protect PDFs. Nothing to install.",
+        product: "Image tools",
+        documents: "Documents",
+        allDocuments: "All document tools",
         resources: "Resources",
         company: "Company",
         faq: "FAQ",
@@ -103,7 +105,7 @@ export const en = {
         privacy: "Privacy",
         terms: "Terms",
         rights: (year: number) => `© ${year} Studio Tools. All rights reserved.`,
-        privacyNote: "Images are processed privately and never stored.",
+        privacyNote: "Files are processed securely and temporary files are automatically removed.",
     },
 
     upload: {
