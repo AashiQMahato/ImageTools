@@ -46,6 +46,9 @@ function runs(block: PMNode, lang: string | null): TextRun[] {
         const bold = Boolean(mark("bold"));
         const italics = Boolean(mark("italic"));
         const highlight = mark("highlight");
+        // Inline code in a monospace face; links look like links (blue, underlined).
+        const code = Boolean(mark("code"));
+        const link = Boolean(mark("link"));
         out.push(
             new TextRun({
                 text: child.text!,
@@ -53,12 +56,12 @@ function runs(block: PMNode, lang: string | null): TextRun[] {
                 boldComplexScript: bold,
                 italics,
                 italicsComplexScript: italics,
-                underline: mark("underline") ? {} : undefined,
+                underline: mark("underline") || link ? {} : undefined,
                 strike: Boolean(mark("strike")),
-                color: hex(style.color as string | undefined),
+                color: link ? "1D4ED8" : hex(style.color as string | undefined),
                 size,
                 sizeComplexScript: size,
-                font: style.fontFamily ? fonts(style.fontFamily as string) : undefined,
+                font: code ? { ascii: "Consolas", hAnsi: "Consolas", cs: "Nirmala UI", eastAsia: "Consolas" } : style.fontFamily ? fonts(style.fontFamily as string) : undefined,
                 shading: highlight ? { type: ShadingType.CLEAR, fill: hex((highlight.attrs.color as string) ?? "#fef08a") ?? "FEF08A", color: "auto" } : undefined,
                 language: lang === "ne" ? { value: "ne-NP", bidirectional: "ne-NP" } : lang === "en" ? { value: "en-US" } : undefined,
             }),
@@ -139,6 +142,15 @@ export async function exportDocx(pages: PMNode | readonly PMNode[], title: strin
                     children.push(new Paragraph(""));
                     return;
                 }
+                case "blockquote":
+                    // A quote: indented, with a rule down its left side.
+                    block.forEach((child) => void children.push(paragraph(child, lang, { indent: { left: 720 }, border: { left: { style: "single", size: 12, color: "BBBBBB", space: 8 } } })));
+                    return;
+                case "codeBlock":
+                    // Code: each line as written, monospace, on a light panel.
+                    block.textContent.split("\n").forEach((line) => children.push(new Paragraph({ children: [new TextRun({ text: line, font: { ascii: "Consolas", hAnsi: "Consolas" }, size: 20 })], shading: { type: ShadingType.CLEAR, fill: "F3F4F6", color: "auto" }, spacing: { after: 0 } })));
+                    children.push(new Paragraph(""));
+                    return;
                 case "horizontalRule":
                     return void children.push(new Paragraph({ border: { bottom: { style: "single", size: 6, color: "999999", space: 1 } } }));
                 default:

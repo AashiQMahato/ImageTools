@@ -25,6 +25,10 @@ const CompressPdfPage = lazy(() => import("@/pages/Pdf/CompressPage").then((modu
 const WatermarkPage = lazy(() => import("@/pages/Pdf/WatermarkPage").then((module) => ({ default: module.WatermarkPage })));
 const PageNumbersPage = lazy(() => import("@/pages/Pdf/PageNumbersPage").then((module) => ({ default: module.PageNumbersPage })));
 const ToTextPage = lazy(() => import("@/pages/Pdf/ToTextPage").then((module) => ({ default: module.ToTextPage })));
+const TextEditorPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextEditorPage })));
+const TextCleanerPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.TextCleanerPage })));
+const CaseConverterPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.CaseConverterPage })));
+const WordCounterPage = lazy(() => import("@/pages/Text/TextPages").then((module) => ({ default: module.WordCounterPage })));
 const ImagesToPdfPage = lazy(() => import("@/pages/Pdf/ImagesToPdfPage").then((module) => ({ default: module.ImagesToPdfPage })));
 
 const later = (page: ReactNode) => <Suspense fallback={null}>{page}</Suspense>;
@@ -51,6 +55,10 @@ export function AppRoutes() {
                 <Route path={ROUTES.pdfWatermark} element={later(<WatermarkPage />)} />
                 <Route path={ROUTES.pdfPageNumbers} element={later(<PageNumbersPage />)} />
                 <Route path={ROUTES.pdfToText} element={later(<ToTextPage />)} />
+                <Route path={ROUTES.textEditor} element={later(<TextEditorPage />)} />
+                <Route path={ROUTES.textCleaner} element={later(<TextCleanerPage />)} />
+                <Route path={ROUTES.caseConverter} element={later(<CaseConverterPage />)} />
+                <Route path={ROUTES.wordCounter} element={later(<WordCounterPage />)} />
                 <Route path={ROUTES.compress} element={<CompressorPage />} />
                 <Route path={ROUTES.crop} element={<CropperPage />} />
                 <Route path={ROUTES.editor} element={<EditorPage />} />

@@ -223,3 +223,24 @@ export function clearDraftEdits() {
         // Ignore.
     }
 }
+
+// The text editor's document (its content as JSON), so a reload — or moving between the text tools —
+// keeps it. On this device only.
+const TEXT_KEY = "text-editor";
+
+export async function saveDraftText(content: unknown) {
+    try {
+        await run("readwrite", (store) => store.put({ content, savedAt: Date.now() }, TEXT_KEY));
+    } catch {
+        // No storage: the text just won't survive a reload.
+    }
+}
+
+export async function loadDraftText<T>(): Promise<T | null> {
+    try {
+        const draft = (await run("readonly", (store) => store.get(TEXT_KEY))) as { content: T } | undefined;
+        return draft?.content ?? null;
+    } catch {
+        return null;
+    }
+}

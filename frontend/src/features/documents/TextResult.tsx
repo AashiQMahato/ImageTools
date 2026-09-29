@@ -1,6 +1,7 @@
-import { Copy, FileDown, FileText, Printer, RotateCcw } from "lucide-react";
+import { Copy, FileDown, FilePenLine, FileText, Printer, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { openInTextEditor } from "@/features/text/textDocument";
 import { Segmented } from "@/components/common/Segmented";
 import { Button } from "@/components/ui/base/buttons/button";
 import { fetchJobFile, type Job } from "@/lib/api/jobsApi";
@@ -34,6 +35,7 @@ export function TextResult({ job, name, onStartOver }: { job: Job; name: string;
     const [chosen, setChosen] = useState<Record<number, Method>>({});
     const [edits, setEdits] = useState<Record<string, string>>({});
     const [notice, setNotice] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const file = job.files.find((candidate) => candidate.mimeType.startsWith("application/json"));
@@ -128,6 +130,17 @@ export function TextResult({ job, name, onStartOver }: { job: Job; name: string;
                 })}
             </ol>
             <div className="flex flex-col items-center gap-3 py-2 text-center">
+                <Button
+                    size="lg"
+                    color="primary"
+                    iconLeading={FilePenLine}
+                    onPress={() => {
+                        openInTextEditor(texts.join("\n\n"));
+                        navigate(ROUTES.textEditor);
+                    }}
+                >
+                    {copy.openEditor}
+                </Button>
                 <p className="text-xs text-tertiary">
                     {copy.editorHint}{" "}
                     <Link to={ROUTES.ocr} className="font-medium text-[var(--brand)] underline-offset-4 hover:underline">
