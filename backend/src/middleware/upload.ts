@@ -28,7 +28,8 @@ const PHOTO_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".
  */
 export const uploadPhoto = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: uploadConfig.maxFileSizeBytes, files: 1, fields: 4, fieldSize: 1024, parts: 6 },
+    // Fields are small settings — except an OCR free-selection outline, which can run to a few KB.
+    limits: { fileSize: uploadConfig.maxFileSizeBytes, files: 1, fields: 4, fieldSize: 64 * 1024, parts: 6 },
     fileFilter: (_req, file, callback) => {
         const extension = file.originalname.slice(file.originalname.lastIndexOf(".")).toLowerCase();
         const typeOk = file.mimetype.startsWith("image/") || file.mimetype === "application/octet-stream" || file.mimetype === "";

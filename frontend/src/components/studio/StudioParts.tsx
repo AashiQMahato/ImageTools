@@ -15,7 +15,7 @@ export function StudioCanvas({ children, className }: { children: ReactNode; cla
 }
 
 /** The empty state every tool shares: one clear target, the limits, and the ways in (drop, paste, choose). */
-export function StudioDropzone({ title, hint }: { title: string; hint: string }) {
+export function StudioDropzone({ title, hint, limits }: { title: string; hint: string; limits?: string }) {
     const t = useT();
     const { openPicker, uploadError } = useStudio();
     return (
@@ -34,7 +34,7 @@ export function StudioDropzone({ title, hint }: { title: string; hint: string })
                     <ImagePlus className="size-4" aria-hidden />
                     {t.common.chooseImage}
                 </span>
-                <span className="mt-4 text-xs text-quaternary">{t.common.uploadHint}</span>
+                <span className="mt-4 text-xs text-quaternary">{limits ?? t.common.uploadHint}</span>
                 <span className="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs text-tertiary">
                     <span className="inline-flex items-center gap-1.5 [@media(hover:none)]:hidden">
                         <Clipboard className="size-3.5" aria-hidden />

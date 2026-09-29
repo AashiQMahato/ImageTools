@@ -61,7 +61,8 @@ export async function convertImage(buffer: Buffer, format: SourceFormat, signal:
  * white, colour profile kept, full resolution, as a high-quality JPEG. EXIF is dropped — it can hold
  * the photo's location, and nothing downstream needs it.
  */
-export async function normalizeImage(buffer: Buffer, previousOrientation: number | null): Promise<{ buffer: Buffer; width: number; height: number; orientationCorrected: boolean }> {
+/** `lossless`: keep every pixel exactly (PNG) — for text recognition, where JPEG artifacts cost accuracy. */
+export async function normalizeImage(buffer: Buffer, previousOrientation: number | null, lossless = false): Promise<{ buffer: Buffer; width: number; height: number; orientationCorrected: boolean }> {
     let metadata: Metadata;
     try {
         metadata = await sharp(buffer, { failOn: "error", limitInputPixels: env.maxImagePixels }).metadata();
@@ -71,12 +72,9 @@ export async function normalizeImage(buffer: Buffer, previousOrientation: number
     }
     const orientation = metadata.orientation ?? 1;
     try {
-        const { data, info } = await sharp(buffer, { failOn: "error", limitInputPixels: env.maxImagePixels, pages: 1 })
-            .rotate()
-            .flatten({ background: "#ffffff" })
-            .keepIccProfile()
-            .jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true })
-            .toBuffer({ resolveWithObject: true });
+        const upright = sharp(buffer, { failOn: "error", limitInputPixels: env.maxImagePixels, pages: 1 }).rotate().flatten({ background: "#ffffff" }).keepIccProfile();
+        const encoded = lossless ? upright.png({ compressionLevel: 1 }) : upright.jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true });
+        const { data, info } = await encoded.toBuffer({ resolveWithObject: true });
         return { buffer: data, width: info.width, height: info.height, orientationCorrected: orientation > 1 || (previousOrientation ?? 1) > 1 };
     } catch {
         throw new AppError("This file couldn't be read as an image. It may be damaged.", 422, "INVALID_IMAGE");
@@ -84,10 +82,10 @@ export async function normalizeImage(buffer: Buffer, previousOrientation: number
 }
 
 /** Detect → convert when needed → normalize. */
-export async function prepareImage(upload: Buffer, signal: AbortSignal): Promise<NormalizedImage> {
+export async function prepareImage(upload: Buffer, signal: AbortSignal, { lossless = false } = {}): Promise<NormalizedImage> {
     const sourceFormat = detectFormat(upload);
     if (!sourceFormat) throw unsupported();
     const converted = await convertImage(upload, sourceFormat, signal);
-    const normalized = await normalizeImage(converted.buffer, converted.orientation);
+    const normalized = await normalizeImage(converted.buffer, converted.orientation, lossless);
     return { ...normalized, sourceFormat, converted: converted.converted };
 }

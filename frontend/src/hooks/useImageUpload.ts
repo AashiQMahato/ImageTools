@@ -4,7 +4,7 @@ import { type AppRoute, ROUTES } from "@/lib/constants/routes";
 import { ApiError } from "@/lib/api/apiClient";
 import { convertToJpeg } from "@/lib/api/convertApi";
 import { ACCEPTED_IMAGE_TYPES, CONVERTIBLE_EXTENSIONS, CONVERTIBLE_IMAGE_TYPES, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT } from "@/lib/constants/upload";
-import { useImageStore } from "@/store/useImageStore";
+import { useSectionImageStore } from "@/store/useImageStore";
 import type { ImageDimensions } from "@/types/image";
 import { type Dictionary, useT } from "@/i18n";
 
@@ -71,18 +71,22 @@ export async function prepareImageFile(picked: File, t: Dictionary, onStatus?: (
 interface Options {
     /** Where to go after a successful pick. `null` stays on the current page. */
     navigateTo?: AppRoute | null;
+    /** A tool that takes other files too (the OCR editor's PDFs) claims them here first: true = handled. */
+    intercept?: (file: File) => boolean;
+    /** The picker's file types, when the tool takes more than images. */
+    accept?: string;
 }
 
 /**
  * The one way images enter the app (file picker, drag and drop, landing CTA):
  * validates type and size (mirroring the API), decodes it, stores it and optionally opens a tool.
  */
-export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options = {}) {
+export function useImageUpload({ navigateTo = ROUTES.removeBackground, intercept, accept = UPLOAD_ACCEPT }: Options = {}) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [error, setError] = useState<string | null>(null);
     /** What's happening to a file on its way in (e.g. "HEIC detected — converting to JPEG…"). */
     const [status, setStatus] = useState<string | null>(null);
-    const setOriginal = useImageStore((state) => state.setOriginal);
+    const setOriginal = useSectionImageStore()((state) => state.setOriginal);
     const navigate = useNavigate();
     const t = useT();
 
@@ -94,6 +98,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
     const acceptFile = useCallback(
         async (picked: File) => {
             setError(null);
+            if (intercept?.(picked)) return true;
             const prepared = await prepareImageFile(picked, t, setStatus);
             if (!prepared.ok) {
                 setError(prepared.error);
@@ -113,7 +118,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
             if (navigateTo) navigate(navigateTo);
             return true;
         },
-        [navigate, navigateTo, setOriginal, t],
+        [navigate, navigateTo, setOriginal, t, intercept],
     );
 
     const onChange = useCallback(
@@ -128,7 +133,7 @@ export function useImageUpload({ navigateTo = ROUTES.removeBackground }: Options
     const inputProps = {
         ref: inputRef,
         type: "file",
-        accept: UPLOAD_ACCEPT,
+        accept,
         onChange,
         hidden: true,
         tabIndex: -1,

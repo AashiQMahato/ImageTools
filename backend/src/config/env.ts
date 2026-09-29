@@ -91,6 +91,18 @@ export const env = {
         maxWorkingSize: Math.floor(parsePositive(env_.RETOUCH_MAX_WORKING_SIZE, 2048)),
     },
 
+    ocr: {
+        /** "auto": PaddleOCR when its environment is installed, else Tesseract if it's on this machine. */
+        provider: parseChoice(env_.OCR_PROVIDER, ["auto", "paddle", "tesseract"] as const, "auto"),
+        /** PaddleOCR runs in its own Python environment (it pins its own OpenCV/NumPy). */
+        pythonPath: resolvePath(env_.OCR_PYTHON_PATH, "python/.venv-ocr/bin/python"),
+        serviceDir: resolvePath(undefined, "python/ocr_service"),
+        modelsDir: resolvePath(env_.OCR_MODELS_DIR, "python/.models/paddlex"),
+        tesseractPath: env_.TESSERACT_PATH?.trim() || "tesseract",
+        timeoutMs: parsePositive(env_.OCR_TIMEOUT_MS, 180_000),
+        concurrency: Math.floor(parsePositive(env_.OCR_CONCURRENCY, 1)),
+    },
+
     compression: {
         concurrency: Math.floor(parsePositive(env_.COMPRESSION_CONCURRENCY, 2)),
     },

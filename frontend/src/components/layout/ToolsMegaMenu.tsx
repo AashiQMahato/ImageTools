@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { ALL_TOOLS_HREF, type NavToolGroup, TOOL_GROUPS } from "@/lib/constants/navigation";
+import { type NavToolGroup, TOOL_GROUPS } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
 import type { NavPanelProps } from "./NavDropdown";
@@ -8,12 +8,10 @@ import { TOOL_ICONS } from "./toolIcons";
 
 
 /**
- * The Tools panel: AI tools and the editor on the left, image tools on the right, a way to the full
- * overview underneath. It hangs from the centre of the navigation, and its top padding is a bridge —
+ * The Tools panel: AI tools and the editor on the left, image tools on the right. It hangs from the centre of the navigation, and its top padding is a bridge —
  * the pointer can travel from the trigger into the panel without ever leaving it.
  */
 export function ToolsMegaMenu({ id, open, panelRef, onNavigate, onKeyDown }: NavPanelProps) {
-    const t = useT();
     const [ai, image, editor] = TOOL_GROUPS as [NavToolGroup, NavToolGroup, NavToolGroup];
 
     return (
@@ -30,24 +28,13 @@ export function ToolsMegaMenu({ id, open, panelRef, onNavigate, onKeyDown }: Nav
                         </div>
                         <Group group={image} onNavigate={onNavigate} />
                     </div>
-                    <div className="border-t border-secondary bg-secondary px-3 py-2">
-                        <Link
-                            to={ALL_TOOLS_HREF}
-                            data-nav-item
-                            onClick={onNavigate}
-                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-secondary transition-colors duration-150 outline-focus-ring hover:text-primary focus-visible:outline-2"
-                        >
-                            {t.nav.exploreAll}
-                            <ArrowRight className="nav-arrow size-4" aria-hidden />
-                        </Link>
-                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-function Group({ group, onNavigate }: { group: NavToolGroup; onNavigate: () => void }) {
+export function Group({ group, onNavigate }: { group: NavToolGroup; onNavigate: () => void }) {
     const t = useT();
     const { pathname } = useLocation();
     const headingId = `nav-group-${group.key}`;

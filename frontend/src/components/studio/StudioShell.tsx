@@ -5,10 +5,10 @@ import { LogoMark } from "@/components/common/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { TOOL_ICONS } from "@/components/layout/toolIcons";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import { STUDIO_TOOL_GROUPS, type ToolKey } from "@/lib/constants/navigation";
+import { studioToolGroups, type ToolKey } from "@/lib/constants/navigation";
 import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
-import { useImageStore } from "@/store/useImageStore";
+import { useSectionImageStore } from "@/store/useImageStore";
 import { useImmersiveLayout } from "@/store/useLayoutStore";
 import { useT } from "@/i18n";
 import { StudioSidebar } from "./StudioSidebar";
@@ -46,19 +46,24 @@ interface StudioShellProps {
      * file here instead of the shared single image.
      */
     onFiles?: (files: File[]) => void;
+    /** A tool that also takes other files (the OCR editor's PDFs) claims them here first: true = handled. */
+    interceptFile?: (file: File) => boolean;
+    /** The picker's file types, when the tool takes more than images. */
+    accept?: string;
 }
 
 /**
  * The frame every tool shares: a top bar, the tools on the left, the image in the middle and the
  * tool's controls on the right. An image can be dropped or pasted anywhere on it.
  */
-export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, children, dirty = false, mobilePanel = "stack", onFiles }: StudioShellProps) {
+export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, children, dirty = false, mobilePanel = "stack", onFiles, interceptFile, accept }: StudioShellProps) {
     useImmersiveLayout();
     const t = useT();
     const copy = t.studio;
-    const original = useImageStore((state) => state.original);
-    const clearImage = useImageStore((state) => state.clear);
-    const upload = useImageUpload({ navigateTo: null });
+    const store = useSectionImageStore();
+    const original = store((state) => state.original);
+    const clearImage = store((state) => state.clear);
+    const upload = useImageUpload({ navigateTo: null, intercept: interceptFile, accept });
     const multiInput = useRef<HTMLInputElement>(null);
     const { acceptFile } = upload;
     const receive = useCallback((files: File[]) => (onFiles ? onFiles(files) : files[0] && void acceptFile(files[0])), [onFiles, acceptFile]);
@@ -263,7 +268,7 @@ function ToolBreadcrumb({ tool, fileName, onNewImage }: { tool: ToolKey; fileNam
                 </button>
                 {open && (
                     <div ref={menuRef} className="absolute top-full left-0 z-50 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--card-line)] bg-primary p-1.5 shadow-xl">
-                        {STUDIO_TOOL_GROUPS.flatMap((group) => group.items).map((item) => {
+                        {studioToolGroups(tool).flatMap((group) => group.items).map((item) => {
                             const ItemIcon = TOOL_ICONS[item.key];
                             const current = !item.alias && item.key === tool;
                             return (

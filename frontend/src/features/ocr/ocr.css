@@ -1,0 +1,228 @@
+/*
+ * The OCR editor's page. It's paper, not app chrome: its colours come from the document (and don't
+ * follow the app's dark mode), and every size is in page pixels so the estimated formatting holds.
+ */
+
+.ocr-page {
+    --page-bg: #ffffff;
+    --page-ink: #1a1a1a;
+    position: relative;
+    background: var(--page-bg);
+    color: var(--page-ink);
+    font-family: Inter, "Noto Sans Devanagari", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    border-radius: 4px;
+    box-shadow:
+        0 0 0 1px rgb(0 0 0 / 0.06),
+        0 8px 28px -12px rgb(0 0 0 / 0.25);
+}
+
+.ocr-page .ProseMirror {
+    outline: none;
+    min-height: 100%;
+    padding: clamp(20px, 7%, 56px) clamp(20px, 7%, 56px) clamp(32px, 9%, 72px);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-variant-ligatures: common-ligatures;
+    /* Devanagari conjuncts and matras need the font's shaping — never letter-spacing. */
+    letter-spacing: normal;
+}
+
+@media (max-width: 640px) {
+    .ocr-page:not(.ocr-layout) .ProseMirror {
+        padding: 24px 20px 40px;
+    }
+}
+
+.ocr-page .ProseMirror > * + * {
+    margin-top: 0.75em;
+}
+.ocr-page .ProseMirror p,
+.ocr-page .ProseMirror h1,
+.ocr-page .ProseMirror h2,
+.ocr-page .ProseMirror h3 {
+    margin-bottom: 0;
+}
+.ocr-page .ProseMirror h1 {
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.ocr-page .ProseMirror h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 1.3;
+}
+.ocr-page .ProseMirror h3 {
+    font-size: 1.2em;
+    font-weight: 600;
+    line-height: 1.35;
+}
+.ocr-page .ProseMirror ul,
+.ocr-page .ProseMirror ol {
+    padding-left: 1.6em;
+}
+.ocr-page .ProseMirror ul {
+    list-style-type: disc;
+}
+.ocr-page .ProseMirror ol {
+    list-style-type: decimal;
+}
+.ocr-page .ProseMirror li + li {
+    margin-top: 0.2em;
+}
+.ocr-page .ProseMirror li > p {
+    margin: 0;
+}
+.ocr-page .ProseMirror mark {
+    border-radius: 2px;
+    padding: 0 0.05em;
+    color: inherit;
+}
+.ocr-page .ProseMirror [data-background] {
+    background: var(--block-bg);
+    padding: 0.2em 0.45em;
+    border-radius: 3px;
+}
+
+/* Tables: real grids, editable cell by cell. */
+.ocr-page .ProseMirror .tableWrapper {
+    overflow-x: auto;
+}
+.ocr-page .ProseMirror table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.ocr-page .ProseMirror td,
+.ocr-page .ProseMirror th {
+    border: 1px solid rgb(0 0 0 / 0.25);
+    padding: 0.3em 0.5em;
+    vertical-align: top;
+    min-width: 2em;
+}
+.ocr-page .ProseMirror td > p,
+.ocr-page .ProseMirror th > p {
+    margin: 0;
+}
+.ocr-page .ProseMirror .selectedCell {
+    background: rgb(37 99 235 / 0.12);
+}
+.ocr-page .ProseMirror .column-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    bottom: 0;
+    width: 4px;
+    background: rgb(37 99 235 / 0.5);
+    pointer-events: none;
+}
+.ocr-page .ProseMirror td,
+.ocr-page .ProseMirror th {
+    position: relative;
+}
+
+/* Words the engine wasn't sure about: marked, never changed. */
+.ocr-page .ocr-low {
+    text-decoration: underline wavy rgb(217 119 6 / 0.85);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 0.2em;
+    text-decoration-skip-ink: none;
+}
+.ocr-page.ocr-hide-low .ocr-low {
+    text-decoration: none;
+}
+
+/* Find & replace matches. */
+.ocr-page .ocr-match {
+    background: rgb(250 204 21 / 0.45);
+    border-radius: 2px;
+}
+.ocr-page .ocr-match-current {
+    background: rgb(249 115 22 / 0.6);
+    box-shadow: 0 0 0 1px rgb(234 88 12);
+}
+
+/* ------------------------------------------------------------------ Original layout mode */
+
+.ocr-layout .ProseMirror {
+    position: relative;
+    height: 100%;
+    padding: 0;
+}
+.ocr-layout .ProseMirror > * + * {
+    margin-top: 0;
+}
+/* Each block sits where it was in the image, with a little room so estimated fonts don't wrap early. */
+.ocr-layout .ProseMirror > [data-block] {
+    position: absolute;
+    left: var(--lx);
+    top: var(--ly);
+    width: calc(var(--lw) + 4%);
+    min-height: var(--lh);
+    margin: 0 !important;
+}
+.ocr-layout .ProseMirror > [data-block][style*="text-align: center"] {
+    left: calc(var(--lx) - 2%);
+}
+.ocr-layout .ProseMirror > [data-block][style*="text-align: right"] {
+    left: calc(var(--lx) - 4%);
+}
+/* The editor wraps a table in a scrolling box; in layout mode the table is placed, not the box. */
+.ocr-layout .ProseMirror > .tableWrapper {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    pointer-events: none;
+}
+.ocr-layout .ProseMirror > .tableWrapper > table[data-block] {
+    position: absolute;
+    left: var(--lx);
+    top: var(--ly);
+    width: var(--lw) !important;
+    pointer-events: auto;
+}
+/* Each row as tall as it is in the image, so it sits on its own row. */
+.ocr-layout .ProseMirror > .tableWrapper > table[data-block] tr {
+    height: var(--row-h, auto);
+}
+.ocr-layout .ProseMirror > .tableWrapper > table[data-block] td,
+.ocr-layout .ProseMirror > .tableWrapper > table[data-block] th {
+    padding: 0 0.4em;
+    vertical-align: middle;
+    line-height: 1.2;
+}
+.ocr-layout .ProseMirror > ul[data-block],
+.ocr-layout .ProseMirror > ol[data-block] {
+    padding-left: 1.4em;
+}
+.ocr-layout .ProseMirror > [data-background] {
+    padding: 0;
+}
+/* A block's edges, on hover and while editing it — where it is, and how far it reaches. */
+.ocr-layout .ProseMirror > [data-block]:hover,
+.ocr-layout .ProseMirror > [data-block].ocr-active {
+    outline: 1px dashed rgb(37 99 235 / 0.55);
+    outline-offset: 2px;
+}
+
+.ocr-overlay-image {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    border-radius: inherit;
+}
+.ocr-overlay-image img {
+    position: absolute;
+    max-width: none;
+    user-select: none;
+}
+/* With the original showing, block backgrounds would hide it. */
+.ocr-page.ocr-with-overlay [data-background] {
+    background: none;
+}
+.ocr-page.ocr-with-overlay .ProseMirror {
+    position: relative;
+}

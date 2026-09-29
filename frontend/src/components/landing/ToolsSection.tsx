@@ -1,4 +1,4 @@
-import { ArrowRight, Crop, Eraser, Shrink, SlidersHorizontal, Stamp, ZoomIn } from "lucide-react";
+import { ArrowRight, Crop, Eraser, ScanText, Shrink, SlidersHorizontal, Stamp, ZoomIn } from "lucide-react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useInView } from "@/hooks/useInView";
@@ -36,6 +36,11 @@ const TOOLS = [
         key: "watermarkRemover",
         icon: Stamp,
         href: ROUTES.watermarkRemover,
+    },
+    {
+        key: "ocr",
+        icon: ScanText,
+        href: ROUTES.ocr,
     },
 ] as const;
 

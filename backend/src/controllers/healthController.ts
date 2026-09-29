@@ -3,6 +3,8 @@ import type { RequestHandler } from "express";
 import { env } from "../config/env.js";
 import { backgroundRemoval } from "../services/background-removal/backgroundRemovalService.js";
 import { rembgProcess } from "../services/background-removal/rembgProcess.js";
+import { ocrProcess } from "../services/ocr/providers/paddleProvider.js";
+import { getOcrProvider } from "../services/ocr/providers/index.js";
 import { retouching } from "../services/retouch/retouchService.js";
 import { upscaylProvider } from "../services/upscaling/upscaylProvider.js";
 import { upscaling } from "../services/upscaling/upscaleService.js";
@@ -21,7 +23,8 @@ export const getHealth: RequestHandler = (_req, res) => {
 };
 
 /** Processor details for operators and the frontend. No paths, tokens or raw errors. */
-export const getProcessorHealth: RequestHandler = (_req, res) => {
+export const getProcessorHealth: RequestHandler = async (_req, res) => {
+    const ocrProvider = await getOcrProvider().catch(() => null);
     const rembg = rembgProcess.state;
     const upscayl = upscaylProvider.state;
     res.json({
@@ -50,6 +53,12 @@ export const getProcessorHealth: RequestHandler = (_req, res) => {
                 // Needs the image service (background removal, face detection, conversion) and the face model.
                 available: backgroundRemoval.isAvailable() && existsSync(env.photoGenerator.faceModelPath),
                 faceModelInstalled: existsSync(env.photoGenerator.faceModelPath),
+            },
+            ocr: {
+                // PaddleOCR starts on the first request, so "disabled" here just means "not started yet".
+                available: ocrProvider !== null,
+                provider: ocrProvider?.name ?? null,
+                status: ocrProcess.state.status,
             },
             retouch: {
                 available: retouching.isAvailable(),
