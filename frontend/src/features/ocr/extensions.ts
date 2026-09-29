@@ -220,13 +220,14 @@ export function uncertainRanges(doc: PMNode): { from: number; to: number; confid
 export interface SearchState {
     query: string;
     matchCase: boolean;
+    wholeWord: boolean;
     matches: { from: number; to: number }[];
     /** The current match (index into `matches`). */
     index: number;
 }
 
 export const searchKey = new PluginKey<SearchState>("ocrSearch");
-const EMPTY: SearchState = { query: "", matchCase: false, matches: [], index: 0 };
+const EMPTY: SearchState = { query: "", matchCase: false, wholeWord: false, matches: [], index: 0 };
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -235,10 +236,13 @@ const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * typed text is in — so Devanagari entered as separate code points still matches; case folding is
  * Unicode-aware.
  */
-function findMatches(doc: PMNode, query: string, matchCase: boolean) {
+function findMatches(doc: PMNode, query: string, matchCase: boolean, wholeWord: boolean) {
     const needle = query.normalize("NFC");
     if (!needle) return [];
-    const pattern = new RegExp(escape(needle), matchCase ? "gu" : "giu");
+    // Whole words by Unicode letters and marks — \b only knows ASCII, so it would fail for Nepali.
+    const word = "[\\p{L}\\p{M}\\p{N}_]";
+    const body = escape(needle);
+    const pattern = new RegExp(wholeWord ? `(?<!${word})${body}(?!${word})` : body, matchCase ? "gu" : "giu");
     const matches: { from: number; to: number }[] = [];
     doc.descendants((node, pos) => {
         if (!node.isTextblock) return true;
@@ -255,7 +259,7 @@ function findMatches(doc: PMNode, query: string, matchCase: boolean) {
     return matches;
 }
 
-type SearchMeta = { query: string; matchCase: boolean } | { index: number };
+type SearchMeta = { query: string; matchCase: boolean; wholeWord: boolean } | { index: number };
 
 export const FindReplace = Extension.create({
     name: "findReplace",
@@ -268,14 +272,14 @@ export const FindReplace = Extension.create({
                     apply(tr, previous, _old, state) {
                         const meta = tr.getMeta(searchKey) as SearchMeta | undefined;
                         if (meta && "query" in meta) {
-                            const matches = findMatches(state.doc, meta.query, meta.matchCase);
+                            const matches = findMatches(state.doc, meta.query, meta.matchCase, meta.wholeWord);
                             // Start from the first match after the cursor, like a word processor.
                             const after = matches.findIndex((match) => match.from >= state.selection.from);
                             return { ...meta, matches, index: after < 0 ? 0 : after };
                         }
                         if (meta && "index" in meta) return { ...previous, index: meta.index };
                         if (!tr.docChanged || !previous.query) return previous;
-                        const matches = findMatches(state.doc, previous.query, previous.matchCase);
+                        const matches = findMatches(state.doc, previous.query, previous.matchCase, previous.wholeWord);
                         return { ...previous, matches, index: Math.min(previous.index, Math.max(0, matches.length - 1)) };
                     },
                 },
@@ -294,8 +298,8 @@ export const FindReplace = Extension.create({
     },
 });
 
-export function setSearch(editor: Editor, query: string, matchCase: boolean) {
-    editor.view.dispatch(editor.state.tr.setMeta(searchKey, { query, matchCase }).setMeta("addToHistory", false));
+export function setSearch(editor: Editor, query: string, matchCase: boolean, wholeWord = false) {
+    editor.view.dispatch(editor.state.tr.setMeta(searchKey, { query, matchCase, wholeWord }).setMeta("addToHistory", false));
 }
 
 /** Moves to a match and brings it into view, without taking focus from the search field. */

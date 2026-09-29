@@ -1,4 +1,4 @@
-import { Copy, FileDown, FileText, FileType2, ImageDown, Info, LoaderCircle, Printer } from "lucide-react";
+import { Copy, FileDown, FilePenLine, FileText, FileType2, ImageDown, Info, LoaderCircle, Printer } from "lucide-react";
 import type { ReactNode } from "react";
 import { Segmented } from "@/components/common/Segmented";
 import { Range } from "@/features/background-removal/editor/RefinePanel";
@@ -158,7 +158,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     );
 }
 
-export type ExportKind = "copy" | "txt" | "docx" | "pdf" | "png" | "jpeg";
+export type ExportKind = "copy" | "txt" | "docx" | "pdf" | "png" | "jpeg" | "editor";
 
 /** Every way out: copy, text, Word, PDF, and the edited text drawn onto the image. */
 export function ExportPanel({ busy, onExport, scope, onScope }: { busy: ExportKind | null; onExport: (kind: ExportKind) => void; scope: "page" | "all" | null; onScope: (scope: "page" | "all") => void }) {
@@ -187,6 +187,7 @@ export function ExportPanel({ busy, onExport, scope, onScope }: { busy: ExportKi
                     <Segmented label={t.ocr.pdf.scope} value={scope} onChange={onScope} options={(["page", "all"] as const).map((value) => ({ value, label: t.ocr.pdf.scopes[value] }))} />
                 </div>
             )}
+            {item("editor", <FilePenLine className="size-4" aria-hidden />, copy.editor, copy.editorHint)}
             {item("copy", <Copy className="size-4" aria-hidden />, copy.copy)}
             <div className="grid grid-cols-3 gap-2">
                 {(

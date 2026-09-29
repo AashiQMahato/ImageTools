@@ -20,6 +20,10 @@ export const ROUTES = {
     pdfWatermark: "/pdf/watermark",
     pdfPageNumbers: "/pdf/page-numbers",
     pdfToText: "/pdf/to-text",
+    textEditor: "/text/editor",
+    textCleaner: "/text/cleaner",
+    caseConverter: "/text/case-converter",
+    wordCounter: "/text/word-counter",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

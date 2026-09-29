@@ -16,22 +16,27 @@ const inputClass =
  * Find and replace across the document, in English and Nepali alike. Replacing keeps the formatting
  * of the text it replaces; Replace all is one step to undo.
  */
-export function FindReplaceBar({ editor, onClose, onReplaced }: { editor: Editor; onClose: () => void; onReplaced: (count: number) => void }) {
+export function FindReplaceBar({ editor, onClose, onReplaced, focus = "find" }: { editor: Editor; onClose: () => void; onReplaced: (count: number) => void; focus?: "find" | "replace" }) {
     const t = useT();
     const copy = t.ocr.find;
     const [query, setQuery] = useState("");
     const [replacement, setReplacement] = useState("");
     const [matchCase, setMatchCase] = useState(false);
+    const [wholeWord, setWholeWord] = useState(false);
     const findRef = useRef<HTMLInputElement>(null);
+    const replaceRef = useRef<HTMLInputElement>(null);
     const caseId = useId();
+    const wordId = useId();
     const search = useEditorState({ editor, selector: ({ editor: current }) => searchKey.getState(current.state) ?? null });
     const total = search?.matches.length ?? 0;
 
+    // ⌘F lands in Find; ⌘H in Replace (Find still filled in, if it was).
     useEffect(() => {
-        findRef.current?.focus();
-        findRef.current?.select();
-    }, []);
-    useEffect(() => setSearch(editor, query, matchCase), [editor, query, matchCase]);
+        const target = focus === "replace" && findRef.current?.value ? replaceRef.current : findRef.current;
+        target?.focus();
+        target?.select();
+    }, [focus]);
+    useEffect(() => setSearch(editor, query, matchCase, wholeWord), [editor, query, matchCase, wholeWord]);
     // Leaving the search clears its highlights.
     useEffect(
         () => () => {
@@ -70,6 +75,7 @@ export function FindReplaceBar({ editor, onClose, onReplaced }: { editor: Editor
             </div>
             <div className="flex min-w-0 flex-1 items-center gap-1">
                 <input
+                    ref={replaceRef}
                     type="text"
                     value={replacement}
                     placeholder={copy.replace}
@@ -94,6 +100,10 @@ export function FindReplaceBar({ editor, onClose, onReplaced }: { editor: Editor
                 <label htmlFor={caseId} className={cn("flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-xs font-medium text-secondary pointer-coarse:h-10")}>
                     <input id={caseId} type="checkbox" checked={matchCase} onChange={(event) => setMatchCase(event.target.checked)} className="size-3.5 accent-[var(--brand)]" />
                     {copy.matchCase}
+                </label>
+                <label htmlFor={wordId} className={cn("flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-xs font-medium text-secondary pointer-coarse:h-10")}>
+                    <input id={wordId} type="checkbox" checked={wholeWord} onChange={(event) => setWholeWord(event.target.checked)} className="size-3.5 accent-[var(--brand)]" />
+                    {copy.wholeWord}
                 </label>
                 <button type="button" className={iconButton} aria-label={copy.close} title={copy.close} onClick={onClose}>
                     <X className="size-4" aria-hidden />
