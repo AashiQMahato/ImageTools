@@ -1,15 +1,14 @@
-import { Plus, Type } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Segmented } from "@/components/common/Segmented";
 import { UploadButton } from "@/components/common/UploadButton";
 import { ROUTES } from "@/lib/constants/routes";
-import { SECTION_LINKS, type SectionKey, TOOL_GROUPS } from "@/lib/constants/navigation";
+import { SECTION_LINKS, type SectionKey, TEXT_TOOL_GROUP, TOOL_GROUPS } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { DICTIONARIES, LOCALES, useLocale, useT } from "@/i18n";
 import { NavItem } from "./NavItem";
 import { scrollToSection, sectionHref } from "./sections";
-import { ComingSoon } from "./TextToolsMenu";
 import { TOOL_ICONS } from "./toolIcons";
 
 interface MobileNavProps {
@@ -109,15 +108,30 @@ export function MobileNav({ id, open, onClose, activeSection }: MobileNavProps) 
 
                     <div id={`${id}-text-tools`} data-open={textToolsOpen || undefined} inert={!textToolsOpen} className="nav-accordion">
                         <div>
-                            <div className="flex items-start gap-3 px-3 pt-1 pb-3">
-                                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
-                                    <Type className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
-                                </span>
-                                <div className="min-w-0">
-                                    <ComingSoon />
-                                    <p className="mt-1.5 text-sm text-tertiary">{t.nav.textToolsSoon}</p>
-                                </div>
-                            </div>
+                            <ul className="px-1 pt-1 pb-3">
+                                {TEXT_TOOL_GROUP.items.map((item) => {
+                                    const Icon = TOOL_ICONS[item.key];
+                                    const current = pathname === item.href;
+                                    return (
+                                        <li key={item.key}>
+                                            <Link
+                                                to={item.href}
+                                                onClick={onClose}
+                                                aria-current={current ? "page" : undefined}
+                                                className={cn(
+                                                    "flex min-h-11 items-center gap-3 rounded-lg px-2 text-[0.9375rem] font-medium transition-colors duration-150 outline-focus-ring focus-visible:outline-2",
+                                                    current ? "bg-primary_hover text-primary" : "text-secondary hover:bg-primary_hover hover:text-primary",
+                                                )}
+                                            >
+                                                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-secondary bg-secondary text-secondary">
+                                                    <Icon className="size-[1.125rem]" strokeWidth={1.9} aria-hidden />
+                                                </span>
+                                                {t.nav.toolItems[item.key].title}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         </div>
                     </div>
 

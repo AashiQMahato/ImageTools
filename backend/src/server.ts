@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { rembgProcess } from "./services/background-removal/rembgProcess.js";
+import { ocrProcess } from "./services/ocr/providers/paddleProvider.js";
 import { upscaylProvider } from "./services/upscaling/upscaylProvider.js";
 
 const app = createApp();
@@ -30,6 +31,7 @@ function shutdown(signal: string) {
     shuttingDown = true;
     console.log(`${signal} received, shutting down...`);
     rembgProcess.stop();
+    ocrProcess.stop();
     server.close(() => process.exit(0));
     // Don't hang on keep-alive connections.
     setTimeout(() => process.exit(0), 3000).unref();
@@ -37,4 +39,7 @@ function shutdown(signal: string) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("exit", () => rembgProcess.stop());
+process.on("exit", () => {
+    rembgProcess.stop();
+    ocrProcess.stop();
+});

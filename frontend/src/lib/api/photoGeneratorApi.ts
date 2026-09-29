@@ -1,4 +1,5 @@
-import { API_BASE_URL, ApiError, apiClient } from "./apiClient";
+import { API_BASE_URL, apiClient } from "./apiClient";
+import { postNdjson } from "./ndjson";
 
 /** A physical size in the unit the requirement uses (e.g. 1.1 × 1.322 in, 35 × 45 mm). */
 export interface PhysicalSize {
@@ -83,57 +84,11 @@ const TIMEOUT_MS = 180_000;
  * Sends the photo and reports each processing step as the server does it (newline-delimited JSON),
  * resolving with the finished photo. Failures reject with an ApiError carrying a code.
  */
-export async function processPhoto(image: File, preset: string, onEvent: (event: ProgressEvent) => void, signal?: AbortSignal): Promise<GeneratedPhoto> {
+export function processPhoto(image: File, preset: string, onEvent: (event: ProgressEvent) => void, signal?: AbortSignal): Promise<GeneratedPhoto> {
     const form = new FormData();
     form.append("preset", preset);
     form.append("file", image, image.name || "photo.jpg");
-    const timeout = AbortSignal.timeout(TIMEOUT_MS);
-    const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-
-    let response: Response;
-    try {
-        response = await fetch(apiUrl("/api/photo-generator/process"), { method: "POST", body: form, signal: combined });
-    } catch (error) {
-        throw failure(error, timeout);
-    }
-    if (!response.ok || !response.body) {
-        // Rejected before processing started (size, type, rate limit): a normal JSON error.
-        const body = (await response.json().catch(() => null)) as { message?: string; code?: string } | null;
-        throw new ApiError(body?.message ?? "Request failed", response.status, body?.code);
-    }
-
-    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-    let pending = "";
-    try {
-        for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            pending += value;
-            let newline: number;
-            while ((newline = pending.indexOf("\n")) >= 0) {
-                const line = pending.slice(0, newline).trim();
-                pending = pending.slice(newline + 1);
-                if (!line) continue;
-                const event = JSON.parse(line) as ProgressEvent | { type: "result"; data: GeneratedPhoto } | { type: "error"; code?: string; message?: string };
-                if (event.type === "result") return event.data;
-                if (event.type === "error") throw new ApiError(event.message ?? "Processing failed", 422, event.code);
-                onEvent(event);
-            }
-        }
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw failure(error, timeout);
-    } finally {
-        reader.releaseLock();
-    }
-    // The stream ended without a result: the connection dropped.
-    throw new ApiError("Connection lost", 0, "NETWORK");
-}
-
-function failure(error: unknown, timeout: AbortSignal) {
-    if (timeout.aborted) return new ApiError("Timed out", 408, "PROCESSING_TIMEOUT");
-    if (error instanceof DOMException && error.name === "AbortError") return error;
-    return new ApiError("Network error", 0, "NETWORK");
+    return postNdjson<GeneratedPhoto, ProgressEvent>("/photo-generator/process", form, onEvent, { signal, timeoutMs: TIMEOUT_MS });
 }
 
 export const adjustPhotoCrop = (workId: string, crop: Rect) => apiClient.post<RenderedPhoto & { crop: Rect }>("/photo-generator/adjust", { workId, crop: { ...crop } });

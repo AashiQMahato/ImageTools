@@ -12,6 +12,7 @@ build
 # Local image-processing runtimes (installed by scripts/setup-ml.sh)
 vendor/
 python/.venv/
+python/.venv-ocr/
 python/.models/
 __pycache__/
 *.pyc

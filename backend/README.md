@@ -35,6 +35,7 @@ On macOS, port 5000 is taken by AirPlay Receiver — disable it or set `PORT=505
 | POST | `/api/photo-generator/process` | multipart `file`, `preset` | `application/x-ndjson`: one progress event per line, then `{ type: "result" }` or `{ type: "error" }` |
 | POST | `/api/photo-generator/adjust` | JSON `{ workId, crop }` | the photo re-rendered from a manual crop, with its checks |
 | POST | `/api/photo-generator/sheet` | JSON `{ photoId, copies }` | an A4 sheet of copies at the photo's DPI |
+| POST | `/api/ocr` | multipart `file`, `language` = `auto` \| `en` \| `ne` \| `mixed`, optional `region` (JSON: `{"type":"rect","box":{…}}` or `{"type":"polygon","points":[[x,y],…]}`, image pixels), `preserveLayout` | `application/x-ndjson`: a `stage` event per step, then `{ type: "result", data }` (blocks, lines, words, boxes, confidence, estimated formatting) or `{ type: "error" }` |
 | GET | `/api/photo-generator/files/:id` | `?download=1` to save | a generated file; kept in memory only, deleted after `PHOTO_FILE_TTL_MINUTES` |
 
 Successful responses include `Content-Disposition` (e.g. `photo-no-background.png`, `photo-upscaled-2x.jpg`), `X-Image-Width/Height` and `X-Original-Width/Height`. Errors are JSON: `{ "success": false, "message": "…", "code": "…" }` with codes such as `FILE_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `INVALID_IMAGE`, `IMAGE_TOO_LARGE`, `INVALID_SCALE`, `SERVER_BUSY`, `PROCESSING_TIMEOUT`, `BACKGROUND_REMOVAL_UNAVAILABLE`, `UPSCALING_UNAVAILABLE`, `RATE_LIMITED`.
@@ -67,9 +68,11 @@ src/
 ├── services/
 │   ├── background-removal/   rembgProcess (lifecycle), rembgProvider, service (+ limiter)
 │   ├── upscaling/            upscaylProvider (probe, spawn, encode), service (+ limiter)
+│   ├── ocr/                  providers (PaddleOCR, Tesseract), preprocessing, layout, formatting, reconstruction
 │   └── image-processing/     imageValidation.service
 └── utils/           AppError, ConcurrencyLimiter, withTempDir, http helpers
 python/rembg_service/  internal FastAPI service (see its README)
+python/ocr_service/    internal PaddleOCR service (own venv: python/.venv-ocr); the document model is built in services/ocr/
 vendor/upscayl/        upscayl-bin + models (installed by scripts/setup-ml.sh; git-ignored)
 ```
 

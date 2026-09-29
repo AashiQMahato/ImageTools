@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { SECTION_LINKS, type SectionKey, TOOL_ROUTES } from "@/lib/constants/navigation";
+import { SECTION_LINKS, type SectionKey, TEXT_TOOL_ROUTES, TOOL_ROUTES } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
 import { NavDropdown } from "./NavDropdown";
@@ -28,7 +28,7 @@ export function DesktopNav({ activeSection, className }: DesktopNavProps) {
                 </li>
                 {/* Positioned, so its (small) panel hangs from its own trigger rather than the whole bar. */}
                 <li className="relative">
-                    <NavDropdown label={t.nav.textTools}>{(panel) => <TextToolsMenu {...panel} />}</NavDropdown>
+                    <NavDropdown label={t.nav.textTools} current={(TEXT_TOOL_ROUTES as readonly string[]).includes(pathname)}>{(panel) => <TextToolsMenu {...panel} />}</NavDropdown>
                 </li>
                 {SECTION_LINKS.map((link) => (
                     <li key={link.key}>

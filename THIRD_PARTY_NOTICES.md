@@ -75,6 +75,17 @@ The YuNet weights are downloaded by `scripts/setup-ml.sh` from the OpenCV model 
 
 Both are downloaded by `scripts/setup-ml.sh` (checksum-verified) into `backend/python/.models/` (not committed). The watermark remover is meant for images the user owns or may edit; the UI says so.
 
+## OCR editor — PaddleOCR
+
+| | |
+| --- | --- |
+| Project | [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 3.7.0 and [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) 3.3.1 (pinned in `backend/python/ocr_service/requirements.txt`) |
+| Licence | Apache-2.0 (both) |
+| Models | PP-OCRv5 mobile detection, PP-OCRv6 medium recognition (English), Devanagari PP-OCRv5 mobile recognition, PP-DocLayout_plus-L, PP-LCNet_x1_0_doc_ori (page orientation) — Apache-2.0, downloaded by `scripts/setup-ml.sh` into `backend/python/.models/paddlex/` (not committed) |
+| Used as | Python libraries inside our internal service (`backend/python/ocr_service`) |
+
+Optional fallback: [Tesseract](https://github.com/tesseract-ocr/tesseract) (Apache-2.0), used only if installed on the machine. PDFs are opened in the browser with [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0) — only rendered pages are sent to be read. The editor uses [Tiptap](https://tiptap.dev) (MIT) and [docx](https://github.com/dolanmiu/docx) (MIT); text is set in Inter and Noto Sans/Serif (Devanagari) — SIL Open Font Licence, served by Google Fonts.
+
 ## Frontend
 
 UI built with [Untitled UI React](https://www.untitledui.com/react) (MIT), [React Aria Components](https://react-spectrum.adobe.com/react-aria/) (Apache-2.0), [Lucide](https://lucide.dev) (ISC) and Tailwind CSS (MIT). Landing-page photography is CC0 — see `frontend/src/assets/images/landing/CREDITS.md`.

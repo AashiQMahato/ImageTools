@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ROUTES } from "@/lib/constants/routes";
@@ -11,6 +12,9 @@ import { RetouchPage } from "@/pages/Retouch/RetouchPage";
 import { UpscalerPage } from "@/pages/Upscaler/UpscalerPage";
 import { WatermarkRemoverPage } from "@/pages/WatermarkRemover/WatermarkRemoverPage";
 
+// The OCR editor brings a rich-text editor with it; only its own page loads that.
+const OcrPage = lazy(() => import("@/pages/Ocr/OcrPage").then((module) => ({ default: module.OcrPage })));
+
 export function AppRoutes() {
     return (
         <Routes>
@@ -21,6 +25,14 @@ export function AppRoutes() {
                 <Route path={ROUTES.retouch} element={<RetouchPage />} />
                 <Route path={ROUTES.photoGenerator} element={<PhotoGeneratorPage />} />
                 <Route path={ROUTES.watermarkRemover} element={<WatermarkRemoverPage />} />
+                <Route
+                    path={ROUTES.ocr}
+                    element={
+                        <Suspense fallback={null}>
+                            <OcrPage />
+                        </Suspense>
+                    }
+                />
                 <Route path={ROUTES.compress} element={<CompressorPage />} />
                 <Route path={ROUTES.crop} element={<CropperPage />} />
                 <Route path={ROUTES.editor} element={<EditorPage />} />

@@ -2,11 +2,12 @@
 # Sets up local image processing for Studio Tools:
 #   1. A Python virtualenv with rembg (background removal) and its model.
 #   2. The official upscayl-ncnn binary ("upscayl-bin") and Upscayl's models (upscaling).
+#   3. A separate Python virtualenv with PaddleOCR and its text models (the OCR editor).
 #
 # Nothing is installed system-wide. Everything lands under backend/python/ and backend/vendor/ (both git-ignored).
 # The script explains what it will download and asks before doing it (pass --yes to skip the prompt).
 #
-# Usage: scripts/setup-ml.sh [--yes] [--skip-rembg] [--skip-upscayl] [--rembg-model <name>]
+# Usage: scripts/setup-ml.sh [--yes] [--skip-rembg] [--skip-upscayl] [--skip-ocr] [--rembg-model <name>]
 
 set -euo pipefail
 
@@ -14,6 +15,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND="$ROOT/backend"
 PY_DIR="$BACKEND/python"
 VENV="$PY_DIR/.venv"
+OCR_VENV="$PY_DIR/.venv-ocr"
 MODELS_HOME="$PY_DIR/.models"
 VENDOR="$BACKEND/vendor/upscayl"
 
@@ -33,6 +35,7 @@ UPSCAYL_MODELS=(upscayl-standard-4x upscayl-lite-4x digital-art-4x)
 ASSUME_YES=false
 SKIP_REMBG=false
 SKIP_UPSCAYL=false
+SKIP_OCR=false
 REMBG_MODEL="${REMBG_MODEL:-}"
 
 while [[ $# -gt 0 ]]; do
@@ -40,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     --yes|-y) ASSUME_YES=true ;;
     --skip-rembg) SKIP_REMBG=true ;;
     --skip-upscayl) SKIP_UPSCAYL=true ;;
+    --skip-ocr) SKIP_OCR=true ;;
     --rembg-model) REMBG_MODEL="$2"; shift ;;
     -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
@@ -76,6 +80,8 @@ $SKIP_REMBG || echo "  • create $VENV and install backend/python/rembg_service
 $SKIP_REMBG || echo "  • download the rembg model '$REMBG_MODEL' into $MODELS_HOME"
 $SKIP_UPSCAYL || echo "  • download upscayl-bin $UPSCAYL_BIN_TAG ($PLATFORM) from github.com/upscayl/upscayl-ncnn and verify its SHA-256"
 $SKIP_UPSCAYL || echo "  • download Upscayl models (${UPSCAYL_MODELS[*]}) from github.com/upscayl/upscayl @ ${UPSCAYL_MODELS_COMMIT:0:7}"
+$SKIP_OCR || echo "  • create $OCR_VENV, install backend/python/ocr_service/requirements.txt (PaddlePaddle + PaddleOCR, ~1 GB)"
+$SKIP_OCR || echo "  • download the PaddleOCR text models (detection, English and Devanagari recognition, layout) into $MODELS_HOME/paddlex"
 echo
 if ! $ASSUME_YES; then
   read -r -p "Continue? [y/N] " answer
@@ -153,6 +159,36 @@ if ! $SKIP_REMBG; then
   fetch_model lama_fp32.onnx "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx" \
     1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6
   ok "Inpainting model (LaMa) ready"
+fi
+
+# ---------------------------------------------------------------- OCR (PaddleOCR)
+
+if ! $SKIP_OCR; then
+  echo; bold "Text recognition (PaddleOCR)"
+  OCR_PY="$(find_python)"
+  if [[ -z "$OCR_PY" ]]; then
+    fail "No Python between 3.11 and 3.13 found (needed for PaddleOCR)."
+    exit 1
+  fi
+  # Its own environment: PaddleOCR pins OpenCV and NumPy versions that would clash with rembg's.
+  if [[ "$OCR_PY" == "uv" ]]; then
+    [[ -x "$OCR_VENV/bin/python" ]] || uv venv -q --python 3.12 "$OCR_VENV"
+    uv pip install -q --python "$OCR_VENV/bin/python" -r "$PY_DIR/ocr_service/requirements.txt"
+  else
+    [[ -x "$OCR_VENV/bin/python" ]] || "$OCR_PY" -m venv "$OCR_VENV"
+    "$OCR_VENV/bin/python" -m pip install -q --upgrade pip
+    "$OCR_VENV/bin/python" -m pip install -q -r "$PY_DIR/ocr_service/requirements.txt"
+  fi
+  ok "PaddleOCR $("$OCR_VENV/bin/python" -c 'import importlib.metadata as m; print(m.version("paddleocr"))')"
+  echo "  Downloading the text models (first run only)…"
+  # Loading each model once downloads it into the cache the service uses.
+  PADDLE_PDX_CACHE_HOME="$MODELS_HOME/paddlex" PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    "$OCR_VENV/bin/python" -c "
+import sys; sys.path.insert(0, '$PY_DIR/ocr_service')
+import app
+for key in ('devanagari', 'en', 'layout', 'orientation'): app.model(key)
+" >/dev/null 2>&1 || { fail "Could not download the PaddleOCR models."; exit 1; }
+  ok "Text models ready (PP-OCRv5 detection, English and Devanagari recognition, PP-DocLayout)"
 fi
 
 # ---------------------------------------------------------------- Upscayl

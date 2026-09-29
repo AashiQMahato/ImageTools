@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { create } from "zustand";
-import { clearDraftImage, loadDraftImage, saveDraftImage } from "@/lib/draft";
+import { clearDraftImage, type DraftSection, loadDraftImage, saveDraftImage } from "@/lib/draft";
 import type { ImageDimensions, ImageFile, UpscaleFactor } from "@/types/image";
 
 /**
@@ -39,35 +39,46 @@ function retire(url: string) {
     else URL.revokeObjectURL(url);
 }
 
-function persist(image: ImageFile | null) {
-    if (image) void saveDraftImage({ id: image.id, file: image.file, width: image.dimensions.width, height: image.dimensions.height, editedBy: image.editedBy });
-    else void clearDraftImage();
+function persist(image: ImageFile | null, section: DraftSection) {
+    if (image) void saveDraftImage({ id: image.id, file: image.file, width: image.dimensions.width, height: image.dimensions.height, editedBy: image.editedBy }, section);
+    else void clearDraftImage(section);
 }
 
-export const useImageStore = create<ImageState>()((set, get) => ({
-    original: null,
-    session: crypto.randomUUID(),
-    selectedScale: 2,
+const createImageStore = (section: DraftSection) =>
+    create<ImageState>()((set, get) => ({
+        original: null,
+        session: crypto.randomUUID(),
+        selectedScale: 2,
 
-    setOriginal: (image) => {
-        const previous = get().original;
-        if (previous && previous.previewUrl !== image?.previewUrl) retire(previous.previewUrl);
-        set({ original: image, session: crypto.randomUUID() });
-        persist(image);
-    },
-    publish: (session, { blob, name, dimensions }, editedBy) => {
-        const { original: previous, session: current } = get();
-        if (session !== current) return null;
-        const file = blob instanceof File && blob.name === name ? blob : new File([blob], name, { type: blob.type });
-        const image: ImageFile = { id: crypto.randomUUID(), file, name, size: file.size, mimeType: file.type, previewUrl: URL.createObjectURL(file), dimensions, editedBy };
-        if (previous) retire(previous.previewUrl);
-        set({ original: image });
-        persist(image);
-        return image;
-    },
-    setSelectedScale: (selectedScale) => set({ selectedScale }),
-    clear: () => get().setOriginal(null),
-}));
+        setOriginal: (image) => {
+            const previous = get().original;
+            if (previous && previous.previewUrl !== image?.previewUrl) retire(previous.previewUrl);
+            set({ original: image, session: crypto.randomUUID() });
+            persist(image, section);
+        },
+        publish: (session, { blob, name, dimensions }, editedBy) => {
+            const { original: previous, session: current } = get();
+            if (session !== current) return null;
+            const file = blob instanceof File && blob.name === name ? blob : new File([blob], name, { type: blob.type });
+            const image: ImageFile = { id: crypto.randomUUID(), file, name, size: file.size, mimeType: file.type, previewUrl: URL.createObjectURL(file), dimensions, editedBy };
+            if (previous) retire(previous.previewUrl);
+            set({ original: image });
+            persist(image, section);
+            return image;
+        },
+        setSelectedScale: (selectedScale) => set({ selectedScale }),
+        clear: () => get().setOriginal(null),
+    }));
+
+/** The image tools' image: it travels between every image tool. */
+export const useImageStore = createImageStore("image");
+/** The text tools' image, kept apart — opening one in either section never replaces the other's. */
+export const useTextImageStore = createImageStore("text");
+
+type ImageStore = typeof useImageStore;
+/** Which section's image the studio below works with (image tools unless a text tool says otherwise). */
+export const ImageStoreContext = createContext<ImageStore>(useImageStore);
+export const useSectionImageStore = () => useContext(ImageStoreContext);
 
 /**
  * The image a tool works on: the shared image as it was when the tool opened (or when a new image was
@@ -75,8 +86,9 @@ export const useImageStore = create<ImageState>()((set, get) => ({
  * tool; they're picked up the next time a tool opens. Its preview URL stays valid while in use.
  */
 export function useToolImage() {
-    const original = useImageStore((state) => state.original);
-    const session = useImageStore((state) => state.session);
+    const store = useSectionImageStore();
+    const original = store((state) => state.original);
+    const session = store((state) => state.session);
     const [snapshot, setSnapshot] = useState({ session, image: original });
     let current = snapshot;
     if (snapshot.session !== session) {
@@ -124,10 +136,14 @@ export function usePublishOutput(tool: { image: ImageFile | null; session: strin
 
 /** Bring back the image from the last visit, before the first render so pages open with it in place. */
 export async function restoreDraftImage() {
-    const draft = await loadDraftImage();
-    if (!draft || useImageStore.getState().original) return;
+    await Promise.all([restore(useImageStore, "image"), restore(useTextImageStore, "text")]);
+}
+
+async function restore(store: ImageStore, section: DraftSection) {
+    const draft = await loadDraftImage(section);
+    if (!draft || store.getState().original) return;
     const file = draft.file instanceof File ? draft.file : new File([draft.file], "image", { type: (draft.file as Blob).type });
-    useImageStore.setState({
+    store.setState({
         original: {
             id: draft.id,
             file,
