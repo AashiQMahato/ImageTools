@@ -26,8 +26,8 @@ export const PRIMARY_NAV: readonly NavItem[] = [
  * Rotate & Flip opens the crop tool, whose controls rotate, flip and straighten.
  */
 export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "photoGenerator" | "watermarkRemover" | "compressor" | "crop" | "resize" | "rotateFlip" | "editor" | "ocr" | DocumentToolKey;
-export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf";
-export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf";
+export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf" | "pdfCompress" | "pdfWatermark" | "pdfPageNumbers" | "pdfToText";
+export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf" | "pdfConvert";
 
 export interface NavTool {
     key: ToolKey;
@@ -66,7 +66,13 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
 
 /** The Documents menu: text tools and PDF tools. */
 export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
-    { key: "text", items: [{ key: "ocr", href: ROUTES.ocr }] },
+    {
+        key: "text",
+        items: [
+            { key: "ocr", href: ROUTES.ocr },
+            { key: "pdfToText", href: ROUTES.pdfToText },
+        ],
+    },
     {
         key: "pdf",
         items: [
@@ -74,8 +80,16 @@ export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
             { key: "pdfSplit", href: ROUTES.pdfSplit },
             { key: "pdfOrganize", href: ROUTES.pdfOrganize },
             { key: "pdfRotate", href: ROUTES.pdfRotate },
+            { key: "pdfCompress", href: ROUTES.pdfCompress },
+        ],
+    },
+    {
+        key: "pdfConvert",
+        items: [
             { key: "pdfToImages", href: ROUTES.pdfToImages },
             { key: "imagesToPdf", href: ROUTES.imagesToPdf },
+            { key: "pdfWatermark", href: ROUTES.pdfWatermark },
+            { key: "pdfPageNumbers", href: ROUTES.pdfPageNumbers },
         ],
     },
 ];

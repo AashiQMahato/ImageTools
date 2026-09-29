@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { removeBackgroundHandler } from "../controllers/backgroundRemovalController.js";
 import { compressHandler } from "../controllers/compressionController.js";
-import { deleteJobHandler, fromImagesHandler, getJobHandler, jobArchiveHandler, jobFileHandler, mergeHandler, organizeHandler, splitHandler, toImagesHandler } from "../controllers/documentController.js";
+import { compressHandler as compressPdfHandler, deleteJobHandler, fromImagesHandler, pageNumbersHandler, toTextHandler, watermarkHandler, getJobHandler, jobArchiveHandler, jobFileHandler, mergeHandler, organizeHandler, splitHandler, toImagesHandler } from "../controllers/documentController.js";
 import { getHealth, getProcessorHealth } from "../controllers/healthController.js";
 import { ocrHandler } from "../controllers/ocrController.js";
 import { adjustCropHandler, convertHandler, fileHandler, presetsHandler, processHandler, sheetHandler } from "../controllers/photoGeneratorController.js";
@@ -38,6 +38,10 @@ apiRouter.post("/pdf/split", processingRateLimiter, documentUpload("pdf", { max:
 apiRouter.post("/pdf/organize", processingRateLimiter, documentUpload("pdf", { max: 1 }), organizeHandler);
 apiRouter.post("/pdf/to-images", processingRateLimiter, documentUpload("pdf", { max: 1 }), toImagesHandler);
 apiRouter.post("/pdf/from-images", processingRateLimiter, documentUpload("image"), fromImagesHandler);
+apiRouter.post("/pdf/compress", processingRateLimiter, documentUpload("pdf", { max: 1 }), compressPdfHandler);
+apiRouter.post("/pdf/watermark", processingRateLimiter, documentUpload("pdf", { max: 1, withImage: true }), watermarkHandler);
+apiRouter.post("/pdf/page-numbers", processingRateLimiter, documentUpload("pdf", { max: 1 }), pageNumbersHandler);
+apiRouter.post("/pdf/to-text", processingRateLimiter, documentUpload("pdf", { max: 1 }), toTextHandler);
 apiRouter.get("/jobs/:id", getJobHandler);
 apiRouter.delete("/jobs/:id", deleteJobHandler);
 apiRouter.get("/jobs/:id/files/:fileId", jobFileHandler);

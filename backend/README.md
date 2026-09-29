@@ -41,6 +41,10 @@ On macOS, port 5000 is taken by AirPlay Receiver — disable it or set `PORT=505
 | POST | `/api/pdf/organize` | multipart `files` (1 PDF), `plan` (JSON `[{ "page": 3, "rotate": 90 }, …]` — reorder, delete, duplicate, rotate, extract) | job → the rearranged PDF |
 | POST | `/api/pdf/to-images` | multipart `files` (1 PDF), `format` = `jpg` \| `png` \| `webp`, `dpi`, `quality`, optional `pages` | job → one image per page |
 | POST | `/api/pdf/from-images` | multipart `files` (images, in order), `size`, `orientation`, `margin` (mm), `fit`, `quality`, `maxDpi`, `rotations` (JSON) | job → one PDF |
+| POST | `/api/pdf/compress` | multipart `files` (1 PDF), `preset` = `maximum` \| `recommended` \| `high` \| `custom` (+ `quality`, `maxSide`) | job → the compressed PDF; summary `{ before, after, smaller }` (the original back if nothing was gained) |
+| POST | `/api/pdf/watermark` | multipart `files` (1 PDF), `kind` = `text` \| `image` (+ `image` file), `text`, `fontSize`, `color`, `opacity`, `rotation`, `position` (9 spots or `tile`), `imageScale`, optional `pages` | job → the watermarked PDF |
+| POST | `/api/pdf/page-numbers` | multipart `files` (1 PDF), `template` (e.g. `Page {n} of {total}`), `position`, `fontSize`, `margin`, `start`, optional `pages` | job → the numbered PDF |
+| POST | `/api/pdf/to-text` | multipart `files` (1 PDF), `mode` = `auto` \| `text` \| `ocr`, `language` | job → `.txt` and per-page `.json` (text layer or OCR, with the other reading kept) |
 | GET | `/api/jobs/:id` | — | status (`queued` → `processing` → `completed` \| `failed`), progress `{ step, done, total }`, result files (ids, names, sizes), safe error |
 | GET | `/api/jobs/:id/files/:fileId` | `?inline=1` to view | a result file |
 | GET | `/api/jobs/:id/archive` | — | every result file as a ZIP, streamed |

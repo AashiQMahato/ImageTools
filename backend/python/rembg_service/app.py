@@ -786,3 +786,142 @@ async def pdf_render(
         log.exception("pdf render failed")
         return error(422, "INVALID_PDF", "The PDF could not be read.")
     return Response(content=png, media_type="image/png")
+
+
+def inside_documents(path: str) -> str | None:
+    """The real path, if it's inside the documents workspace root; None otherwise."""
+    real = os.path.realpath(path)
+    return real if real.startswith(DOCUMENTS_ROOT + os.sep) else None
+
+
+# ---------------------------------------------------------------- PDF compression
+
+
+def compress_pdf(source: str, target: str, quality: int, max_side: int) -> dict:
+    """
+    Real compression: photos inside the PDF are re-encoded as JPEG at the given quality and reduced to
+    at most `max_side` pixels on their long side; streams are recompressed and packed into object
+    streams; unused resources are dropped. An image is only replaced when that makes it smaller, and
+    images whose colours or masks wouldn't survive re-encoding (CMYK, 1-bit, colour-keyed, custom
+    decode) are left exactly as they are.
+    """
+    import pikepdf
+    from pikepdf import Name, PdfImage
+
+    with pdf_lock:
+        pdf = pikepdf.open(source)
+        examined = replaced = 0
+        for obj in pdf.objects:
+            if not isinstance(obj, pikepdf.Stream) or obj.get("/Subtype") != "/Image":
+                continue
+            examined += 1
+            if obj.get("/ImageMask") or "/Mask" in obj or "/Decode" in obj or obj.get("/BitsPerComponent", 8) != 8:
+                continue
+            try:
+                image = PdfImage(obj).as_pil_image()
+            except Exception:  # noqa: BLE001 — formats Pillow can't decode stay untouched
+                continue
+            if image.mode not in ("RGB", "L"):
+                if image.mode in ("CMYK", "P", "1", "I", "F"):
+                    continue
+                image = image.convert("RGB")
+            width, height = image.size
+            scale = min(1.0, max_side / max(width, height))
+            if scale < 1:
+                image = image.resize((max(1, round(width * scale)), max(1, round(height * scale))), Image.LANCZOS)
+            buffer = io.BytesIO()
+            image.save(buffer, format="JPEG", quality=quality, optimize=True, progressive=True)
+            data = buffer.getvalue()
+            if len(data) >= len(obj.read_raw_bytes()):
+                continue
+            obj.write(data, filter=Name.DCTDecode)
+            obj.Width, obj.Height = image.width, image.height
+            obj.ColorSpace = Name.DeviceRGB if image.mode == "RGB" else Name.DeviceGray
+            obj.BitsPerComponent = 8
+            if "/DecodeParms" in obj:
+                del obj["/DecodeParms"]
+            replaced += 1
+        pdf.remove_unreferenced_resources()
+        pdf.save(target, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate, recompress_flate=True)
+        pdf.close()
+    return {"images": examined, "recompressed": replaced}
+
+
+@app.post("/pdf/compress")
+async def pdf_compress(
+    source: str = Form(...),
+    target: str = Form(...),
+    quality: int = Form(...),
+    max_side: int = Form(...),
+    x_internal_token: str | None = Header(default=None),
+):
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    real_source, real_target = inside_documents(source), inside_documents(target)
+    if not real_source or not real_target or not os.path.isfile(real_source) or os.path.dirname(real_source) != os.path.dirname(real_target):
+        return error(400, "INVALID_REQUEST", "Invalid document.")
+    if not (20 <= quality <= 100) or not (256 <= max_side <= 10000):
+        return error(400, "INVALID_REQUEST", "Invalid settings.")
+    try:
+        import pikepdf
+
+        return await run_in_threadpool(compress_pdf, real_source, real_target, quality, max_side)
+    except pikepdf.PasswordError:
+        return error(422, "PDF_ENCRYPTED", "The PDF is password-protected.")
+    except Exception:  # noqa: BLE001
+        log.exception("pdf compress failed")
+        return error(422, "INVALID_PDF", "The PDF could not be read.")
+
+
+# ---------------------------------------------------------------- PDF text layer
+
+
+def pdf_text(path: str) -> list[dict]:
+    """Each page's own text (the PDF's text layer), and whether the page has pictures — a page with
+    pictures but next to no text is most likely a scan, which needs OCR."""
+    import ctypes
+
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as pdfium_c
+
+    pages = []
+    with pdf_lock:
+        document = pdfium.PdfDocument(path)
+        try:
+            for index in range(len(document)):
+                page = document[index]
+                textpage = page.get_textpage()
+                text = textpage.get_text_range()
+                images = sum(1 for _ in page.get_objects(filter=[pdfium_c.FPDF_PAGEOBJ_IMAGE], max_depth=2))
+                # Font names say whether the text is in a legacy (non-Unicode) Nepali font like Preeti.
+                fonts = set()
+                for obj in page.get_objects(filter=[pdfium_c.FPDF_PAGEOBJ_TEXT], max_depth=2):
+                    font = pdfium_c.FPDFTextObj_GetFont(obj.raw)
+                    size = pdfium_c.FPDFFont_GetBaseFontName(font, None, 0) if font else 0
+                    if size:
+                        buffer = ctypes.create_string_buffer(size)
+                        pdfium_c.FPDFFont_GetBaseFontName(font, buffer, size)
+                        fonts.add(buffer.value.decode("latin-1").split("+")[-1])
+                    if len(fonts) >= 20:
+                        break
+                textpage.close()
+                page.close()
+                # PDFium ends lines with \r\n; one newline is enough.
+                pages.append({"text": text.replace("\r\n", "\n").replace("\r", "\n"), "images": images, "fonts": sorted(fonts)})
+        finally:
+            document.close()
+    return pages
+
+
+@app.post("/pdf/text")
+async def pdf_text_endpoint(path: str = Form(...), x_internal_token: str | None = Header(default=None)):
+    if not authorised(x_internal_token):
+        return error(401, "UNAUTHORIZED", "Unauthorized.")
+    real = inside_documents(path)
+    if not real or not os.path.isfile(real):
+        return error(400, "INVALID_REQUEST", "Invalid document.")
+    try:
+        return {"pages": await run_in_threadpool(pdf_text, real)}
+    except Exception:  # noqa: BLE001
+        log.exception("pdf text failed")
+        return error(422, "INVALID_PDF", "The PDF could not be read.")

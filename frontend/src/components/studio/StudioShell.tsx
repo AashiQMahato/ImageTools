@@ -139,7 +139,10 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
                 <div className="flex flex-1 flex-col gap-3 p-2 sm:p-3 lg:min-h-0 lg:flex-row">
                     <StudioSidebar current={tool} />
 
-                    <main className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">{children}</main>
+                    {/* A section, not <main>: the page's <main> (AppLayout) already contains the whole studio. */}
+                    <section aria-label={t.nav.toolItems[tool].title} className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">
+                        {children}
+                    </section>
 
                     <aside aria-label={panelLabel} className={cn("flex shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--card-line)] bg-primary lg:min-h-0 lg:w-[22.5rem] xl:w-[24rem]", mobilePanel === "none" && "hidden lg:flex")}>
                         {panel}
