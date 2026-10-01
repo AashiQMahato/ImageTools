@@ -48,7 +48,7 @@ export function Group({ group, onNavigate }: { group: NavToolGroup; onNavigate: 
                 {group.items.map((item) => {
                     const Icon = TOOL_ICONS[item.key];
                     const copy = t.nav.toolItems[item.key];
-                    const current = !item.alias && pathname === item.href;
+                    const current = !item.alias && (pathname === item.href || Boolean(item.members?.some((member) => member.href === pathname)));
                     return (
                         <li key={item.key}>
                             <Link

@@ -2,7 +2,7 @@ import { ChevronDown, LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TOOL_ICONS } from "@/components/layout/toolIcons";
-import type { ToolKey } from "@/lib/constants/navigation";
+import { ORGANIZE_MODES, type ToolKey } from "@/lib/constants/navigation";
 import { TOOL_CATALOG } from "@/lib/constants/toolCatalog";
 import { cn } from "@/lib/utils/cn";
 import { useHandoff } from "@/store/useHandoff";
@@ -24,7 +24,9 @@ export function ContinueWith({ kind, current, files, className }: { kind: Handof
     const [failed, setFailed] = useState(false);
     const [more, setMore] = useState(false);
     const titleId = useId();
-    const tools = NEXT[kind].filter((key) => key !== current).flatMap((key) => TOOL_CATALOG.filter((tool) => tool.key === key));
+    // Organize PDF's modes are pages of one feature, not catalog entries of their own.
+    const destinations = [...TOOL_CATALOG, ...ORGANIZE_MODES];
+    const tools = NEXT[kind].filter((key) => key !== current).flatMap((key) => destinations.filter((tool) => tool.key === key).slice(0, 1));
     if (!tools.length) return null;
     const shown = more ? tools : tools.slice(0, FIRST);
 

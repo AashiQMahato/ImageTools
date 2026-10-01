@@ -26,7 +26,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
  * Rotate & Flip opens the crop tool, whose controls rotate, flip and straighten.
  */
 export type ToolKey = "removeBackground" | "upscaler" | "retouch" | "photoGenerator" | "watermarkRemover" | "compressor" | "crop" | "resize" | "rotateFlip" | "editor" | "ocr" | DocumentToolKey;
-export type DocumentToolKey = "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf" | "pdfCompress" | "pdfWatermark" | "pdfPageNumbers" | "pdfToText" | "pdfToWord" | "pdfViewer" | "pdfEditor" | "pdfSign" | "pdfProtect" | "pdfUnlock" | "textEditor" | "textCleaner" | "caseConverter" | "wordCounter";
+export type DocumentToolKey = "pdfOrganizer" | "pdfMerge" | "pdfSplit" | "pdfOrganize" | "pdfRotate" | "pdfToImages" | "imagesToPdf" | "pdfCompress" | "pdfWatermark" | "pdfPageNumbers" | "pdfToText" | "pdfToWord" | "pdfViewer" | "pdfEditor" | "pdfSign" | "pdfProtect" | "pdfUnlock" | "textEditor" | "textCleaner" | "caseConverter" | "wordCounter";
 export type ToolGroupKey = "ai" | "image" | "editor" | "text" | "pdf" | "pdfConvert" | "pdfEdit";
 
 export interface NavTool {
@@ -34,6 +34,8 @@ export interface NavTool {
     href: AppRoute;
     /** Opens another tool's page, so it never reads as the current page itself. */
     alias?: true;
+    /** One feature with several modes (each its own page): it reads as current on any of them. */
+    members?: readonly NavTool[];
 }
 
 export interface NavToolGroup {
@@ -64,33 +66,42 @@ export const TOOL_GROUPS: readonly NavToolGroup[] = [
     { key: "editor", items: [{ key: "editor", href: ROUTES.editor }] },
 ];
 
-/** The Documents menu: text tools; organizing PDFs; converting them; editing, signing and securing them. */
+/**
+ * Organize PDF: one feature, six modes — merge, split, reorder pages, rotate, compress and view. Each
+ * mode is its own page; the feature's mode bar moves between them, carrying the open file along.
+ */
+export const ORGANIZE_MODES: readonly NavTool[] = [
+    { key: "pdfMerge", href: ROUTES.pdfMerge },
+    { key: "pdfSplit", href: ROUTES.pdfSplit },
+    { key: "pdfOrganize", href: ROUTES.pdfOrganize },
+    { key: "pdfRotate", href: ROUTES.pdfRotate },
+    { key: "pdfCompress", href: ROUTES.pdfCompress },
+    { key: "pdfViewer", href: ROUTES.pdfViewer },
+];
+export const isOrganizeMode = (tool: ToolKey) => ORGANIZE_MODES.some((mode) => mode.key === tool);
+
+/** The Text Editor's panels that have their own addresses (old links, search): they open the editor on that panel. */
+export const TEXT_EDITOR_PANELS: readonly NavTool[] = [
+    { key: "textCleaner", href: ROUTES.textCleaner },
+    { key: "caseConverter", href: ROUTES.caseConverter },
+    { key: "wordCounter", href: ROUTES.wordCounter },
+];
+
+/** The Documents menu: text tools; PDF (organizing and converting); editing, signing and securing. */
 export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
     {
         key: "text",
         items: [
-            { key: "textEditor", href: ROUTES.textEditor },
             { key: "ocr", href: ROUTES.ocr },
+            // Cleaning, case conversion and word counts are the Text Editor's own panels, not separate tools.
+            { key: "textEditor", href: ROUTES.textEditor, members: TEXT_EDITOR_PANELS },
             { key: "pdfToText", href: ROUTES.pdfToText },
-            { key: "textCleaner", href: ROUTES.textCleaner },
-            { key: "caseConverter", href: ROUTES.caseConverter },
-            { key: "wordCounter", href: ROUTES.wordCounter },
         ],
     },
     {
         key: "pdf",
         items: [
-            { key: "pdfMerge", href: ROUTES.pdfMerge },
-            { key: "pdfSplit", href: ROUTES.pdfSplit },
-            { key: "pdfOrganize", href: ROUTES.pdfOrganize },
-            { key: "pdfRotate", href: ROUTES.pdfRotate },
-            { key: "pdfCompress", href: ROUTES.pdfCompress },
-            { key: "pdfViewer", href: ROUTES.pdfViewer },
-        ],
-    },
-    {
-        key: "pdfConvert",
-        items: [
+            { key: "pdfOrganizer", href: ROUTES.pdfMerge, members: ORGANIZE_MODES },
             { key: "pdfToWord", href: ROUTES.pdfToWord },
             { key: "pdfToImages", href: ROUTES.pdfToImages },
             { key: "imagesToPdf", href: ROUTES.imagesToPdf },
@@ -108,7 +119,7 @@ export const DOCUMENT_GROUPS: readonly NavToolGroup[] = [
         ],
     },
 ];
-export const DOCUMENT_ROUTES: readonly AppRoute[] = [ROUTES.documents, ...DOCUMENT_GROUPS.flatMap((group) => group.items.map((item) => item.href))];
+export const DOCUMENT_ROUTES: readonly AppRoute[] = [ROUTES.documents, ...DOCUMENT_GROUPS.flatMap((group) => group.items.flatMap((item) => [item.href, ...(item.members ?? []).map((member) => member.href)]))];
 
 /** Every route the Tools menu covers — the trigger reads as current on any of them. */
 export const TOOL_ROUTES: readonly AppRoute[] = [ROUTES.removeBackground, ROUTES.upscale, ROUTES.retouch, ROUTES.photoGenerator, ROUTES.watermarkRemover, ROUTES.crop, ROUTES.compress, ROUTES.editor];
@@ -128,4 +139,5 @@ export type SectionKey = (typeof SECTION_LINKS)[number]["key"];
 const IMAGE_STUDIO_GROUPS: readonly NavToolGroup[] = TOOL_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.alias) })).filter((group) => group.items.length > 0);
 
 /** Image tools and text tools are separate sections: inside one, the studio lists only that section's tools. */
-export const studioToolGroups = (tool: ToolKey): readonly NavToolGroup[] => (DOCUMENT_GROUPS.some((group) => group.items.some((item) => item.key === tool)) ? DOCUMENT_GROUPS : IMAGE_STUDIO_GROUPS);
+export const studioToolGroups = (tool: ToolKey): readonly NavToolGroup[] =>
+    DOCUMENT_GROUPS.some((group) => group.items.some((item) => item.key === tool || item.members?.some((member) => member.key === tool))) ? DOCUMENT_GROUPS : IMAGE_STUDIO_GROUPS;

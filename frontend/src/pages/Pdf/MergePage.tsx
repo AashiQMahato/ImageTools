@@ -1,5 +1,6 @@
 import { Combine } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useOpenDocuments } from "@/store/useOpenDocuments";
 import { AddFilesButton } from "@/features/documents/AddFilesButton";
 import { DocumentToolLayout } from "@/features/documents/DocumentToolLayout";
 import { MAX_FILES, MAX_PDF_MB, PDF_ACCEPT } from "@/features/documents/limits";
@@ -32,6 +33,12 @@ export function MergePage() {
     const [notice, setNotice] = useState<string | null>(null);
 
     const onPreview = useCallback((id: string, preview: PdfPreview | null) => setPreviews((current) => (current[id] === preview ? current : { ...current, [id]: preview })), []);
+
+    // Known to Organize PDF's mode bar, so switching mode keeps them open.
+    useEffect(() => {
+        useOpenDocuments.getState().set(entries.map((entry) => entry.file));
+        return () => useOpenDocuments.getState().set([]);
+    }, [entries]);
 
     const receive = (files: File[]) => {
         const pdfs = files.filter(isPdfFile);

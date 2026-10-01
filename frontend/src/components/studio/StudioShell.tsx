@@ -1,5 +1,5 @@
-import { ChevronDown, ImagePlus, LoaderCircle } from "lucide-react";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { ChevronDown, ImagePlus, LoaderCircle, Menu } from "lucide-react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/common/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -79,6 +79,8 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
     const openPicker = onFiles ? () => multiInput.current?.click() : upload.openPicker;
     const { clearError } = upload;
     const [confirming, setConfirming] = useState(false);
+    const sidebar = useSidebar();
+    const sidebarId = useId();
     const requestNewImage = () => (dirty ? setConfirming(true) : clearImage());
 
     // Closing or reloading the tab would throw the edits away too; let the browser ask first.
@@ -120,6 +122,18 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
                 )}
 
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b border-secondary bg-primary px-3 sm:gap-3 sm:px-5">
+                    {/* The tool list: folds away beside the work on wide screens, slides in as a drawer on narrow ones. */}
+                    <button
+                        type="button"
+                        onClick={sidebar.toggle}
+                        aria-controls={sidebarId}
+                        aria-expanded={sidebar.shown}
+                        aria-label={sidebar.shown ? copy.hideTools : copy.showTools}
+                        title={sidebar.shown ? copy.hideTools : copy.showTools}
+                        className={cn(iconButton, "-ml-1")}
+                    >
+                        <Menu className="size-[1.125rem]" aria-hidden />
+                    </button>
                     <Link to={ROUTES.home} aria-label={t.common.homeAria} className="flex shrink-0 items-center gap-2 rounded-lg text-md font-semibold tracking-[-0.01em] text-primary outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2">
                         <LogoMark />
                         <span className="hidden sm:inline">
@@ -139,13 +153,14 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
                                 </button>
                             </>
                         )}
-                        <ThemeToggle className="hidden sm:flex" />
+                        {/* grid, not flex: the sun and moon share one cell and swap in place, as on the home page. */}
+                        <ThemeToggle className="hidden sm:grid" />
                         {exportSlot && <div className="ml-1">{exportSlot}</div>}
                     </div>
                 </header>
 
                 <div className="flex flex-1 flex-col gap-3 p-2 sm:p-3 lg:min-h-0 lg:flex-row">
-                    <StudioSidebar current={tool} />
+                    <StudioSidebar current={tool} id={sidebarId} collapsed={sidebar.collapsed} drawerOpen={sidebar.drawerOpen} onCloseDrawer={sidebar.closeDrawer} />
 
                     {/* A section, not <main>: the page's <main> (AppLayout) already contains the whole studio. */}
                     <section aria-label={t.nav.toolItems[tool].title} className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">
@@ -196,6 +211,47 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
             </div>
         </StudioContext.Provider>
     );
+}
+
+const SIDEBAR_KEY = "studio-sidebar-collapsed";
+const wide = () => window.matchMedia("(min-width: 1024px)").matches;
+
+/**
+ * The tool list's state. Wide screens: shown or folded away — remembered across tools and visits.
+ * Narrow screens: a drawer, closed until the menu button opens it.
+ */
+function useSidebar() {
+    const [collapsed, setCollapsed] = useState(() => {
+        try {
+            return localStorage.getItem(SIDEBAR_KEY) === "1";
+        } catch {
+            return false;
+        }
+    });
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [isWide, setIsWide] = useState(wide);
+    useEffect(() => {
+        const query = window.matchMedia("(min-width: 1024px)");
+        const onChange = () => {
+            setIsWide(query.matches);
+            if (query.matches) setDrawerOpen(false);
+        };
+        query.addEventListener("change", onChange);
+        return () => query.removeEventListener("change", onChange);
+    }, []);
+    const toggle = useCallback(() => {
+        if (!wide()) return setDrawerOpen((open) => !open);
+        setCollapsed((value) => {
+            try {
+                localStorage.setItem(SIDEBAR_KEY, value ? "0" : "1");
+            } catch {
+                // Not remembered; still toggles.
+            }
+            return !value;
+        });
+    }, []);
+    const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+    return { collapsed, drawerOpen, toggle, closeDrawer, shown: isWide ? !collapsed : drawerOpen };
 }
 
 /** Drag-and-drop and paste for the whole page. Returns whether a file is being dragged over it. */
@@ -281,7 +337,7 @@ function ToolBreadcrumb({ tool, fileName, onNewImage }: { tool: ToolKey; fileNam
                     <div ref={menuRef} className="absolute top-full left-0 z-50 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[var(--card-line)] bg-primary p-1.5 shadow-xl">
                         {studioToolGroups(tool).flatMap((group) => group.items).map((item) => {
                             const ItemIcon = TOOL_ICONS[item.key];
-                            const current = !item.alias && item.key === tool;
+                            const current = !item.alias && (item.key === tool || Boolean(item.members?.some((member) => member.key === tool)));
                             return (
                                 <Link
                                     key={item.key}
