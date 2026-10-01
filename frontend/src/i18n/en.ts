@@ -94,6 +94,8 @@ export const en = {
     },
 
     footer: {
+        trust: "Files are deleted automatically after processing",
+        backToTop: "Back to top",
         tagline: "Simple, focused tools for images and documents.",
         blurb: "Remove backgrounds, upscale with AI and edit photos — and view, edit, sign, convert and protect PDFs. Nothing to install.",
         product: "Image tools",
@@ -125,21 +127,17 @@ export const en = {
     },
 
     hero: {
-        badge: "Studio tools",
+        badge: "Free · Private · No sign-up",
         titleLead: "Transform your images",
         titleAccent: "in seconds.",
-        description: "Remove backgrounds, upscale, crop and edit your images with powerful tools that run right from your workspace.",
         exploreTools: "Explore Tools",
-        visualLabel: "Animated example: a product photo has its background removed, is upscaled 4×, is cropped to three aspect ratios, and is colour-edited.",
-        centralAlt: "A smartwatch with a woven band on a grey studio surface",
-        chips: { remove: "Remove", upscale: "Upscale", crop: "Crop", edit: "Edit" },
-        cardLabels: { backgroundRemoved: "Cut out", upscaled: "4×", cropped: "4:5", edited: "Edited" },
-        badges: {
-            backgroundRemoved: "Background removed",
-            upscaled: "Upscaled 4×",
-            crop: "Crop",
-            edited: "Edited",
-            ready: "Ready",
+        trust: ["No sign-up", "Files deleted automatically", "Works on any device"],
+        showcase: {
+            label: "Studio Tools in action: removing a background, upscaling, cropping, rotating and editing photos.",
+            play: "Play video",
+            pause: "Pause video",
+            stepsLabel: "Tools shown in the video",
+            steps: { remove: "Remove BG", upscale: "Upscale", crop: "Crop", rotate: "Rotate", edit: "Edit", all: "All tools" },
         },
     },
 
