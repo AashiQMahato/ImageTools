@@ -81,6 +81,7 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
     const [confirming, setConfirming] = useState(false);
     const sidebar = useSidebar();
     const sidebarId = useId();
+    const headingId = useId();
     const requestNewImage = () => (dirty ? setConfirming(true) : clearImage());
 
     // Closing or reloading the tab would throw the edits away too; let the browser ask first.
@@ -163,11 +164,17 @@ export function StudioShell({ tool, actions, exportSlot, panel, panelLabel, chil
                     <StudioSidebar current={tool} id={sidebarId} collapsed={sidebar.collapsed} drawerOpen={sidebar.drawerOpen} onCloseDrawer={sidebar.closeDrawer} />
 
                     {/* A section, not <main>: the page's <main> (AppLayout) already contains the whole studio. */}
-                    <section aria-label={t.nav.toolItems[tool].title} className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">
+                    <section aria-labelledby={headingId} className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--card-line)] bg-primary p-2 sm:p-3 lg:min-h-0">
+                        {/* The page's heading: the tool's name (shown in the header bar; here for search engines and screen readers). */}
+                        <h1 id={headingId} className="sr-only">
+                            {t.nav.toolItems[tool].title}
+                        </h1>
                         {children}
                     </section>
 
                     <aside aria-label={panelLabel} className={cn("flex shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--card-line)] bg-primary lg:min-h-0 lg:w-[22.5rem] xl:w-[24rem]", mobilePanel === "none" && "hidden lg:flex")}>
+                        {/* The panel's own heading, so its sections' headings sit under it in the outline. */}
+                        <h2 className="sr-only">{panelLabel}</h2>
                         {panel}
                     </aside>
                 </div>

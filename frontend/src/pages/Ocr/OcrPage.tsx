@@ -471,7 +471,7 @@ function ReadingStudio({ image, reading, settings, onSettings, job, onExtract, f
         <OcrShell
             dirty={edited}
             exportSlot={
-                <button type="button" className={studioExportButton} onClick={() => void runExport("copy")} disabled={exporting !== null}>
+                <button type="button" className={studioExportButton} onClick={() => void runExport("copy")} disabled={exporting !== null} aria-label={copy.export.copy}>
                     <Copy className="size-4" aria-hidden />
                     <span className="hidden sm:inline">{copy.export.copy}</span>
                 </button>

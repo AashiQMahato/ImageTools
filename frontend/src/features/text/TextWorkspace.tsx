@@ -197,7 +197,7 @@ function TextStudio({ tool, initialTab, content }: { tool: ToolKey; initialTab: 
                 </>
             }
             exportSlot={
-                <button type="button" className={studioExportButton} onClick={() => void runExport("copy")} disabled={busy !== null}>
+                <button type="button" className={studioExportButton} onClick={() => void runExport("copy")} disabled={busy !== null} aria-label={t.ocr.export.copy}>
                     <Copy className="size-4" aria-hidden />
                     <span className="hidden sm:inline">{t.ocr.export.copy}</span>
                 </button>
