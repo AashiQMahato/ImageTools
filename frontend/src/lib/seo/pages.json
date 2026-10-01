@@ -1,0 +1,201 @@
+{
+    "site": {
+        "name": "Studio Tools",
+        "url": "https://imagetools-358n.onrender.com",
+        "image": "/og-image.png",
+        "imageAlt": "Studio Tools — free image, OCR and PDF tools",
+        "locale": "en_US",
+        "themeColor": "#0369a1"
+    },
+    "pages": {
+        "/": {
+            "title": "Studio Tools — Free Online Image, OCR & PDF Tools",
+            "heading": "Free online image, OCR and PDF tools",
+            "description": "Remove backgrounds, upscale photos with AI, extract English and Nepali text with OCR, and edit, sign, merge and convert PDFs. Free, private, no install.",
+            "priority": 1.0
+        },
+        "/documents": {
+            "title": "Free PDF & Document Tools Online | Studio Tools",
+            "heading": "PDF and document tools",
+            "description": "Every PDF and text tool in one place: merge, split, compress, edit, sign, protect and convert PDFs, plus OCR and a rich text editor. Free and private.",
+            "priority": 0.9
+        },
+        "/remove-background": {
+            "title": "Remove Background from Image Free — AI Cutout | Studio Tools",
+            "heading": "Remove the background from an image",
+            "description": "Remove image backgrounds in seconds with AI. Get a transparent PNG or a new background colour, refine edges, and download in full quality. Free and private.",
+            "priority": 0.9
+        },
+        "/upscale": {
+            "title": "AI Image Upscaler — Enlarge Photos 2× or 4× | Studio Tools",
+            "heading": "Upscale images with AI",
+            "description": "Enlarge photos 2× or 4× with AI and keep them sharp. Restore detail in small, low-resolution images and download high-quality results for free.",
+            "priority": 0.9
+        },
+        "/retouch": {
+            "title": "AI Photo Retouch — Remove Objects & Blemishes | Studio Tools",
+            "heading": "Retouch photos with AI",
+            "description": "Paint over objects, blemishes or distractions and let AI remove them cleanly. Smooth skin, sharpen detail and relight photos in your browser for free.",
+            "priority": 0.8
+        },
+        "/photo-generator": {
+            "title": "Passport & MRP Photo Maker — Print-Ready | Studio Tools",
+            "heading": "Make passport and MRP photos",
+            "description": "Create passport and MRP photos at the right size with a white background, face checks and a print-ready sheet. Free, fast and private.",
+            "priority": 0.8
+        },
+        "/watermark-remover": {
+            "title": "Watermark Remover for Images You Own | Studio Tools",
+            "heading": "Remove watermarks from images",
+            "description": "Remove text, logos and marks from images you own. Brush over the watermark and AI fills the area naturally. Free online watermark remover.",
+            "priority": 0.7
+        },
+        "/compress": {
+            "title": "Image Compressor — Reduce JPG, PNG & WebP Size | Studio Tools",
+            "heading": "Compress images",
+            "description": "Make JPG, PNG and WebP images smaller without losing visible quality. Compress in batches, set a target file size and compare before and after. Free.",
+            "priority": 0.9
+        },
+        "/crop": {
+            "title": "Crop Image Online — Any Aspect Ratio | Studio Tools",
+            "heading": "Crop, rotate and straighten images",
+            "description": "Crop photos to any aspect ratio — 1:1, 4:5, 16:9 and more — then rotate, flip and straighten. A fast, free online image cropper.",
+            "priority": 0.8
+        },
+        "/editor": {
+            "title": "Free Online Photo Editor — Adjust, Filters, Resize | Studio Tools",
+            "heading": "Edit photos online",
+            "description": "Adjust brightness, contrast and colour, apply filters, crop and resize photos, then export as JPG, PNG or WebP. A free photo editor in your browser.",
+            "priority": 0.8
+        },
+        "/ocr": {
+            "title": "OCR — Image & PDF to Editable Text, Nepali + English | Studio Tools",
+            "heading": "Turn images and PDFs into editable text",
+            "description": "Extract English and Nepali text from images and scanned PDFs with OCR. Keep headings, lists and tables, edit the result and export to Word, PDF or TXT.",
+            "priority": 0.9
+        },
+        "/text/editor": {
+            "title": "Online Text Editor — Clean, Case Convert & Word Count | Studio Tools",
+            "heading": "Write, clean and format text",
+            "description": "A free rich text editor with a text cleaner, case converter (UPPER, lower, Title) and word counter built in. Export to Word, PDF, HTML or TXT.",
+            "priority": 0.8
+        },
+        "/text/cleaner": {
+            "title": "Text Cleaner — Remove Extra Spaces & Line Breaks | Studio Tools",
+            "heading": "Clean up text",
+            "description": "Remove extra spaces, duplicate lines and broken line breaks, and fix OCR mistakes. Preview every change before applying it. Free online text cleaner.",
+            "canonical": "/text/editor",
+            "priority": 0.5
+        },
+        "/text/case-converter": {
+            "title": "Case Converter — UPPER, lower, Title & Sentence Case | Studio Tools",
+            "heading": "Convert text case",
+            "description": "Convert text to UPPERCASE, lowercase, Title Case or Sentence case while keeping its formatting. A free online case converter.",
+            "canonical": "/text/editor",
+            "priority": 0.5
+        },
+        "/text/word-counter": {
+            "title": "Word Counter — Words, Characters & Reading Time | Studio Tools",
+            "heading": "Count words and characters",
+            "description": "Count words, characters, sentences, paragraphs and reading time as you type, in English and Nepali. A free online word counter.",
+            "canonical": "/text/editor",
+            "priority": 0.5
+        },
+        "/pdf/merge": {
+            "title": "Merge PDF — Combine PDF Files Free | Studio Tools",
+            "heading": "Merge PDF files",
+            "description": "Combine several PDFs into one document. Drag to set the order, rotate files and merge in seconds. Free, private and no sign-up.",
+            "priority": 0.9
+        },
+        "/pdf/split": {
+            "title": "Split PDF — Extract Pages or Ranges Free | Studio Tools",
+            "heading": "Split a PDF",
+            "description": "Split a PDF into single pages or custom page ranges and download them as separate files. A free, fast and private online PDF splitter.",
+            "priority": 0.8
+        },
+        "/pdf/organize": {
+            "title": "Organize PDF Pages — Reorder, Delete & Duplicate | Studio Tools",
+            "heading": "Organize PDF pages",
+            "description": "Reorder, delete, duplicate, rotate and extract PDF pages with drag and drop and undo. Free online PDF page organizer.",
+            "priority": 0.8
+        },
+        "/pdf/rotate": {
+            "title": "Rotate PDF — Turn Pages the Right Way Up | Studio Tools",
+            "heading": "Rotate PDF pages",
+            "description": "Rotate all or selected PDF pages by 90° or 180° and save the result permanently. A free online tool to rotate PDF pages.",
+            "priority": 0.7
+        },
+        "/pdf/compress": {
+            "title": "Compress PDF — Reduce PDF File Size Free | Studio Tools",
+            "heading": "Compress a PDF",
+            "description": "Reduce PDF file size while keeping text sharp and photos clear. Choose a compression level and see exactly how much smaller it gets. Free.",
+            "priority": 0.9
+        },
+        "/pdf/viewer": {
+            "title": "PDF Viewer Online — Read, Search & Print | Studio Tools",
+            "heading": "View PDF files",
+            "description": "Open and read PDFs in your browser: thumbnails, zoom, text search, page jump, rotate, print and download. Nothing is uploaded.",
+            "priority": 0.7
+        },
+        "/pdf/to-images": {
+            "title": "PDF to JPG, PNG & WebP — Convert Pages | Studio Tools",
+            "heading": "Convert PDF to images",
+            "description": "Convert PDF pages to high-quality JPG, PNG or WebP images. Choose the pages, resolution and quality, then download as a ZIP. Free.",
+            "priority": 0.8
+        },
+        "/pdf/images-to-pdf": {
+            "title": "Images to PDF — JPG & PNG to PDF Free | Studio Tools",
+            "heading": "Convert images to PDF",
+            "description": "Turn JPG, PNG, WebP and HEIC images into one PDF. Set the page size, orientation, margins and order. A free online image to PDF converter.",
+            "priority": 0.8
+        },
+        "/pdf/to-word": {
+            "title": "PDF to Word — Convert PDF to Editable DOCX | Studio Tools",
+            "heading": "Convert PDF to Word",
+            "description": "Convert PDFs to editable Word documents, keeping headings, lists, tables and images. OCR for scanned pages, in English and Nepali. Free.",
+            "priority": 0.9
+        },
+        "/pdf/to-text": {
+            "title": "PDF to Text — Extract Text from PDF, OCR for Scans | Studio Tools",
+            "heading": "Extract text from a PDF",
+            "description": "Extract text from digital PDFs instantly and read scanned PDFs with OCR, in English and Nepali. Edit, copy or export as TXT, Word or PDF.",
+            "priority": 0.8
+        },
+        "/pdf/editor": {
+            "title": "Edit PDF Online — Add Text, Images & Shapes | Studio Tools",
+            "heading": "Edit a PDF",
+            "description": "Add text, images, drawings, highlights, shapes and arrows to a PDF, or delete pages. Undo, redo and save. A free online PDF editor.",
+            "priority": 0.9
+        },
+        "/pdf/sign": {
+            "title": "Sign PDF Online — Draw, Type or Upload a Signature | Studio Tools",
+            "heading": "Sign a PDF",
+            "description": "Add your signature to a PDF: draw it, type it or upload a photo. Place, resize and date it, then download. Free online PDF signing.",
+            "priority": 0.9
+        },
+        "/pdf/watermark": {
+            "title": "Add Watermark to PDF — Text or Logo | Studio Tools",
+            "heading": "Add a watermark to a PDF",
+            "description": "Stamp text or a logo on every PDF page or selected pages. Set the position, angle, size and opacity. A free online PDF watermark tool.",
+            "priority": 0.7
+        },
+        "/pdf/page-numbers": {
+            "title": "Add Page Numbers to PDF — Free & Easy | Studio Tools",
+            "heading": "Add page numbers to a PDF",
+            "description": "Number PDF pages in the format and position you want, such as \"Page 1 of 10\", starting from any number. Free online PDF page numbering.",
+            "priority": 0.7
+        },
+        "/pdf/protect": {
+            "title": "Protect PDF — Add a Password (AES-256) | Studio Tools",
+            "heading": "Password-protect a PDF",
+            "description": "Lock a PDF with a password using AES-256 encryption and choose whether people can print, copy or edit it. Free online PDF protection.",
+            "priority": 0.8
+        },
+        "/pdf/unlock": {
+            "title": "Unlock PDF — Remove a PDF Password | Studio Tools",
+            "heading": "Remove a PDF password",
+            "description": "Remove the password from a PDF you're allowed to open, or lift its printing and copying restrictions. Free online PDF unlocker.",
+            "priority": 0.7
+        }
+    }
+}

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
 import { useDocumentLanguage, useT } from "@/i18n";
+import { useSeo } from "@/lib/seo/useSeo";
 import { useLayoutStore } from "@/store/useLayoutStore";
 
 export function AppLayout() {
@@ -10,6 +11,7 @@ export function AppLayout() {
     const t = useT();
     const immersive = useLayoutStore((state) => state.immersive);
     useDocumentLanguage();
+    useSeo();
 
     // Start each route at the top, like a normal page load — or at the linked section (e.g. /#faq).
     useEffect(() => {
