@@ -140,11 +140,17 @@ export function ShowcaseSection() {
                                             aria-selected={i === index}
                                             aria-label={t.showcase.slides[item.id].title}
                                             onClick={() => go(i)}
-                                            className={cn(
-                                                "h-2 cursor-pointer rounded-full transition-[width,background-color] duration-500 ease-[var(--ease-spring)] outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2",
-                                                i === index ? "w-6 bg-[var(--brand)]" : "w-2 bg-[var(--brand-line)] hover:bg-[var(--brand)]/50",
-                                            )}
-                                        />
+                                            // A 24px target around the small dot, so it's easy to tap.
+                                            className="group grid h-6 min-w-6 cursor-pointer place-items-center rounded-full outline-focus-ring focus-visible:outline-2"
+                                        >
+                                            <span
+                                                aria-hidden
+                                                className={cn(
+                                                    "h-2 rounded-full transition-[width,background-color] duration-500 ease-[var(--ease-spring)]",
+                                                    i === index ? "w-6 bg-[var(--brand)]" : "w-2 bg-[var(--brand-line)] group-hover:bg-[var(--brand)]/50",
+                                                )}
+                                            />
+                                        </button>
                                     ))}
                                 </div>
                                 <NavButton direction="next" onClick={() => go(index + 1)} className="md:hidden" />

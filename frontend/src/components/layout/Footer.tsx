@@ -1,104 +1,129 @@
+import { ArrowUp, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/common/Logo";
-import { PRIMARY_NAV, type ToolKey } from "@/lib/constants/navigation";
-import { type AppRoute, ROUTES as PAGES } from "@/lib/constants/routes";
+import type { ToolKey } from "@/lib/constants/navigation";
+import { type AppRoute, ROUTES } from "@/lib/constants/routes";
+import { cn } from "@/lib/utils/cn";
 import { useT } from "@/i18n";
 
-// About / Privacy / Terms pages don't exist yet, so they render as plain text until they do.
-const COMPANY = ["about", "privacy", "terms"] as const;
+interface FooterLink {
+    key: ToolKey;
+    href: AppRoute;
+}
+
+const IMAGE_LINKS: readonly FooterLink[] = [
+    { key: "removeBackground", href: ROUTES.removeBackground },
+    { key: "upscaler", href: ROUTES.upscale },
+    { key: "retouch", href: ROUTES.retouch },
+    { key: "photoGenerator", href: ROUTES.photoGenerator },
+    { key: "compressor", href: ROUTES.compress },
+    { key: "crop", href: ROUTES.crop },
+    { key: "editor", href: ROUTES.editor },
+];
 
 /** The most-used document tools; the rest are one click away on the Documents page. */
-const DOCUMENT_LINKS: readonly { key: ToolKey; href: AppRoute }[] = [
-    { key: "pdfEditor", href: PAGES.pdfEditor },
-    { key: "pdfSign", href: PAGES.pdfSign },
-    { key: "pdfToWord", href: PAGES.pdfToWord },
-    { key: "pdfOrganizer", href: PAGES.pdfMerge },
-    { key: "ocr", href: PAGES.ocr },
-    { key: "textEditor", href: PAGES.textEditor },
+const DOCUMENT_LINKS: readonly FooterLink[] = [
+    { key: "pdfEditor", href: ROUTES.pdfEditor },
+    { key: "pdfSign", href: ROUTES.pdfSign },
+    { key: "pdfToWord", href: ROUTES.pdfToWord },
+    { key: "pdfOrganizer", href: ROUTES.pdfMerge },
+    { key: "ocr", href: ROUTES.ocr },
+    { key: "textEditor", href: ROUTES.textEditor },
 ];
 
 const linkClass =
-    "group inline-flex items-center gap-2.5 rounded text-[0.9375rem] text-tertiary transition-colors duration-150 hover:text-primary outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2";
-const dot = <span aria-hidden className="size-1 rounded-full bg-fg-quaternary transition-colors group-hover:bg-[var(--brand)]" />;
+    "group inline-flex items-center gap-2.5 rounded-md text-[0.9375rem] text-secondary transition-colors duration-200 hover:text-primary outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2";
 
-/** A deep navy footer in both themes. */
+/** A link with a dot that takes the brand colour, and the words easing a step right, on hover. */
+function FooterItem({ to, children, strong }: { to: string; children: React.ReactNode; strong?: boolean }) {
+    return (
+        <li>
+            <Link to={to} className={cn(linkClass, strong && "font-medium text-primary")}>
+                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--footer-dot)] transition-[background-color,scale] duration-200 group-hover:scale-125 group-hover:bg-[var(--brand)]" />
+                <span className="transition-transform duration-200 ease-[var(--ease-out)] group-hover:translate-x-0.5 motion-reduce:transform-none">{children}</span>
+            </Link>
+        </li>
+    );
+}
+
+function Column({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <nav aria-label={title}>
+            <h2 className="text-xs font-semibold tracking-[0.12em] text-tertiary uppercase">{title}</h2>
+            <ul className="mt-5 flex flex-col gap-3.5">{children}</ul>
+        </nav>
+    );
+}
+
+/**
+ * The site footer: a soft, light gradient (a deep navy one in dark mode) with the brand and what the
+ * app does on the left, and the tools and resources on the right.
+ */
 export function Footer() {
     const t = useT();
+    const copy = t.footer;
     return (
-        <footer className="dark-mode bg-[linear-gradient(160deg,#141a2e_0%,#0b0f1c_60%,#0a0d18_100%)] text-primary">
-            <div className="page-container grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))] md:gap-8 md:py-20">
-                <div className="sm:col-span-2 lg:col-span-1">
-                    <span className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 py-1.5 pr-4 pl-1.5">
+        <footer className="site-footer relative isolate overflow-hidden">
+            <div className="page-container grid grid-cols-2 gap-x-6 gap-y-12 pt-16 pb-12 sm:pt-20 sm:pb-14 md:grid-cols-3 lg:grid-cols-[minmax(0,1.7fr)_repeat(3,minmax(0,1fr))] lg:gap-12">
+                <div className="col-span-2 md:col-span-3 lg:col-span-1 lg:pr-10">
+                    <Link
+                        to={ROUTES.home}
+                        className="inline-flex items-center gap-2.5 rounded-full border border-[var(--footer-line)] bg-[var(--footer-glass)] py-1.5 pr-4 pl-1.5 shadow-[0_1px_2px_rgb(15_23_42/0.04)] backdrop-blur-md outline-focus-ring focus-visible:outline-2 focus-visible:outline-offset-2"
+                        aria-label={t.common.homeAria}
+                    >
                         <LogoMark className="size-7" />
-                        <span className="text-xs font-semibold tracking-[0.08em] text-secondary uppercase">{t.common.appName}</span>
-                    </span>
-                    <p className="mt-6 max-w-sm text-2xl font-semibold tracking-[-0.01em] text-primary">{t.footer.tagline}</p>
-                    <p className="mt-3 max-w-sm text-[0.9375rem] leading-relaxed text-tertiary">{t.footer.blurb}</p>
+                        <span className="text-xs font-semibold tracking-[0.12em] text-secondary uppercase">{t.common.appName}</span>
+                    </Link>
+                    <p className="mt-7 max-w-lg text-[1.75rem] leading-[1.15] font-semibold tracking-[-0.02em] text-balance text-primary sm:text-[2rem]">{copy.tagline}</p>
+                    <p className="mt-4 max-w-md text-[0.9375rem] leading-relaxed text-pretty text-tertiary">{copy.blurb}</p>
+                    <p className="mt-6 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-[var(--footer-line)] bg-[var(--footer-glass)] px-3 py-1.5 text-xs font-medium text-secondary backdrop-blur-md">
+                        <ShieldCheck className="size-3.5 shrink-0 text-success-primary" aria-hidden />
+                        {copy.trust}
+                    </p>
                 </div>
 
-                <nav aria-label={t.footer.product}>
-                    <h2 className="text-label text-quaternary">{t.footer.product}</h2>
-                    <ul className="mt-5 flex flex-col gap-3.5">
-                        {PRIMARY_NAV.map((item) => (
-                            <li key={item.href}>
-                                <Link to={item.href} className={linkClass}>
-                                    {dot}
-                                    {t.nav[item.fullLabel]}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
+                <Column title={copy.product}>
+                    {IMAGE_LINKS.map((item) => (
+                        <FooterItem key={item.key} to={item.href}>
+                            {t.nav.toolItems[item.key].title}
+                        </FooterItem>
+                    ))}
+                </Column>
 
-                <nav aria-label={t.footer.documents}>
-                    <h2 className="text-label text-quaternary">{t.footer.documents}</h2>
-                    <ul className="mt-5 flex flex-col gap-3.5">
-                        {DOCUMENT_LINKS.map((item) => (
-                            <li key={item.href}>
-                                <Link to={item.href} className={linkClass}>
-                                    {dot}
-                                    {t.nav.toolItems[item.key].title}
-                                </Link>
-                            </li>
-                        ))}
-                        <li>
-                            <Link to={PAGES.documents} className={`${linkClass} font-medium text-secondary`}>
-                                {dot}
-                                {t.footer.allDocuments}
-                            </Link>
-                        </li>
-                    </ul>
-                </nav>
+                <Column title={copy.documents}>
+                    {DOCUMENT_LINKS.map((item) => (
+                        <FooterItem key={item.key} to={item.href}>
+                            {t.nav.toolItems[item.key].title}
+                        </FooterItem>
+                    ))}
+                    <FooterItem to={ROUTES.documents} strong>
+                        {copy.allDocuments}
+                    </FooterItem>
+                </Column>
 
-                <nav aria-label={t.footer.resources}>
-                    <h2 className="text-label text-quaternary">{t.footer.resources}</h2>
-                    <ul className="mt-5 flex flex-col gap-3.5">
-                        <li>
-                            <Link to={`${PAGES.home}#faq`} className={linkClass}>
-                                {dot}
-                                {t.footer.faq}
-                            </Link>
-                        </li>
-                    </ul>
-                </nav>
-
-                <div>
-                    <h2 className="text-label text-quaternary">{t.footer.company}</h2>
-                    <ul className="mt-5 flex flex-col gap-3.5">
-                        {COMPANY.map((label) => (
-                            <li key={label} className="inline-flex items-center gap-2.5 text-[0.9375rem] text-tertiary">
-                                {dot}
-                                {t.footer[label]}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                <Column title={copy.resources}>
+                    <FooterItem to={`${ROUTES.home}#how-it-works`}>{t.nav.howItWorks}</FooterItem>
+                    <FooterItem to={`${ROUTES.home}#features`}>{t.nav.features}</FooterItem>
+                    <FooterItem to={`${ROUTES.home}#faq`}>{copy.faq}</FooterItem>
+                </Column>
             </div>
 
-            <div className="border-t border-white/8">
-                <div className="page-container flex flex-col gap-3 py-6 text-sm text-quaternary sm:flex-row sm:items-center sm:justify-between">
-                    <p>{t.footer.rights(new Date().getFullYear())}</p>
-                    <p>{t.footer.privacyNote}</p>
+            <div className="page-container">
+                {/* A hairline that fades out at both ends. */}
+                <span aria-hidden className="block h-px bg-[linear-gradient(90deg,transparent,var(--footer-line)_15%,var(--footer-line)_85%,transparent)]" />
+                <div className="flex flex-col gap-4 py-7 text-sm text-tertiary sm:flex-row sm:items-center sm:justify-between">
+                    <p>{copy.rights(new Date().getFullYear())}</p>
+                    <a
+                        href="#top"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+                        }}
+                        className="group inline-flex items-center gap-2 self-start rounded-full border border-[var(--footer-line)] bg-[var(--footer-glass)] px-3.5 py-1.5 font-medium text-secondary backdrop-blur-md transition-colors duration-200 outline-focus-ring hover:text-primary focus-visible:outline-2 sm:self-auto"
+                    >
+                        {copy.backToTop}
+                        <ArrowUp className="size-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 motion-reduce:transform-none" aria-hidden />
+                    </a>
                 </div>
             </div>
         </footer>

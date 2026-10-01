@@ -915,347 +915,6 @@
     }
 }
 
-/* ------------------------------------------------------------------ HERO
- * One product photo runs the app's own pipeline — remove, upscale, crop, edit — on a 12-second
- * loop, while real outputs float around it. Everything animates transform, opacity or filter, so
- * it stays on the compositor. No gradients anywhere: the landing's look is flat, solid and
- * image-first, and the checkerboard below is a mask, not a conic-gradient.
- *
- * Timing: every `.hero-timeline` element shares one duration and starts together, and each
- * shifts its window with `--start` via a negative delay — so they stay in lockstep, and pausing
- * them pauses all of them on the same frame.
- */
-
-@property --hero-sat {
-    syntax: "<integer>";
-    inherits: true;
-    initial-value: 0;
-}
-
-/* The before image is wiped away left to right; its window slides while the picture holds still. */
-@keyframes hero-curtain {
-    0%, 25% { translate: 0 0; opacity: 1; }
-    33% { translate: 100% 0; opacity: 1; }
-    95% { translate: 100% 0; opacity: 0; }
-    95.5%, 96.5% { translate: 0 0; opacity: 0; }
-    100% { translate: 0 0; opacity: 1; }
-}
-@keyframes hero-curtain-inner {
-    0%, 25% { translate: 0 0; }
-    33%, 95% { translate: -100% 0; }
-    95.5%, 100% { translate: 0 0; }
-}
-@keyframes hero-scan {
-    0%, 24.5% { opacity: 0; }
-    25.5%, 32% { opacity: 1; }
-    33.5%, 100% { opacity: 0; }
-}
-
-/* Upscale: a loupe over the dial, a genuine 4x-smaller copy resolving into the full-resolution one. */
-@keyframes hero-loupe {
-    0%, 41% { opacity: 0; scale: 0.9; }
-    44%, 56% { opacity: 1; scale: 1; }
-    59%, 100% { opacity: 0; scale: 0.96; }
-}
-@keyframes hero-loupe-sharp {
-    0%, 47% { opacity: 0; }
-    52%, 100% { opacity: 1; }
-}
-
-/* Crop: four shades close in to 1:1, then 4:5, then 16:9, and release. Translate only. */
-@keyframes hero-crop {
-    0%, 57% { opacity: 0; }
-    58.5%, 75% { opacity: 1; }
-    77%, 100% { opacity: 0; }
-}
-@keyframes hero-shade-left {
-    0%, 58% { translate: -100% 0; }
-    60.5%, 64% { translate: -87.5% 0; }
-    66.5%, 69% { translate: -80% 0; }
-    71.5%, 100% { translate: -100% 0; }
-}
-@keyframes hero-shade-right {
-    0%, 58% { translate: 100% 0; }
-    60.5%, 64% { translate: 87.5% 0; }
-    66.5%, 69% { translate: 80% 0; }
-    71.5%, 100% { translate: 100% 0; }
-}
-@keyframes hero-shade-top {
-    0%, 69% { translate: 0 -100%; }
-    71.5%, 73.5% { translate: 0 -87.5%; }
-    75.5%, 100% { translate: 0 -100%; }
-}
-@keyframes hero-shade-bottom {
-    0%, 69% { translate: 0 100%; }
-    71.5%, 73.5% { translate: 0 87.5%; }
-    75.5%, 100% { translate: 0 100%; }
-}
-
-/* Edit: a modest grade, the same kind the editor's sliders apply — then back before the loop. */
-@keyframes hero-edit {
-    0%, 75% { filter: saturate(1) contrast(1) brightness(1); }
-    81%, 96.5% { filter: saturate(1.35) contrast(1.08) brightness(1.04); }
-    100% { filter: saturate(1) contrast(1) brightness(1); }
-}
-@keyframes hero-sat {
-    0%, 75% { --hero-sat: 0; }
-    81%, 96.5% { --hero-sat: 35; }
-    100% { --hero-sat: 0; }
-}
-@keyframes hero-row-active {
-    0%, 74% { opacity: 0; }
-    76%, 94% { opacity: 1; }
-    96%, 100% { opacity: 0; }
-}
-
-/* Windows, shifted into place by --start. */
-@keyframes hero-flash {
-    0% { opacity: 0; translate: 0 4px; }
-    1.5%, 8% { opacity: 1; translate: 0 0; }
-    9.5%, 100% { opacity: 0; translate: 0 -2px; }
-}
-@keyframes hero-flash-short {
-    0% { opacity: 0; }
-    0.8%, 4.2% { opacity: 1; }
-    5%, 100% { opacity: 0; }
-}
-@keyframes hero-chip-on {
-    0% { opacity: 0; }
-    2%, 15% { opacity: 1; }
-    17%, 100% { opacity: 0; }
-}
-
-/* Floating cards: five different motions so no two neighbours move alike. */
-@keyframes hero-float-y {
-    from { translate: 0 calc(var(--hero-amp) * -1); }
-    to { translate: 0 var(--hero-amp); }
-}
-@keyframes hero-float-x {
-    from { translate: calc(var(--hero-amp) * -1) 0; }
-    to { translate: var(--hero-amp) 0; }
-}
-@keyframes hero-tilt {
-    from { rotate: -2deg; }
-    to { rotate: 2deg; }
-}
-@keyframes hero-breathe {
-    from { scale: 0.97; }
-    to { scale: 1.03; }
-}
-@keyframes hero-drift {
-    from { translate: calc(var(--hero-amp) * -0.8) calc(var(--hero-amp) * -0.8); }
-    to { translate: calc(var(--hero-amp) * 0.8) calc(var(--hero-amp) * 0.8); }
-}
-/* The centre piece barely moves: enough to feel alive, not enough to soften the photo. */
-@keyframes hero-central {
-    0%, 100% { translate: 0 -4px; scale: 0.992; rotate: -0.4deg; }
-    50% { translate: 0 4px; scale: 1.008; rotate: 0.4deg; }
-}
-@keyframes hero-icon-pop {
-    0% { rotate: 0deg; scale: 1; }
-    40% { rotate: -10deg; scale: 1.18; }
-    100% { rotate: 0deg; scale: 1; }
-}
-
-@layer components {
-    .hero-visual {
-        --hero-loop: 12s;
-        --hero-amp: 5px;
-
-        @media (width >= 48rem) {
-            --hero-amp: 7px;
-        }
-        @media (width >= 64rem) {
-            --hero-amp: 10px;
-        }
-    }
-
-    .hero-timeline {
-        animation-duration: var(--hero-loop);
-        animation-iteration-count: infinite;
-        animation-timing-function: var(--ease-in-out);
-        animation-fill-mode: both;
-    }
-
-    /* Shift a shared window keyframe to begin at --start (seconds into the loop). */
-    .hero-window {
-        animation-delay: calc(var(--start, 0s) - var(--hero-loop));
-    }
-
-    .hero-float {
-        animation-name: var(--float, none);
-        animation-duration: var(--float-duration, 8s);
-        animation-delay: var(--float-delay, 0s);
-        animation-iteration-count: infinite;
-        animation-direction: alternate;
-        animation-timing-function: var(--ease-in-out);
-        animation-fill-mode: both;
-        will-change: translate, rotate, scale;
-    }
-
-    .hero-central {
-        animation: hero-central 14s var(--ease-in-out) infinite;
-    }
-
-    /* Static states double as the reduced-motion picture: the background already removed. */
-    .hero-curtain {
-        translate: 100% 0;
-        animation-name: hero-curtain;
-    }
-    .hero-curtain-inner {
-        translate: -100% 0;
-        animation-name: hero-curtain-inner;
-    }
-    .hero-scan {
-        opacity: 0;
-        animation-name: hero-scan;
-    }
-    .hero-loupe {
-        opacity: 0;
-        animation-name: hero-loupe;
-    }
-    .hero-loupe-sharp {
-        opacity: 0;
-        animation-name: hero-loupe-sharp;
-    }
-    .hero-crop {
-        opacity: 0;
-        animation-name: hero-crop;
-    }
-    .hero-shade-left {
-        translate: -100% 0;
-        animation-name: hero-shade-left;
-    }
-    .hero-shade-right {
-        translate: 100% 0;
-        animation-name: hero-shade-right;
-    }
-    .hero-shade-top {
-        translate: 0 -100%;
-        animation-name: hero-shade-top;
-    }
-    .hero-shade-bottom {
-        translate: 0 100%;
-        animation-name: hero-shade-bottom;
-    }
-    .hero-edit {
-        animation-name: hero-edit;
-    }
-    .hero-flash {
-        opacity: 0;
-        animation-name: hero-flash;
-    }
-    .hero-flash-short {
-        opacity: 0;
-        animation-name: hero-flash-short;
-    }
-    .hero-chip-on {
-        opacity: 0;
-        animation-name: hero-chip-on;
-    }
-    .hero-sat {
-        animation-name: hero-sat;
-    }
-    .hero-row-active {
-        opacity: 0;
-        animation-name: hero-row-active;
-    }
-    /* The one badge that stays up when nothing moves. */
-    .hero-static-visible {
-        opacity: 1;
-    }
-
-    /* Transparency grid: two theme tokens and a mask, so it follows light and dark with no gradient. */
-    .hero-checker {
-        background-color: var(--checker-a);
-
-        &::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-color: var(--checker-b);
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8'/%3E%3Crect x='8' y='8' width='8' height='8'/%3E%3C/svg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8'/%3E%3Crect x='8' y='8' width='8' height='8'/%3E%3C/svg%3E");
-            -webkit-mask-size: 16px 16px;
-            mask-size: 16px 16px;
-        }
-    }
-
-    /* Hover: the centre lifts, its shadow deepens, and the cards step back a few pixels. */
-    .hero-lift {
-        transition: scale 500ms var(--ease-out);
-
-        &::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            box-shadow: var(--shadow-3xl);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 500ms var(--ease-out);
-        }
-
-        &:hover {
-            scale: 1.012;
-        }
-        &:hover::after {
-            opacity: 1;
-        }
-    }
-    .hero-nudge {
-        transition: translate 600ms var(--ease-out);
-    }
-    .hero-visual:has(.hero-lift:hover) .hero-nudge {
-        translate: var(--nudge-x, 0) var(--nudge-y, 0);
-    }
-
-    /* Tool chips: a small rise, the icon answers, and the demo holds still while you look. */
-    .hero-chip {
-        transition: translate 200ms var(--ease-out);
-
-        &:hover,
-        &:focus-visible {
-            translate: 0 -2px;
-        }
-        &:hover .hero-chip-icon,
-        &:focus-visible .hero-chip-icon {
-            animation: hero-icon-pop 450ms var(--ease-out);
-        }
-    }
-    .hero-visual:has(.hero-chip:hover, .hero-chip:focus-visible) .hero-timeline,
-    .hero-visual[data-offscreen] :is(.hero-timeline, .hero-float, .hero-central) {
-        animation-play-state: paused;
-    }
-
-    /* Editor card: the saturation value and its thumb read one animated number. */
-    .hero-sat-value::after {
-        counter-reset: hero-sat var(--hero-sat);
-        content: counter(hero-sat);
-    }
-    .hero-sat-thumb {
-        translate: calc(var(--hero-sat) * 0.5%) 0;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .hero-visual :is(.hero-timeline, .hero-float, .hero-central) {
-            animation: none;
-        }
-        .hero-lift,
-        .hero-nudge,
-        .hero-chip {
-            transition: none;
-        }
-        .hero-lift:hover,
-        .hero-chip:hover,
-        .hero-chip:focus-visible,
-        .hero-visual:has(.hero-lift:hover) .hero-nudge {
-            scale: none;
-            translate: none;
-        }
-    }
-}
-
 /* ------------------------------------------------------------------ NAVBAR
  * Quiet at rest, precise on interaction. Panels enter in ~180 ms and leave faster than they
  * arrive; nothing bounces. Solid surfaces, borders and shadow only — no gradients.
@@ -1566,4 +1225,131 @@
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 0.8125rem;
+}
+
+/* ------------------------------------------------------------------ site footer
+ * Light: a soft daylight gradient — white into pale sky — with two faint glows (sky blue, violet)
+ * for depth. Dark: a deep navy gradient with the same glows, dimmer. Text uses the theme's tokens,
+ * so contrast holds in both.
+ */
+.site-footer {
+    --footer-line: rgb(3 105 161 / 0.14);
+    --footer-glass: rgb(255 255 255 / 0.62);
+    --footer-dot: rgb(3 105 161 / 0.28);
+    background:
+        radial-gradient(60rem 26rem at 8% -8%, rgb(56 189 248 / 0.2), transparent 62%),
+        radial-gradient(44rem 24rem at 96% 18%, rgb(167 139 250 / 0.16), transparent 64%),
+        radial-gradient(50rem 22rem at 50% 115%, rgb(125 211 252 / 0.22), transparent 70%),
+        linear-gradient(180deg, #fbfdff 0%, #f1f7fd 46%, #e7f0fb 100%);
+    border-top: 1px solid rgb(3 105 161 / 0.08);
+}
+
+.dark-mode .site-footer {
+    --footer-line: rgb(255 255 255 / 0.1);
+    --footer-glass: rgb(255 255 255 / 0.04);
+    --footer-dot: rgb(255 255 255 / 0.26);
+    background:
+        radial-gradient(60rem 26rem at 8% -8%, rgb(56 189 248 / 0.12), transparent 62%),
+        radial-gradient(44rem 24rem at 96% 18%, rgb(129 140 248 / 0.14), transparent 64%),
+        radial-gradient(50rem 22rem at 50% 115%, rgb(14 165 233 / 0.1), transparent 70%),
+        linear-gradient(180deg, #0b1020 0%, #0f1733 55%, #070b16 100%);
+    border-top-color: rgb(255 255 255 / 0.06);
+}
+
+/* ------------------------------------------------------------------ hero
+ * Light from above: a soft sky spotlight that fades before the reel, so the page reads top to
+ * bottom — headline, way in, product. Nothing behind the type but light. The reel sits in a frosted window frame with a
+ * brand glow behind it. Both themes have their own values.
+ */
+.hero-premium {
+    --hero-address: rgb(15 23 42 / 0.05);
+    background:
+        radial-gradient(56rem 30rem at 50% -6%, rgb(56 189 248 / 0.18), transparent 64%),
+        radial-gradient(36rem 22rem at 88% 22%, rgb(167 139 250 / 0.1), transparent 70%),
+        var(--color-bg-primary);
+}
+
+.hero-badge {
+    background: rgb(255 255 255 / 0.7);
+    border: 1px solid rgb(3 105 161 / 0.14);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+    backdrop-filter: blur(12px);
+}
+
+/* The headline's second line: the brand blue drawn out to sky and indigo. */
+.hero-accent {
+    background: linear-gradient(100deg, #0284c7 0%, #0369a1 45%, #4f46e5 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero-showcase-glow {
+    background:
+        radial-gradient(40% 60% at 30% 50%, rgb(56 189 248 / 0.35), transparent 70%),
+        radial-gradient(40% 60% at 72% 50%, rgb(129 140 248 / 0.3), transparent 70%);
+    opacity: 0.8;
+}
+
+/* The reel's edge: a hairline and long, soft depth (no window chrome — the video is the frame). */
+.hero-frame {
+    box-shadow:
+        0 0 0 1px rgb(3 105 161 / 0.1),
+        0 2px 6px -2px rgb(15 23 42 / 0.08),
+        0 34px 70px -28px rgb(15 23 42 / 0.4);
+}
+
+.hero-steps {
+    background: rgb(255 255 255 / 0.86);
+    border: 1px solid rgb(3 105 161 / 0.1);
+    box-shadow: 0 12px 30px -14px rgb(15 23 42 / 0.3);
+    backdrop-filter: blur(16px) saturate(160%);
+}
+
+.dark-mode .hero-premium {
+    --hero-address: rgb(255 255 255 / 0.06);
+    background:
+        radial-gradient(56rem 30rem at 50% -6%, rgb(56 189 248 / 0.14), transparent 64%),
+        radial-gradient(36rem 22rem at 88% 22%, rgb(129 140 248 / 0.1), transparent 70%),
+        var(--color-bg-primary);
+}
+
+.dark-mode .hero-badge {
+    background: rgb(255 255 255 / 0.05);
+    border-color: rgb(255 255 255 / 0.1);
+}
+
+.dark-mode .hero-accent {
+    background-image: linear-gradient(100deg, #38bdf8 0%, #60a5fa 45%, #a5b4fc 100%);
+}
+
+.dark-mode .hero-showcase-glow {
+    opacity: 0.45;
+}
+
+.dark-mode .hero-frame {
+    box-shadow:
+        0 0 0 1px rgb(255 255 255 / 0.1),
+        0 34px 80px -24px rgb(0 0 0 / 0.8);
+}
+
+.dark-mode .hero-steps {
+    background: rgb(17 24 39 / 0.82);
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow: 0 14px 34px -14px rgb(0 0 0 / 0.7);
+}
+
+/* The steps' highlight: one surface that glides from step to step with the reel (spatial continuity —
+ * it moves, rather than one chip switching off as another switches on). Critically damped, no bounce. */
+.hero-step-thumb {
+    transition:
+        transform 520ms cubic-bezier(0.32, 0.72, 0, 1),
+        width 520ms cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-step-thumb {
+        transition: opacity 150ms ease-out;
+    }
 }
