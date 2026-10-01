@@ -12,8 +12,7 @@ const DOCUMENT_LINKS: readonly { key: ToolKey; href: AppRoute }[] = [
     { key: "pdfEditor", href: PAGES.pdfEditor },
     { key: "pdfSign", href: PAGES.pdfSign },
     { key: "pdfToWord", href: PAGES.pdfToWord },
-    { key: "pdfMerge", href: PAGES.pdfMerge },
-    { key: "pdfCompress", href: PAGES.pdfCompress },
+    { key: "pdfOrganizer", href: PAGES.pdfMerge },
     { key: "ocr", href: PAGES.ocr },
     { key: "textEditor", href: PAGES.textEditor },
 ];

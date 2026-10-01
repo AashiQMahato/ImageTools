@@ -4,30 +4,33 @@ import {
     AlignJustify,
     AlignLeft,
     AlignRight,
+    ArrowUpDown,
     Bold,
+    ChevronsUpDown,
+    Code as CodeIcon,
     Highlighter,
     IndentDecrease,
     IndentIncrease,
     Italic,
+    Link2,
     List,
     ListOrdered,
     type LucideIcon,
     Minus,
-    Link2,
     MoreHorizontal,
+    Pilcrow,
+    Plus,
     Plus as PlusIcon,
     Quote,
-        Table as TableIcon,
-    Code as CodeIcon,
-    Plus,
     Redo2,
     RemoveFormatting,
     Strikethrough,
+    Table as TableIcon,
     Type,
     Underline,
     Undo2,
 } from "lucide-react";
-import { type ReactNode, useCallback, useId, useState } from "react";
+import { type ReactNode, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import { BottomSheet } from "@/components/studio/BottomSheet";
 import { usePopover } from "@/components/studio/usePopover";
 import { cn } from "@/lib/utils/cn";
@@ -137,8 +140,15 @@ function useCommands(editor: Editor) {
 
 const buttonClass =
     "grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-secondary transition-colors duration-150 outline-focus-ring hover:bg-primary_hover hover:text-primary focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-35 aria-pressed:bg-[var(--brand-soft)] aria-pressed:text-[var(--brand)] pointer-coarse:size-10";
-const selectClass =
-    "h-8 min-w-0 cursor-pointer rounded-lg border border-[var(--card-line)] bg-primary px-2 text-[0.8125rem] text-primary outline-focus-ring hover:border-[var(--color-border-primary)] focus-visible:outline-2 pointer-coarse:h-10";
+/**
+ * Fields in the toolbar (style, font, size, spacing), drawn as macOS pop-up buttons: a soft filled
+ * capsule with no hard outline, a little deeper on hover. Focus is a thin accent edge with a soft halo
+ * — browsers treat a click on a select as keyboard focus, so a heavy ring there would look like an error.
+ */
+const fieldClass =
+    "rounded-lg border border-transparent bg-[rgb(118_118_128/0.1)] text-[0.8125rem] font-medium text-primary outline-none transition-[background-color,border-color,box-shadow] duration-150 hover:bg-[rgb(118_118_128/0.16)] focus-visible:border-[var(--brand)] focus-visible:bg-primary focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_18%,transparent)] dark:bg-[rgb(118_118_128/0.22)] dark:hover:bg-[rgb(118_118_128/0.3)]";
+/** A pop-up button: the system menu lists the choices; the up-down chevrons say it's a menu, not a text field. */
+const selectClass = `popup-select h-8 min-w-0 cursor-pointer appearance-none pr-7 pl-2.5 ${fieldClass} pointer-coarse:h-10`;
 
 function ToolButton({ icon: Icon, label, onClick, pressed, disabled }: { icon: LucideIcon; label: string; onClick: () => void; pressed?: boolean; disabled?: boolean }) {
     return (
@@ -158,7 +168,17 @@ function ToolButton({ icon: Icon, label, onClick, pressed, disabled }: { icon: L
     );
 }
 
-const Divider = () => <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-[var(--card-line)]" />;
+const Divider = () => <span aria-hidden className="mx-1.5 h-5 w-px shrink-0 bg-[var(--card-line)]" />;
+
+/**
+ * One group of toolbar controls (wide screens), with a rule on its left. Each group sits a pixel to
+ * the left and the toolbar clips sideways (overflow-x: clip — not clip-path, which would stop popovers
+ * from blurring what's behind them), so the group that starts a row shows no stray rule. Rows break
+ * between groups, never inside one.
+ */
+function Section({ children, roomy = false }: { children: ReactNode; roomy?: boolean }) {
+    return <div className={cn("-ml-px flex shrink-0 items-center border-l border-[var(--card-line)] pl-3", roomy ? "gap-2" : "gap-1")}>{children}</div>;
+}
 
 /** The formatting bar above the page. On phones it's the essentials plus a Format sheet with the rest. */
 /** `extended`: the full text editor's extras too — links, quotes, code, tables and dividers. */
@@ -185,9 +205,11 @@ export function OcrToolbar({ editor, extended = false }: { editor: Editor; exten
     );
 
     return (
-        <div role="toolbar" aria-label={copy.label} className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--card-line)] bg-primary px-2 py-1.5 lg:flex-wrap lg:overflow-visible">
-            {history}
-            <Divider />
+        <div role="toolbar" aria-label={copy.label} className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--card-line)] bg-primary px-3 py-2 lg:flex-wrap lg:gap-x-3 lg:gap-y-2 relative z-20 lg:overflow-x-clip lg:overflow-y-visible lg:pl-0">
+            <div className="flex shrink-0 items-center gap-1 lg:-ml-px lg:border-l lg:border-[var(--card-line)] lg:pl-3">{history}</div>
+            <span className="lg:hidden">
+                <Divider />
+            </span>
             {/* Phones: the essentials, and the rest in a sheet. */}
             <div className="flex items-center gap-0.5 lg:hidden">
                 {marks}
@@ -197,21 +219,31 @@ export function OcrToolbar({ editor, extended = false }: { editor: Editor; exten
                     {copy.more}
                 </button>
             </div>
-            <div className="hidden flex-wrap items-center gap-0.5 lg:flex">
-                <StyleSelect state={state} onChange={commands.setBlockStyle} />
-                <FontSelect state={state} onChange={commands.setFont} />
-                <SizeControl state={state} onChange={commands.setSize} />
-                <Divider />
-                {marks}
-                <ToolButton icon={Strikethrough} label={copy.strike} pressed={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
-                <ColorControl state={state} onChange={commands.setColor} />
-                <HighlightControl state={state} onChange={commands.setHighlight} />
-                <Divider />
-                <AlignControl state={state} onChange={commands.setAlign} />
-                <ToolButton icon={List} label={copy.bulletList} pressed={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} />
-                <ToolButton icon={ListOrdered} label={copy.orderedList} pressed={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
-                {extended && <ExtraControls editor={editor} state={state} />}
-                <MoreControl state={state} commands={commands} editor={editor} />
+            {/* Wide screens: sections that each stay whole and wrap to the next row as a unit, so a row never
+                ends with half a group or starts with a stray rule. */}
+            <div className="hidden lg:contents">
+                <Section roomy>
+                    <StyleSelect state={state} onChange={commands.setBlockStyle} />
+                    <FontSelect state={state} onChange={commands.setFont} />
+                </Section>
+                <Section>
+                    <SizeControl state={state} onChange={commands.setSize} />
+                </Section>
+                <Section>
+                    {marks}
+                    <ToolButton icon={Strikethrough} label={copy.strike} pressed={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
+                    <ColorControl state={state} onChange={commands.setColor} />
+                    <HighlightControl state={state} onChange={commands.setHighlight} />
+                </Section>
+                <Section>
+                    <AlignControl state={state} onChange={commands.setAlign} />
+                    <ToolButton icon={List} label={copy.bulletList} pressed={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} />
+                    <ToolButton icon={ListOrdered} label={copy.orderedList} pressed={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
+                </Section>
+                <Section>
+                    {extended && <ExtraControls editor={editor} state={state} />}
+                    <MoreControl state={state} commands={commands} editor={editor} />
+                </Section>
             </div>
 
             <BottomSheet open={sheet} onClose={closeSheet} title={copy.more} closeLabel={copy.done}>
@@ -305,7 +337,7 @@ function SizeControl({ state, onChange }: { state: FormatState; onChange: (size:
         setDraft(null);
     };
     return (
-        <span className="flex items-center">
+        <span className="flex items-center gap-1">
             <ToolButton icon={Minus} label={copy.smaller} onClick={() => onChange(size - step)} />
             <input
                 aria-label={copy.size}
@@ -321,7 +353,7 @@ function SizeControl({ state, onChange }: { state: FormatState; onChange: (size:
                         commit();
                     }
                 }}
-                className="h-8 w-11 rounded-lg border border-[var(--card-line)] bg-primary text-center text-[0.8125rem] text-primary tabular-nums outline-focus-ring focus-visible:outline-2 pointer-coarse:h-10"
+                className={cn("h-8 w-11 text-center tabular-nums pointer-coarse:h-10", fieldClass)}
             />
             <ToolButton icon={Plus} label={copy.larger} onClick={() => onChange(size + step)} />
         </span>
@@ -441,9 +473,17 @@ function SpacingSelects({ state, commands, labelled }: { state: FormatState; com
     );
 }
 
-/** A popover anchored under its toolbar button. */
+/** A popover anchored under its toolbar button — opening leftwards when it would run off the editor's right edge. */
 function ToolPopover({ icon: Icon, label, pressed, children }: { icon: LucideIcon; label: string; pressed?: boolean; children: (close: () => void) => ReactNode }) {
     const { open, setOpen, wrap, trigger } = usePopover();
+    const panel = useRef<HTMLDivElement>(null);
+    const [alignEnd, setAlignEnd] = useState(false);
+    useLayoutEffect(() => {
+        if (!open) return;
+        const element = panel.current;
+        const bounds = element?.closest("[role=toolbar]")?.getBoundingClientRect();
+        if (element && bounds && element.getBoundingClientRect().right > bounds.right) setAlignEnd(true);
+    }, [open]);
     return (
         <div ref={wrap} className="relative">
             <button
@@ -456,11 +496,19 @@ function ToolPopover({ icon: Icon, label, pressed, children }: { icon: LucideIco
                 aria-haspopup="true"
                 aria-pressed={pressed}
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => setOpen((value) => !value)}
+                onClick={() => {
+                    // Each opening starts left-aligned and is re-measured.
+                    setAlignEnd(false);
+                    setOpen((value) => !value);
+                }}
             >
                 <Icon className="size-4" aria-hidden />
             </button>
-            {open && <div className="absolute top-full left-0 z-30 mt-1 flex items-center gap-1 rounded-xl border border-[var(--card-line)] bg-primary p-1.5 shadow-lg">{children(() => setOpen(false))}</div>}
+            {open && (
+                <div ref={panel} className={cn("material-popover absolute top-full z-30 mt-1.5 flex items-center gap-1 rounded-2xl p-1.5", alignEnd ? "right-0 origin-top-right" : "left-0 origin-top-left")}>
+                    {children(() => setOpen(false))}
+                </div>
+            )}
         </div>
     );
 }
@@ -490,22 +538,101 @@ function AlignControl({ state, onChange }: { state: FormatState; onChange: (alig
 /** Spacing, indent and clearing — used less, so one step away. */
 function MoreControl({ state, commands, editor }: { state: FormatState; commands: ReturnType<typeof useCommands>; editor: Editor }) {
     const copy = useT().ocr.toolbar;
+    const lineHeights = [...new Set([...LINE_HEIGHTS, ...(state.lineHeight ? [state.lineHeight] : [])])].sort((a, b) => a - b);
+    const canOutdent = state.inList || state.indent > 0;
     return (
         <ToolPopover icon={MoreHorizontal} label={copy.moreOptions}>
             {() => (
-                <div className="flex w-64 flex-col gap-3 p-1.5">
-                    <div className="grid grid-cols-2 gap-2">
-                        <SpacingSelects state={state} commands={commands} labelled />
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <ToolButton icon={IndentDecrease} label={copy.outdent} onClick={() => commands.indent(-1, state.inList)} disabled={!state.inList && state.indent === 0} />
-                        <ToolButton icon={IndentIncrease} label={copy.indent} onClick={() => commands.indent(1, state.inList)} />
-                        <Divider />
-                        <ToolButton icon={RemoveFormatting} label={copy.clear} onClick={() => editor.chain().focus().unsetAllMarks().run()} />
-                    </div>
+                <div className="flex w-[17.5rem] flex-col gap-3 p-0.5">
+                    <PopoverGroup title={copy.spacingGroup}>
+                        <PopoverRow icon={ArrowUpDown} label={copy.lineHeight}>
+                            <PopupSelect label={copy.lineHeight} value={state.lineHeight === null ? "" : String(state.lineHeight)} onChange={(value) => commands.setLineHeight(value ? Number(value) : null)} options={[{ value: "", label: copy.default }, ...lineHeights.map((value) => ({ value: String(value), label: value.toFixed(2).replace(/0$/, "") }))]} />
+                        </PopoverRow>
+                        <span aria-hidden className="ml-10 h-px bg-[var(--card-line)]" />
+                        <PopoverRow icon={Pilcrow} label={copy.spacingShort}>
+                            <PopupSelect label={copy.spacing} value={state.spacing === null ? "" : String(state.spacing)} onChange={(value) => commands.setSpacing(value === "" ? null : Number(value))} options={[{ value: "", label: copy.default }, ...SPACINGS.map((value) => ({ value: String(value), label: `${value} px` }))]} />
+                        </PopoverRow>
+                    </PopoverGroup>
+
+                    <PopoverGroup title={copy.indentGroup} plain>
+                        <div role="group" aria-label={copy.indentGroup} className="material-group grid grid-cols-2 gap-0.5 rounded-xl p-0.5">
+                            {(
+                                [
+                                    [IndentDecrease, copy.indentLess, copy.outdent, -1, !canOutdent],
+                                    [IndentIncrease, copy.indentMore, copy.indent, 1, false],
+                                ] as const
+                            ).map(([Icon, text, label, step, disabled]) => (
+                                <button
+                                    key={step}
+                                    type="button"
+                                    aria-label={label}
+                                    title={label}
+                                    disabled={disabled}
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => commands.indent(step, state.inList)}
+                                    className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] text-[0.8125rem] font-medium text-primary outline-none transition-[background-color,box-shadow,scale] duration-150 hover:bg-primary hover:shadow-xs focus-visible:shadow-[0_0_0_2px_var(--brand)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:shadow-none"
+                                >
+                                    <Icon className="size-4 text-secondary" aria-hidden />
+                                    {text}
+                                </button>
+                            ))}
+                        </div>
+                    </PopoverGroup>
+
+                    <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => editor.chain().focus().unsetAllMarks().run()}
+                        className="material-group flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-left text-sm text-primary outline-none transition-[background-color,box-shadow,scale] duration-150 hover:bg-[rgb(118_118_128/0.16)] focus-visible:shadow-[0_0_0_2px_var(--brand)] active:scale-[0.99]"
+                    >
+                        <RemoveFormatting className="size-4 shrink-0 text-secondary" aria-hidden />
+                        <span className="flex-1">{copy.clear}</span>
+                    </button>
                 </div>
             )}
         </ToolPopover>
+    );
+}
+
+/** A titled group inside a popover — a quiet inset block, like a settings list. */
+function PopoverGroup({ title, plain = false, children }: { title: string; plain?: boolean; children: ReactNode }) {
+    return (
+        <section className="flex flex-col gap-1.5">
+            <h3 className="px-3 text-[0.6875rem] font-semibold tracking-[0.06em] text-quaternary uppercase">{title}</h3>
+            {plain ? children : <div className="material-group flex flex-col rounded-xl">{children}</div>}
+        </section>
+    );
+}
+
+/** One setting: what it is on the left, its value on the right. */
+function PopoverRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
+    return (
+        <div className="flex min-h-11 items-center gap-3 pr-1.5 pl-3">
+            <Icon className="size-4 shrink-0 text-secondary" aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-sm text-primary">{label}</span>
+            {children}
+        </div>
+    );
+}
+
+/** A pop-up button: the current value with up-down chevrons; the system menu lists the choices. */
+function PopupSelect({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+    return (
+        <span className="relative flex shrink-0 items-center">
+            <select
+                aria-label={label}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-8 cursor-pointer appearance-none rounded-lg bg-transparent pr-7 pl-2.5 text-right text-sm text-tertiary tabular-nums outline-none transition-[background-color,box-shadow] duration-150 [text-align-last:right] hover:bg-[rgb(118_118_128/0.12)] hover:text-primary focus-visible:shadow-[0_0_0_2px_var(--brand)]"
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+            <ChevronsUpDown className="pointer-events-none absolute right-2 size-3.5 text-quaternary" aria-hidden />
+        </span>
     );
 }
 
@@ -600,7 +727,6 @@ function ExtraControls({ editor, state }: { editor: Editor; state: FormatState }
     };
     return (
         <>
-            <Divider />
             <LinkControl editor={editor} href={state.link} />
             <ToolButton icon={Quote} label={copy.quote} pressed={state.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
             <ToolButton icon={CodeIcon} label={copy.code} pressed={state.code} onClick={() => editor.chain().focus().toggleCode().run()} />

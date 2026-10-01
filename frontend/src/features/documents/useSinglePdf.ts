@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { closePdfDocument, isPdfFile } from "@/lib/pdf/pdfjs";
+import { useOpenDocuments } from "@/store/useOpenDocuments";
 import { useT } from "@/i18n";
 import { MAX_PDF_MB } from "./limits";
 import { usePdfFile } from "./usePdfFile";
@@ -19,6 +20,11 @@ export function useSinglePdf({ allowLocked = false }: { allowLocked?: boolean } 
     useEffect(() => {
         if (!file) return;
         return () => closePdfDocument(file);
+    }, [file]);
+    // Known to the feature's mode bar, so switching mode keeps it open.
+    useEffect(() => {
+        useOpenDocuments.getState().set(file ? [file] : []);
+        return () => useOpenDocuments.getState().set([]);
     }, [file]);
 
     const receive = useCallback(
